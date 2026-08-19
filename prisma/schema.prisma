@@ -1,0 +1,247 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("YEMNA_DATABASE_URL")
+}
+
+enum AppRole {
+  USER
+  MODERATOR
+  SUPPORT
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  DISABLED
+  PENDING_VERIFICATION
+  DELETED
+}
+
+enum PostVisibility {
+  PUBLIC
+  FRIENDS
+  ONLY_ME
+  COMMUNITY
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  REMOVED
+}
+
+enum ReactionType {
+  LIKE
+  LOVE
+  SUPPORT
+  WOW
+  SAD
+  ANGRY
+}
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
+model User {
+  id                 String        @id @default(cuid())
+  email              String?       @unique
+  phone              String?       @unique
+  username           String?       @unique
+  passwordHash       String
+  displayName        String
+  fullName           String?
+  avatarUrl          String?
+  bio                String?       @db.VarChar(500)
+  city               String?
+  governorate        String?
+  role               AppRole       @default(USER)
+  status             AccountStatus @default(ACTIVE)
+  emailVerifiedAt    DateTime?
+  phoneVerifiedAt    DateTime?
+  lastLoginAt        DateTime?
+  passwordChangedAt  DateTime      @default(now())
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  sessions           AuthSession[]
+  settings           UserSettings?
+  posts              Post[]        @relation("postAuthor")
+  comments           Comment[]     @relation("commentAuthor")
+  reactions          Reaction[]
+  savedPosts         SavedPost[]
+  mediaAssets        MediaAsset[]  @relation("mediaOwner")
+  outgoingFriendships Friendship[] @relation("friendRequester")
+  incomingFriendships Friendship[] @relation("friendRecipient")
+  following          Follow[]      @relation("followingUser")
+  followers          Follow[]      @relation("followedUser")
+  blockedUsers       Block[]       @relation("blocker")
+  blockedByUsers     Block[]       @relation("blocked")
+
+  @@index([status])
+  @@index([role])
+  @@index([createdAt])
+}
+
+model AuthSession {
+  id           String    @id @default(cuid())
+  userId       String
+  tokenHash    String
+  deviceName   String?
+  ipAddress    String?
+  userAgent    String?
+  lastActiveAt DateTime  @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+}
+
+model UserSettings {
+  userId              String         @id
+  profileVisibility   PostVisibility @default(PUBLIC)
+  showOnlineStatus    Boolean        @default(true)
+  allowDirectMessages Boolean        @default(true)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Post {
+  id          String         @id @default(cuid())
+  authorId    String
+  body        String?
+  visibility  PostVisibility @default(PUBLIC)
+  status      PostStatus     @default(PUBLISHED)
+  shareOfId   String?
+  publishedAt DateTime       @default(now())
+  editedAt    DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  author      User           @relation("postAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  shareOf     Post?          @relation("postShares", fields: [shareOfId], references: [id], onDelete: SetNull)
+  shares      Post[]         @relation("postShares")
+  comments    Comment[]
+  reactions   Reaction[]
+  savedBy     SavedPost[]
+  media       MediaAsset[]
+
+  @@index([authorId, status, publishedAt])
+  @@index([status, visibility, publishedAt])
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  postId    String
+  authorId  String
+  parentId  String?
+  body      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User      @relation("commentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("commentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("commentReplies")
+
+  @@index([postId, createdAt])
+}
+
+model Reaction {
+  id        String       @id @default(cuid())
+  postId    String
+  userId    String
+  type      ReactionType
+  createdAt DateTime     @default(now())
+  post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId, type])
+  @@index([postId])
+}
+
+model SavedPost {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId, createdAt])
+}
+
+model MediaAsset {
+  id              String    @id @default(cuid())
+  ownerId         String
+  postId          String?
+  kind            MediaKind
+  storageKey      String    @unique
+  publicUrl       String?
+  mimeType        String
+  byteSize        Int
+  width           Int?
+  height          Int?
+  durationSeconds Int?
+  createdAt       DateTime  @default(now())
+  owner           User      @relation("mediaOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  post            Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId, createdAt])
+}
+
+model Friendship {
+  id          String           @id @default(cuid())
+  requesterId String
+  recipientId String
+  status      FriendshipStatus @default(PENDING)
+  respondedAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  requester   User             @relation("friendRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  recipient   User             @relation("friendRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, recipientId])
+  @@index([recipientId, status])
+  @@index([requesterId, status])
+}
+
+model Follow {
+  id         String   @id @default(cuid())
+  followerId String
+  followedId String
+  createdAt  DateTime @default(now())
+  follower   User     @relation("followingUser", fields: [followerId], references: [id], onDelete: Cascade)
+  followed   User     @relation("followedUser", fields: [followedId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followedId])
+  @@index([followedId, createdAt])
+}
+
+model Block {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+  blocker   User     @relation("blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+}

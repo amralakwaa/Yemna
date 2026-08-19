@@ -21,7 +21,6 @@ const aiExtras = ["/ai/friends","/ai/comments","/ai/classify","/ai/writer"];
 const adminDetails = ["/admin","/admin/users","/admin/content","/admin/reports","/admin/groups","/admin/pages","/admin/analytics","/admin/logs","/admin/roles","/admin/system"];
 const adminExtras = ["/admin/login","/admin/messages","/admin/announcement","/admin/updates","/admin/backup","/admin/maintenance","/admin/profile","/admin/user/detail","/admin/report/detail","/admin/content/review","/admin/group/detail","/admin/page/detail"];
 const states = ["/states","/states/loading","/states/empty","/states/error","/states/offline","/states/no-results","/states/blocked","/states/deleted","/states/upload-image","/states/upload-video","/states/post-unavailable","/states/user-not-found"];
-
 function Router() { return <Switch>
   <Route path="/" component={HomePage}/><Route path="/welcome" component={WelcomePage}/><Route path="/onboarding" component={OnboardingPage}/><Route path="/login" component={LoginPage}/><Route path="/register" component={RegisterPage}/><Route path="/verification" component={VerificationPage}/><Route path="/forgot-password" component={ForgotPasswordPage}/>
   <Route path="/profile" component={ProfileDetailPage}/><Route path="/profile/omar" component={ProfileDetailPage}/><Route path="/profile/edit" component={EditProfilePage}/>{profileCollections.map(path=><Route key={path} path={path} component={ProfileCollectionPage}/>)}
