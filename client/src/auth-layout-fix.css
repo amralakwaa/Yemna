@@ -1,0 +1,38 @@
+/* فلسفة يمنا: صفحات الوصول تستعمل شطرين واضحين، سياق عنابي تحريري ونموذج عملي في إيقاع RTL منضبط. */
+@media (min-width: 901px) {
+  .welcome-page {
+    width: 100vw;
+    max-width: 100vw;
+    overflow: hidden;
+    direction: ltr;
+    grid-template-columns: minmax(360px, 0.8fr) 1fr;
+  }
+  .welcome-art {
+    grid-column: 2;
+    grid-row: 1;
+    direction: rtl;
+  }
+  .welcome-actions {
+    grid-column: 1;
+    grid-row: 1;
+    direction: rtl;
+    width: min(360px, 100%);
+  }
+  .auth-flow {
+    width: 100vw;
+    max-width: 100vw;
+    overflow: hidden;
+    direction: ltr;
+    grid-template-columns: minmax(360px, 0.95fr) 1.05fr;
+  }
+  .auth-flow-art {
+    grid-column: 2;
+    grid-row: 1;
+    direction: rtl;
+  }
+  .auth-flow-card {
+    grid-column: 1;
+    grid-row: 1;
+    direction: rtl;
+  }
+}

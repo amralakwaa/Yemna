@@ -1,0 +1,19 @@
+/* فلسفة يمنا: أداة الذكاء تبقى تجربة عربية كاملة العرض على الهاتف، لا نافذة عائمة مقصوصة. */
+@media (max-width: 900px) {
+  .ai-suite.tool {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    max-width: 100%;
+    min-height: 100vh;
+    padding: 22px 20px 84px;
+    overflow: visible;
+  }
+  .ai-suite.tool .ai-tool-workspace,
+  .ai-suite.tool .ai-form,
+  .ai-suite.tool .ai-result {
+    width: 100%;
+    max-width: 100%;
+  }
+  .ai-suite.tool .ai-tool-workspace { margin: 18px 0; }
+}
