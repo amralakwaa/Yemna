@@ -1,42 +1,12 @@
+/** فلسفة يمنا: تطبيق عربي RTL ذو مسارات مترابطة، لا صفحات تجريبية معزولة. */
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Home from "./pages/Home";
+import { HomePage, LoginPage, ProfilePage, FriendsPage, SearchPage, MessagesPage, NotificationsPage, CommunitiesPage, MediaPage, SettingsPage, AIPage, AdminPage, StatesPage, CreatePage, NotFoundPage } from "./pages/YemnaPages";
 
-
-function Router() {
-  return (
-    <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
-
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
-function App() {
-  return (
-    <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
-  );
-}
-
-export default App;
+function Router() { return <Switch>
+  <Route path="/" component={HomePage}/><Route path="/login" component={LoginPage}/><Route path="/profile" component={ProfilePage}/><Route path="/friends" component={FriendsPage}/><Route path="/search" component={SearchPage}/><Route path="/messages" component={MessagesPage}/><Route path="/notifications" component={NotificationsPage}/><Route path="/communities" component={CommunitiesPage}/><Route path="/media" component={MediaPage}/><Route path="/settings" component={SettingsPage}/><Route path="/ai" component={AIPage}/><Route path="/admin" component={AdminPage}/><Route path="/states" component={StatesPage}/><Route path="/create" component={CreatePage}/><Route component={NotFoundPage}/>
+</Switch>; }
+export default function App() { return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster richColors position="top-center"/><Router/></TooltipProvider></ThemeProvider></ErrorBoundary>; }
