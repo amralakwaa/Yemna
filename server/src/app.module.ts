@@ -2,8 +2,12 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { AuthModule } from "./auth/auth.module";
+import { CommunitiesModule } from "./communities/communities.module";
 import { validateEnv } from "./config/env";
 import { HealthModule } from "./health/health.module";
+import { MediaModule } from "./media/media.module";
+import { MessagesModule } from "./messages/messages.module";
+import { NotificationsModule } from "./notifications/notifications.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { PostsModule } from "./posts/posts.module";
 import { RelationshipsModule } from "./relationships/relationships.module";
@@ -19,6 +23,10 @@ import { UsersModule } from "./users/users.module";
     UsersModule,
     PostsModule,
     RelationshipsModule,
+    CommunitiesModule,
+    MessagesModule,
+    NotificationsModule,
+    MediaModule,
   ],
 })
 export class AppModule {}

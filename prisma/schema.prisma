@@ -58,6 +58,33 @@ enum FriendshipStatus {
   CANCELLED
 }
 
+enum CommunityVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum CommunityMemberRole {
+  MEMBER
+  MODERATOR
+  ADMIN
+}
+
+enum ConversationKind {
+  DIRECT
+  GROUP
+}
+
+enum NotificationType {
+  FRIEND_REQUEST
+  FRIEND_ACCEPTED
+  FOLLOW
+  POST_REACTION
+  POST_COMMENT
+  COMMUNITY
+  MESSAGE
+  SYSTEM
+}
+
 model User {
   id                 String        @id @default(cuid())
   email              String?       @unique
@@ -85,12 +112,20 @@ model User {
   reactions          Reaction[]
   savedPosts         SavedPost[]
   mediaAssets        MediaAsset[]  @relation("mediaOwner")
+  albums             Album[]
   outgoingFriendships Friendship[] @relation("friendRequester")
   incomingFriendships Friendship[] @relation("friendRecipient")
   following          Follow[]      @relation("followingUser")
   followers          Follow[]      @relation("followedUser")
   blockedUsers       Block[]       @relation("blocker")
   blockedByUsers     Block[]       @relation("blocked")
+  ownedCommunities   Community[]   @relation("communityOwner")
+  communityMemberships CommunityMember[]
+  conversationParticipations ConversationParticipant[]
+  createdConversations Conversation[] @relation("conversationCreator")
+  sentMessages       Message[]     @relation("messageSender")
+  receivedNotifications Notification[] @relation("notificationRecipient")
+  createdNotifications Notification[] @relation("notificationActor")
 
   @@index([status])
   @@index([role])
@@ -142,6 +177,7 @@ model Post {
   reactions   Reaction[]
   savedBy     SavedPost[]
   media       MediaAsset[]
+  communityLinks CommunityPost[]
 
   @@index([authorId, status, publishedAt])
   @@index([status, visibility, publishedAt])
@@ -192,6 +228,7 @@ model MediaAsset {
   id              String    @id @default(cuid())
   ownerId         String
   postId          String?
+  albumId         String?
   kind            MediaKind
   storageKey      String    @unique
   publicUrl       String?
@@ -203,6 +240,22 @@ model MediaAsset {
   createdAt       DateTime  @default(now())
   owner           User      @relation("mediaOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   post            Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
+  album           Album?    @relation(fields: [albumId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId, createdAt])
+  @@index([albumId, createdAt])
+}
+
+model Album {
+  id          String       @id @default(cuid())
+  ownerId     String
+  title       String       @db.VarChar(120)
+  description String?      @db.VarChar(500)
+  coverUrl    String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  assets      MediaAsset[]
 
   @@index([ownerId, createdAt])
 }
@@ -244,4 +297,104 @@ model Block {
   blocked   User     @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
 
   @@unique([blockerId, blockedId])
+}
+
+model Community {
+  id          String              @id @default(cuid())
+  slug        String              @unique
+  name        String
+  description String?             @db.VarChar(1000)
+  coverUrl    String?
+  visibility  CommunityVisibility @default(PUBLIC)
+  ownerId     String
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  owner       User                @relation("communityOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     CommunityMember[]
+  posts       CommunityPost[]
+
+  @@index([visibility, createdAt])
+  @@index([ownerId])
+}
+
+model CommunityMember {
+  id          String              @id @default(cuid())
+  communityId String
+  userId      String
+  role        CommunityMemberRole @default(MEMBER)
+  joinedAt    DateTime            @default(now())
+  community   Community           @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId])
+  @@index([userId, joinedAt])
+}
+
+model CommunityPost {
+  id          String    @id @default(cuid())
+  communityId String
+  postId      String
+  createdAt   DateTime  @default(now())
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  post        Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, postId])
+  @@index([communityId, createdAt])
+}
+
+model Conversation {
+  id          String                    @id @default(cuid())
+  kind        ConversationKind          @default(DIRECT)
+  title       String?
+  createdById String
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+  createdBy   User                      @relation("conversationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  participants ConversationParticipant[]
+  messages    Message[]
+
+  @@index([updatedAt])
+}
+
+model ConversationParticipant {
+  id             String       @id @default(cuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime     @default(now())
+  lastReadAt     DateTime?
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId, joinedAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String
+  body           String       @db.VarChar(4000)
+  createdAt      DateTime     @default(now())
+  editedAt       DateTime?
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation("messageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId, createdAt])
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  recipientId String
+  actorId     String?
+  type        NotificationType
+  title       String
+  body        String?
+  linkUrl     String?
+  readAt      DateTime?
+  createdAt   DateTime         @default(now())
+  recipient   User             @relation("notificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor       User?            @relation("notificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([recipientId, readAt, createdAt])
 }
