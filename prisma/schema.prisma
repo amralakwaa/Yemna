@@ -85,6 +85,35 @@ enum NotificationType {
   SYSTEM
 }
 
+enum SupportTicketCategory {
+  ACCOUNT
+  TECHNICAL
+  SAFETY
+  OTHER
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum ReportTargetType {
+  POST
+  COMMENT
+  USER
+  COMMUNITY
+  MESSAGE
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
 model User {
   id                 String        @id @default(cuid())
   email              String?       @unique
@@ -126,6 +155,8 @@ model User {
   sentMessages       Message[]     @relation("messageSender")
   receivedNotifications Notification[] @relation("notificationRecipient")
   createdNotifications Notification[] @relation("notificationActor")
+  supportTickets     SupportTicket[]
+  submittedReports   ContentReport[]
 
   @@index([status])
   @@index([role])
@@ -397,4 +428,36 @@ model Notification {
   actor       User?            @relation("notificationActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([recipientId, readAt, createdAt])
+}
+
+model SupportTicket {
+  id        String                @id @default(cuid())
+  userId    String
+  category  SupportTicketCategory @default(OTHER)
+  subject   String                @db.VarChar(180)
+  body      String                @db.VarChar(4000)
+  status    SupportTicketStatus   @default(OPEN)
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+model ContentReport {
+  id         String           @id @default(cuid())
+  reporterId String
+  targetType ReportTargetType
+  targetId   String
+  reason     String           @db.VarChar(180)
+  details    String?          @db.VarChar(2000)
+  status     ReportStatus     @default(OPEN)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  reporter   User             @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([reporterId, createdAt])
+  @@index([status, createdAt])
+  @@index([targetType, targetId])
 }

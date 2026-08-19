@@ -1,0 +1,5 @@
+import { BadRequestException, ServiceUnavailableException } from "@nestjs/common";
+import { describe, expect, it, vi } from "vitest";
+import { AdminService } from "./admin.service";
+function makePrisma(configured = true) { return { isConfigured: vi.fn(() => configured), user: { count: vi.fn(async () => 0), findMany: vi.fn(async () => []), updateMany: vi.fn(async () => ({ count: 1 })) }, post: { count: vi.fn(async () => 0) }, community: { count: vi.fn(async () => 0) }, supportTicket: { count: vi.fn(async () => 0), findMany: vi.fn(async () => []), updateMany: vi.fn(async () => ({ count: 1 })) }, contentReport: { count: vi.fn(async () => 0), findMany: vi.fn(async () => []), updateMany: vi.fn(async () => ({ count: 1 })) } }; }
+describe("AdminService", () => { it("يرفض تشغيل الإحصاءات بلا قاعدة بيانات", async () => { await expect(new AdminService(makePrisma(false) as never).stats()).rejects.toBeInstanceOf(ServiceUnavailableException); }); it("يمنع المشرف من تعطيل نفسه", async () => { await expect(new AdminService(makePrisma() as never).updateUserStatus("admin-1", "admin-1", "DISABLED")).rejects.toBeInstanceOf(BadRequestException); }); });
