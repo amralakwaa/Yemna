@@ -1,5 +1,5 @@
 /** فلسفة يمنا: هيكل متجاوب RTL يوحّد سطح المكتب والهاتف دون تصغير قسري لواجهة سطح المكتب. */
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import * as Icons from "lucide-react";
 import { Bell, ChevronDown, Menu, MessageCircle, Moon, Plus, Search, X } from "lucide-react";
@@ -9,10 +9,10 @@ import { YemnaLogo } from "./YemnaLogo";
 
 const sideItems = [
   ...navItems.slice(0, 4),
-  { key: "pages", label: "الصفحات", path: "/communities", icon: "Flag" },
-  { key: "events", label: "الفعاليات", path: "/media", icon: "CalendarDays" },
+  { key: "pages", label: "الصفحات", path: "/pages", icon: "Flag" },
+  { key: "events", label: "الفعاليات", path: "/events", icon: "CalendarDays" },
   navItems[5],
-  { key: "saved", label: "المحفوظات", path: "/media", icon: "Bookmark" },
+  { key: "saved", label: "المحفوظات", path: "/saved", icon: "Bookmark" },
   navItems[4],
   { key: "discover", label: "استكشاف", path: "/search", icon: "Compass" },
   { key: "settings", label: "الإعدادات والخصوصية", path: "/settings", icon: "Settings" },
@@ -22,6 +22,7 @@ function NavIcon({ icon, size = 20 }: { icon: string; size?: number }) { const C
 
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
   const [location] = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const is = (path: string) => path === "/" ? location === "/" : location.startsWith(path);
   return <div className="app-shell">
     <header className="desktop-header">
@@ -30,12 +31,20 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       <nav className="top-nav" aria-label="التنقل الرئيسي">{navItems.map((item) => <Link key={item.key} href={item.path} className={is(item.path) ? "top-nav-link active" : "top-nav-link"}><span className="relative"><NavIcon icon={item.icon} size={23}/>{item.badge && <i className="nav-badge">{item.badge}</i>}</span><small>{item.label}</small></Link>)}</nav>
       <div className="header-profile"><Avatar person={people[0]}/><strong>عمر الحضرمي</strong><ChevronDown size={16}/></div>
     </header>
-    <header className="mobile-header"><button className="icon-button"><Menu/></button><YemnaLogo compact/><div><Link href="/search" className="icon-button"><Search/></Link><Link href="/notifications" className="icon-button"><Bell/></Link></div></header>
+    <header className="mobile-header"><button className="icon-button" type="button" aria-label="فتح القائمة" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen(true)}><Menu/></button><YemnaLogo compact/><div><Link href="/search" className="icon-button"><Search/></Link><Link href="/notifications" className="icon-button"><Bell/></Link></div></header>
+    {mobileMenuOpen && <div className="mobile-menu-layer" role="dialog" aria-modal="true" aria-label="القائمة الرئيسية">
+      <button className="mobile-menu-backdrop" type="button" aria-label="إغلاق القائمة" onClick={() => setMobileMenuOpen(false)}/>
+      <aside className="mobile-menu-drawer">
+        <div className="mobile-menu-head"><div className="mobile-menu-profile"><Avatar person={people[0]}/><div><strong>عمر الحضرمي</strong><small>عرض الملف الشخصي</small></div></div><button className="icon-button" type="button" aria-label="إغلاق القائمة" onClick={() => setMobileMenuOpen(false)}><X/></button></div>
+        <nav aria-label="روابط القائمة">{sideItems.map((item) => <Link key={item.key} href={item.path} onClick={() => setMobileMenuOpen(false)} className={is(item.path) ? "mobile-menu-link active" : "mobile-menu-link"}><span className="relative"><NavIcon icon={item.icon}/>{item.badge && <i className="nav-badge">{item.badge}</i>}</span><span>{item.label}</span></Link>)}</nav>
+        <div className="mobile-menu-foot"><Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="mobile-menu-link"><Icons.UserRound size={20}/><span>الملف الشخصي</span></Link><button className="theme-row" type="button"><Moon size={18}/> الوضع الداكن <span className="fake-switch"/></button></div>
+      </aside>
+    </div>}
     <main className="desktop-layout">
       <aside className="sidebar-right"><nav>{sideItems.map((item) => <Link key={item.key} href={item.path} className={is(item.path) ? "side-link active" : "side-link"}><span className="relative"><NavIcon icon={item.icon}/>{item.badge && <i className="nav-badge">{item.badge}</i>}</span><span>{item.label}</span></Link>)}</nav><div className="sidebar-bottom"><button className="theme-row"><Moon size={18}/> الوضع الداكن <span className="fake-switch"/></button><small>© 2025 يمنا<br/>جميع الحقوق محفوظة</small></div></aside>
       <section className="page-stage">{title && <div className="mobile-page-title"><h1>{title}</h1></div>}{children}</section>
     </main>
-    <nav className="mobile-nav" aria-label="التنقل السفلي"><Link href="/" className={is("/") ? "active" : ""}><Icons.House size={20}/><span>الرئيسية</span></Link><Link href="/friends"><Icons.Users size={20}/><span>الأصدقاء</span></Link><Link href="/create" className="create-nav"><Plus size={25}/></Link><Link href="/notifications"><span className="relative"><Icons.Bell size={20}/><i className="nav-badge">3</i></span><span>الإشعارات</span></Link><Link href="/settings"><Icons.Menu size={20}/><span>القائمة</span></Link></nav>
+    <nav className="mobile-nav" aria-label="التنقل السفلي"><Link href="/" className={is("/") ? "active" : ""}><Icons.House size={20}/><span>الرئيسية</span></Link><Link href="/friends"><Icons.Users size={20}/><span>الأصدقاء</span></Link><Link href="/create" className="create-nav"><Plus size={25}/></Link><Link href="/notifications"><span className="relative"><Icons.Bell size={20}/><i className="nav-badge">3</i></span><span>الإشعارات</span></Link><button type="button" className="menu-trigger" aria-label="فتح القائمة" onClick={() => setMobileMenuOpen(true)}><Icons.Menu size={20}/><span>القائمة</span></button></nav>
   </div>;
 }
 
