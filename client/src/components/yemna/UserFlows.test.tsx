@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppShell } from "./AppShell";
 import { LoginPage } from "@/pages/YemnaPages";
 import { LiveSearchPage } from "@/pages/LiveSearchPage";
+import { AccountSuitePage } from "@/pages/CompletionSuite";
 
 function setPath(path: string) {
   window.history.replaceState({}, "", path);
@@ -87,5 +88,20 @@ describe("تدفقات المستخدم الأساسية", () => {
     await user.click(communityLink!);
     expect(window.location.pathname).toBe("/communities");
     expect(window.location.search).toBe("?community=sanaa");
+  });
+
+  it("يعرض زر تعديل الملف الشخصي في الحساب الحالي وينقل إلى نموذج التعديل", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({
+      id: "user-1", email: "tester@yemna.ye", username: "tester", displayName: "مستخدم الاختبار", bio: "نبذة مختصرة", status: "ACTIVE",
+    })));
+    setPath("/account/info");
+    const user = userEvent.setup();
+    renderWithQuery(<AccountSuitePage />);
+
+    const editLink = await screen.findByRole("link", { name: "تعديل الملف الشخصي" });
+    expect(editLink.getAttribute("href")).toBe("/account/edit");
+    await user.click(editLink);
+    expect(window.location.pathname).toBe("/account/edit");
   });
 });
