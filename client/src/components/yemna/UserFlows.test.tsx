@@ -5,7 +5,7 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppShell } from "./AppShell";
-import { CreatePage, LoginPage } from "@/pages/YemnaPages";
+import { CreatePage, HomePage, LoginPage } from "@/pages/YemnaPages";
 import { LiveSearchPage } from "@/pages/LiveSearchPage";
 import { AccountSuitePage, RelationsCompletionPage } from "@/pages/CompletionSuite";
 import { CreatePostDetailPage, PostDetailPage, ProfileCollectionPage } from "@/pages/ReferenceSuite";
@@ -176,6 +176,29 @@ describe("تدفقات المستخدم الأساسية", () => {
 
     await waitFor(() => expect(window.location.pathname).toBe("/post/post-22"));
     expect(fetchMock).toHaveBeenCalledWith("/api/v1/posts", expect.objectContaining({ method: "POST", body: JSON.stringify({ body: createdPost.body, visibility: "PUBLIC" }) }));
+  });
+
+  it("يفتح زر رفع الفيديو في الصفحة الرئيسية منتقي ملفات الفيديو للمستخدم المسجل", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const liveUser = { id: "user-home-video", displayName: "ماجد صنعاء", username: "majed-sanaa", avatarUrl: "https://example.test/majed.jpg" };
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.endsWith("/notifications") || url.endsWith("/messages/conversations")) return jsonResponse([]);
+      return jsonResponse({ items: [], nextCursor: null });
+    }));
+    const user = userEvent.setup();
+    renderWithQuery(<HomePage />);
+
+    await screen.findByPlaceholderText("بم تفكر اليوم يا ماجد صنعاء؟");
+    const videoButton = await screen.findByRole("button", { name: "رفع فيديو" });
+    expect((videoButton as HTMLButtonElement).disabled).toBe(false);
+    const fileInput = screen.getByLabelText("إرفاق صورة أو فيديو") as HTMLInputElement;
+    const openPicker = vi.spyOn(fileInput, "click");
+    await user.click(videoButton);
+
+    expect(openPicker).toHaveBeenCalledTimes(1);
+    expect(fileInput.accept).toBe("video/*");
   });
 
   it("يرفع مرفق الصورة بعد إنشاء المنشور ويربطه بمعرف المنشور الحقيقي", async () => {
