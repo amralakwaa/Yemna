@@ -14,6 +14,11 @@ export type FeedResponse = { items: ApiPost[]; nextCursor: string | null };
 export type ApiMessage = { id: string; body: string; createdAt: string; sender: ApiUser; conversationId: string };
 export type ApiConversation = { id: string; kind: "DIRECT" | "GROUP"; title?: string | null; participants: Array<{ user: ApiUser }>; messages?: ApiMessage[]; lastReadAt?: string | null };
 export type ApiNotification = { id: string; type: string; title: string; body?: string | null; linkUrl?: string | null; createdAt: string; readAt?: string | null; actor?: ApiUser | null };
+export type ApiFriend = { id: string; since?: string; user: ApiUser };
+export type ApiFriendRequest = { id: string; requester: ApiUser; createdAt?: string };
+export type ApiFollow = { id: string; follower?: ApiUser; followed?: ApiUser; createdAt?: string };
+export type ApiBlock = { id: string; blocked: ApiUser; createdAt?: string };
+export type ApiCommunity = { id: string; name: string; slug: string; description?: string | null; coverUrl?: string | null; visibility?: "PUBLIC" | "PRIVATE"; owner?: ApiUser; _count?: { members?: number; posts?: number } };
 type AuthResponse = { accessToken: string; user: ApiUser };
 
 function readAccessToken() { try { return sessionStorage.getItem(ACCESS_TOKEN_KEY); } catch { return null; } }
@@ -52,6 +57,16 @@ export const api = {
   getNotifications: () => apiRequest<ApiNotification[]>("/notifications"),
   markNotificationRead: (notificationId: string) => apiRequest<ApiNotification>(`/notifications/${encodeURIComponent(notificationId)}/read`, { method: "PATCH" }),
   markAllNotificationsRead: () => apiRequest<{ count: number }>("/notifications/read-all", { method: "PATCH" }),
+  getFriends: () => apiRequest<ApiFriend[]>("/relationships/friends"),
+  getFriendRequests: () => apiRequest<ApiFriendRequest[]>("/relationships/requests"),
+  respondToFriendRequest: (requestId: string, action: "accept" | "decline") => apiRequest<unknown>(`/relationships/requests/${encodeURIComponent(requestId)}/respond`, { method: "POST", body: JSON.stringify({ action }) }),
+  getFollowers: () => apiRequest<ApiFollow[]>("/relationships/followers"),
+  getFollowing: () => apiRequest<ApiFollow[]>("/relationships/following"),
+  followUser: (userId: string) => apiRequest<unknown>(`/relationships/follow/${encodeURIComponent(userId)}`, { method: "POST" }),
+  unfollowUser: (userId: string) => apiRequest<void>(`/relationships/follow/${encodeURIComponent(userId)}`, { method: "DELETE" }),
+  getCommunities: () => apiRequest<ApiCommunity[]>("/communities"),
+  joinCommunity: (communityId: string) => apiRequest<unknown>(`/communities/${encodeURIComponent(communityId)}/join`, { method: "POST" }),
+  leaveCommunity: (communityId: string) => apiRequest<void>(`/communities/${encodeURIComponent(communityId)}/leave`, { method: "DELETE" }),
 };
 
 function relativeTime(value?: string | null) {

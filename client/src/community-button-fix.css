@@ -1,0 +1,12 @@
+.community-create-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--yemna) !important;
+  color: #fff !important;
+}
+
+.community-create-button svg {
+  color: currentColor;
+  flex: none;
+}

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Inject, Param, Post, Req, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
 import type { JwtPayload } from "../auth/auth.types";
@@ -11,7 +11,7 @@ type AuthenticatedRequest = Request & { user: JwtPayload };
 @ApiTags("communities")
 @Controller({ path: "communities", version: "1" })
 export class CommunitiesController {
-  constructor(private readonly communities: CommunitiesService) {}
+  constructor(@Inject(CommunitiesService) private readonly communities: CommunitiesService) {}
   @Get() list() { return this.communities.list(); }
   @Get(":id") get(@Param("id") id: string) { return this.communities.get(id); }
   @ApiBearerAuth() @UseGuards(JwtAuthGuard) @Post() create(@Req() req: AuthenticatedRequest, @Body() dto: CreateCommunityDto) { return this.communities.create(req.user.sub, dto); }
