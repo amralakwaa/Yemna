@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Inject, Param, Post, Req, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
@@ -13,7 +13,7 @@ type AuthenticatedRequest = Request & { user: JwtPayload };
 @UseGuards(JwtAuthGuard)
 @Controller({ path: "relationships", version: "1" })
 export class RelationshipsController {
-  constructor(private readonly relationships: RelationshipsService) {}
+  constructor(@Inject(RelationshipsService) private readonly relationships: RelationshipsService) {}
 
   @Get("friends") friends(@Req() req: AuthenticatedRequest) { return this.relationships.listFriends(req.user.sub); }
   @Get("requests") requests(@Req() req: AuthenticatedRequest) { return this.relationships.listRequests(req.user.sub); }

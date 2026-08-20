@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Inject, Param, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiConsumes, ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
@@ -11,7 +11,7 @@ import { MediaService } from "./media.service";
 type AuthenticatedRequest = Request & { user: JwtPayload };
 @ApiTags("media") @ApiBearerAuth() @UseGuards(JwtAuthGuard) @Controller({ path: "media", version: "1" })
 export class MediaController {
-  constructor(private readonly media: MediaService) {}
+  constructor(@Inject(MediaService) private readonly media: MediaService) {}
   @Get() list(@Req() req: AuthenticatedRequest, @Query("kind") kind?: MediaKind, @Query("albumId") albumId?: string) { return this.media.list(req.user.sub, kind, albumId); }
   @Get("albums") albums(@Req() req: AuthenticatedRequest) { return this.media.albums(req.user.sub); }
   @Post("albums") createAlbum(@Req() req: AuthenticatedRequest, @Body() dto: CreateAlbumDto) { return this.media.createAlbum(req.user.sub, dto); }
