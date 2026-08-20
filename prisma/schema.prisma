@@ -142,6 +142,7 @@ model User {
   savedPosts         SavedPost[]
   mediaAssets        MediaAsset[]  @relation("mediaOwner")
   stories            Story[]
+  storyViews         StoryView[]   @relation("storyViewer")
   albums             Album[]
   outgoingFriendships Friendship[] @relation("friendRequester")
   incomingFriendships Friendship[] @relation("friendRecipient")
@@ -288,9 +289,23 @@ model Story {
   createdAt DateTime   @default(now())
   author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   media     MediaAsset @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+  views     StoryView[]
 
   @@index([expiresAt, createdAt])
   @@index([authorId, createdAt])
+}
+
+model StoryView {
+  id        String   @id @default(cuid())
+  storyId   String
+  viewerId  String
+  viewedAt  DateTime @default(now())
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  viewer    User     @relation("storyViewer", fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, viewerId])
+  @@index([viewerId, viewedAt])
+  @@index([storyId, viewedAt])
 }
 
 model Album {

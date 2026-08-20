@@ -30,6 +30,17 @@ export class MessagesService {
     return this.database().conversation.create({ data: { kind, title: dto.title, createdById: userId, participants: { create: participantIds.map(id => ({ userId: id })) } }, include: { participants: { include: { user: { select: user } } } } });
   }
 
+  async findOrCreateDirectConversation(userId: string, otherUserId: string) {
+    if (userId === otherUserId) throw new BadRequestException("لا يمكن إنشاء محادثة مباشرة مع الحساب نفسه");
+    const existing = await this.database().conversationParticipant.findFirst({
+      where: { userId, conversation: { kind: ConversationKind.DIRECT, participants: { some: { userId: otherUserId } } } },
+      include: { conversation: { include: { participants: { include: { user: { select: user } } } } } },
+      orderBy: { conversation: { updatedAt: "desc" } },
+    });
+    if (existing) return existing.conversation;
+    return this.create(userId, { participantIds: [otherUserId] });
+  }
+
   private async assertParticipant(userId: string, conversationId: string) {
     const participation = await this.database().conversationParticipant.findUnique({ where: { conversationId_userId: { conversationId, userId } }, select: { id: true } });
     if (!participation) throw new ForbiddenException("لا تملك صلاحية الوصول إلى هذه المحادثة");

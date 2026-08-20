@@ -32,6 +32,18 @@
   line-height: 1.7;
 }
 
+.story-owner-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-inline-start: auto;
+}
+
+.story-owner-actions small {
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+}
+
 @media (min-width: 901px) {
   body:has(.story-view),
   #root:has(.story-view) {

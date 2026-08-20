@@ -25,6 +25,7 @@ export type ApiSearchResponse = { users: ApiUser[]; posts: ApiSearchPost[]; comm
 export type ApiSupportTicket = { id: string; category: "ACCOUNT" | "TECHNICAL" | "SAFETY" | "OTHER"; subject: string; body: string; status: string; createdAt: string; updatedAt?: string };
 export type ApiMediaAsset = { id: string; kind: "IMAGE" | "VIDEO" | "AUDIO" | "DOCUMENT"; publicUrl: string; mimeType: string; byteSize: number; width?: number | null; height?: number | null; durationSeconds?: number | null; createdAt: string; albumId?: string | null; postId?: string | null };
 export type ApiStory = { id: string; caption?: string | null; createdAt: string; expiresAt: string; author: Pick<ApiUser, "id" | "displayName" | "username" | "fullName" | "avatarUrl">; media: ApiMediaAsset };
+export type ApiStoryViews = { count: number; viewers: Array<{ viewedAt: string; viewer: Pick<ApiUser, "id" | "displayName" | "username" | "fullName" | "avatarUrl"> }> };
 export type ApiAlbum = { id: string; title: string; description?: string | null; coverUrl?: string | null; createdAt: string; updatedAt: string; _count: { assets: number } };
 export type ApiAdminStats = { users: number; posts: number; communities: number; openTickets: number; openReports: number };
 export type ApiAdminUser = ApiUser & { role?: string; status?: "ACTIVE" | "DISABLED" | "PENDING_VERIFICATION" | "DELETED" | null; lastLoginAt?: string | null; reason?: never; reporter?: never };
@@ -192,6 +193,9 @@ export const api = {
   getStories: () => apiRequest<ApiStory[]>("/stories"),
   getStory: (storyId: string) => apiRequest<ApiStory>(`/stories/${encodeURIComponent(storyId)}`),
   createStory: (mediaId: string, caption?: string) => apiRequest<ApiStory>("/stories", { method: "POST", body: JSON.stringify({ mediaId, caption }) }),
+  recordStoryView: (storyId: string) => apiRequest<{ success: true; recorded: boolean }>(`/stories/${encodeURIComponent(storyId)}/views`, { method: "POST" }),
+  getStoryViews: (storyId: string) => apiRequest<ApiStoryViews>(`/stories/${encodeURIComponent(storyId)}/viewers`),
+  replyToStory: (storyId: string, body: string) => apiRequest<ApiMessage>(`/stories/${encodeURIComponent(storyId)}/reply`, { method: "POST", body: JSON.stringify({ body }) }),
   deleteStory: (storyId: string) => apiRequest<{ success: true }>(`/stories/${encodeURIComponent(storyId)}`, { method: "DELETE" }),
   search: (query: string, type: "all" | "users" | "posts" | "communities" = "all") => apiRequest<ApiSearchResponse>(`/search?q=${encodeURIComponent(query)}&type=${type}`),
   getAdminStats: () => apiRequest<ApiAdminStats>("/admin/stats"),
