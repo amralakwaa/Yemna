@@ -1,5 +1,5 @@
 /** فلسفة يمنا: شاشات عربية مترابطة تتشارك مكونات اجتماعية موحّدة وبيانات يمنية قابلة للاستبدال. */
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Bell, Bookmark, CalendarDays, Camera, ChevronLeft, CircleAlert, Compass, FileText, Heart, Image as ImageIcon, LifeBuoy, LoaderCircle, Lock, MapPin, MessageCircle, Mic, MoreHorizontal, Play, Plus, Search, Send, Settings, Share2, ShieldCheck, SlidersHorizontal, Sparkles, Users, Video, WifiOff, X } from "lucide-react";
@@ -9,7 +9,7 @@ import { Avatar, Pill, SearchBox, SectionHeading, Surface, Verified } from "@/co
 import { PostCard } from "@/components/yemna/PostCard";
 import { YemnaLogo } from "@/components/yemna/YemnaLogo";
 import { assets, communities, people, posts, settingsGroups, type Person } from "@/lib/yemnaData";
-import { api, ApiError, asPerson, asPost, hasRestSession, setRestAccessToken } from "@/lib/api";
+import { api, ApiError, asPerson, asPost, hasRestSession, setRestAccessToken, uploadMediaWithProgress } from "@/lib/api";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { useRealtimeSubscription } from "@/lib/realtime";
 
@@ -18,7 +18,69 @@ const simpleImages = [assets.sanaa, assets.socotra, assets.campus, assets.sanaa,
 const localPlaces = ["صنعاء، اليمن", "عدن، اليمن", "تعز، اليمن", "إب، اليمن", "حضرموت، اليمن", "الحديدة، اليمن"];
 
 function Stories() { return <Surface className="stories"><div className="create-story"><Plus size={27}/><span>إنشاء قصة</span></div>{storyPeople.map((person, index) => <div className="story" key={person.id}><img src={simpleImages[index]} alt=""/><div className="story-overlay"/><Avatar person={person} size="md" ring/><span>{person.name.split(" ")[0]}</span></div>)}</Surface>; }
-function Composer({ onDone }: { onDone?: () => void }) { const [content, setContent] = useState(""); const [files, setFiles] = useState<File[]>([]); const fileInput = useRef<HTMLInputElement>(null); const queryClient = useQueryClient(); const { currentUser, isLoading } = useCurrentUser(); const currentPerson = currentUser ? asPerson(currentUser) : null; const currentName = currentUser?.displayName || currentUser?.fullName || "حسابك"; const createPost = useMutation({ mutationFn: async ({ body, attachments }: { body: string; attachments: File[] }) => { const post = await api.createPost(body || " "); if (attachments.length) await Promise.all(attachments.map(file => api.uploadMedia(file, { postId: post.id }))); return post; }, onSuccess: () => { setContent(""); setFiles([]); queryClient.invalidateQueries({ queryKey: ["rest", "feed"] }); queryClient.invalidateQueries({ queryKey: ["rest", "media"] }); toast.success("تم نشر منشورك في يمنا"); onDone?.(); }, onError: (error) => toast.error(error instanceof ApiError && error.status === 401 ? "سجّل الدخول أولاً لنشر منشور" : "تعذر نشر المنشور أو رفع مرفقاته، حاول لاحقاً") }); const pickFiles = (selected: FileList | null) => { const accepted = Array.from(selected || []).filter(file => file.type.startsWith("image/") || file.type.startsWith("video/")); if (accepted.length !== (selected?.length || 0)) toast.error("يمكن إرفاق الصور والفيديوهات فقط"); setFiles(accepted.slice(0, 4)); }; const publish = () => { if (!content.trim() && !files.length) return toast.error("اكتب فكرة أو اختر صورة أو فيديو لمشاركتها"); if (!currentPerson) return toast.error("سجّل الدخول أولاً لنشر منشور"); createPost.mutate({ body: content.trim(), attachments: files }); }; return <Surface className="composer"><div className="composer-top">{isLoading ? <span className="avatar avatar-md" aria-label="يجري تحميل الحساب"/> : currentPerson ? <Avatar person={currentPerson}/> : <Link href="/login" className="text-button">تسجيل الدخول</Link>}<input disabled={createPost.isPending || !currentPerson} value={content} onChange={e=>setContent(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")publish()}} placeholder={currentPerson ? `بم تفكر اليوم يا ${currentName}؟` : "سجّل الدخول أولاً للنشر"}/></div>{files.length > 0 && <p className="muted-center">{files.length} مرفق جاهز للرفع: {files.map(file => file.name).join("، ")}</p>}<input ref={fileInput} aria-label="إرفاق صورة أو فيديو" type="file" accept="image/*,video/*" multiple hidden onChange={event=>pickFiles(event.target.files)}/><div className="composer-actions"><button type="button" disabled={createPost.isPending || !currentPerson} onClick={()=>fileInput.current?.click()}><ImageIcon/>صورة / فيديو</button><button type="button"><Video/>فيديو مباشر</button><button type="button"><Sparkles/>مشاعر / نشاط</button><button type="button"><MapPin/>موقع</button><button disabled={createPost.isPending || !currentPerson} onClick={publish} className="button">{createPost.isPending ? "جارٍ النشر…" : "نشر"}</button></div></Surface>; }
+const MAX_VIDEO_BYTES = 25 * 1024 * 1024;
+const attachmentKey = (file: File) => `${file.name}-${file.lastModified}-${file.size}`;
+const formatVideoDuration = (seconds?: number) => !seconds || !Number.isFinite(seconds) ? "جارٍ قراءة المدة…" : `${Math.floor(seconds / 60)}:${Math.floor(seconds % 60).toString().padStart(2, "0")} دقيقة`;
+const formatFileSize = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(bytes >= 10 * 1024 * 1024 ? 0 : 1)} ميغابايت`;
+
+function Composer({ onDone }: { onDone?: () => void }) {
+  const [content, setContent] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [videoPreviews, setVideoPreviews] = useState<Record<string, string>>({});
+  const [videoDurations, setVideoDurations] = useState<Record<string, number>>({});
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, percent: 0 });
+  const fileInput = useRef<HTMLInputElement>(null);
+  const uploadAbort = useRef<AbortController | null>(null);
+  const queryClient = useQueryClient();
+  const { currentUser, isLoading } = useCurrentUser();
+  const currentPerson = currentUser ? asPerson(currentUser) : null;
+  const currentName = currentUser?.displayName || currentUser?.fullName || "حسابك";
+
+  useEffect(() => () => {
+    const revoke = globalThis.URL?.revokeObjectURL;
+    if (typeof revoke === "function") Object.values(videoPreviews).forEach(url => revoke(url));
+  }, [videoPreviews]);
+
+  const clearAttachments = () => {
+    setFiles([]); setVideoPreviews({}); setVideoDurations({}); setUploadProgress({ current: 0, total: 0, percent: 0 });
+    if (fileInput.current) fileInput.current.value = "";
+  };
+  const removeAttachment = (key: string) => {
+    setFiles(current => current.filter(file => attachmentKey(file) !== key));
+    setVideoPreviews(current => { const next = { ...current }; if (next[key]) URL.revokeObjectURL(next[key]); delete next[key]; return next; });
+    setVideoDurations(current => { const next = { ...current }; delete next[key]; return next; });
+  };
+  const createPost = useMutation({
+    mutationFn: async ({ body, attachments }: { body: string; attachments: File[] }) => {
+      const post = await api.createPost(body || " ");
+      if (attachments.length) {
+        uploadAbort.current = new AbortController();
+        for (const [index, file] of attachments.entries()) {
+          await uploadMediaWithProgress(file, { postId: post.id, signal: uploadAbort.current.signal, onProgress: percent => setUploadProgress({ current: index + 1, total: attachments.length, percent }) });
+        }
+      }
+      return post;
+    },
+    onSuccess: () => { setContent(""); clearAttachments(); queryClient.invalidateQueries({ queryKey: ["rest", "feed"] }); queryClient.invalidateQueries({ queryKey: ["rest", "media"] }); toast.success("تم نشر منشورك في يمنا"); onDone?.(); },
+    onError: (error) => { queryClient.invalidateQueries({ queryKey: ["rest", "feed"] }); if (error instanceof Error && error.name === "AbortError") toast.info("تم نشر النص دون رفع المرفق الملغى."); else toast.error(error instanceof ApiError && error.status === 401 ? "سجّل الدخول أولاً لنشر منشور" : "تعذر نشر المنشور أو رفع مرفقاته، حاول لاحقاً"); },
+    onSettled: () => { uploadAbort.current = null; setUploadProgress({ current: 0, total: 0, percent: 0 }); }
+  });
+  const pickFiles = (selected: FileList | null) => {
+    const rawFiles = Array.from(selected || []);
+    const allowed = rawFiles.filter(file => file.type.startsWith("image/") || file.type.startsWith("video/"));
+    const oversizedVideos = allowed.filter(file => file.type.startsWith("video/") && file.size > MAX_VIDEO_BYTES);
+    const accepted = allowed.filter(file => !oversizedVideos.includes(file)).slice(0, 4);
+    if (allowed.length !== rawFiles.length) toast.error("يمكن إرفاق الصور والفيديوهات فقط");
+    if (oversizedVideos.length) toast.error("حجم الفيديو يتجاوز الحد المسموح: 25 ميغابايت.");
+    setVideoPreviews(current => { const next = { ...current }; accepted.filter(file => file.type.startsWith("video/")).forEach(file => { const key = attachmentKey(file); if (!next[key] && typeof globalThis.URL?.createObjectURL === "function") next[key] = globalThis.URL.createObjectURL(file); }); return next; });
+    setFiles(accepted);
+  };
+  const publish = () => { if (!content.trim() && !files.length) return toast.error("اكتب فكرة أو اختر صورة أو فيديو لمشاركتها"); if (!currentPerson) return toast.error("سجّل الدخول أولاً لنشر منشور"); createPost.mutate({ body: content.trim(), attachments: files }); };
+  const cancelUpload = () => uploadAbort.current?.abort();
+  const uploading = createPost.isPending && uploadProgress.total > 0;
+
+  return <Surface className="composer"><div className="composer-top">{isLoading ? <span className="avatar avatar-md" aria-label="يجري تحميل الحساب"/> : currentPerson ? <Avatar person={currentPerson}/> : <Link href="/login" className="text-button">تسجيل الدخول</Link>}<input disabled={createPost.isPending || !currentPerson} value={content} onChange={e=>setContent(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")publish()}} placeholder={currentPerson ? `بم تفكر اليوم يا ${currentName}؟` : "سجّل الدخول أولاً للنشر"}/></div>{files.length > 0 && <div className="composer-attachments" aria-live="polite">{files.map(file => { const key = attachmentKey(file); const isVideo = file.type.startsWith("video/"); return <article className="composer-attachment" key={key}>{isVideo ? <video className="composer-video-preview" src={videoPreviews[key]} controls muted preload="metadata" onLoadedMetadata={event => setVideoDurations(current => ({ ...current, [key]: event.currentTarget.duration }))}/> : <div className="composer-image-file"><ImageIcon size={20}/></div>}<div className="composer-attachment-copy"><strong>{file.name}</strong><span>{isVideo ? `فيديو · ${formatVideoDuration(videoDurations[key])} · ${formatFileSize(file.size)}` : `صورة · ${formatFileSize(file.size)}`}</span></div>{!createPost.isPending && <button type="button" className="text-button" onClick={() => removeAttachment(key)}>إزالة</button>}</article>; })}</div>}<input ref={fileInput} aria-label="إرفاق صورة أو فيديو" type="file" accept="image/*,video/*" multiple hidden onChange={event=>pickFiles(event.target.files)}/>{uploading && <div className="composer-upload-state"><div className="composer-progress" role="progressbar" aria-label="تقدم رفع الفيديو" aria-valuemin={0} aria-valuemax={100} aria-valuenow={uploadProgress.percent}><span style={{ width: `${uploadProgress.percent}%` }}/></div><span>رفع {uploadProgress.current} من {uploadProgress.total} · {uploadProgress.percent}%</span><button type="button" className="text-button danger" onClick={cancelUpload}>إلغاء الرفع</button></div>}<div className="composer-actions"><button type="button" disabled={createPost.isPending || !currentPerson} onClick={()=>fileInput.current?.click()}><ImageIcon/>صورة / فيديو</button><button type="button"><Video/>فيديو مباشر</button><button type="button"><Sparkles/>مشاعر / نشاط</button><button type="button"><MapPin/>موقع</button><button disabled={createPost.isPending || !currentPerson} onClick={publish} className="button">{uploading ? "جارٍ رفع الفيديو…" : createPost.isPending ? "جارٍ النشر…" : "نشر"}</button></div></Surface>;
+}
 function TrendRail() { return <aside className="trend-rail"><Surface className="rail-card"><SectionHeading title="الموضوعات الرائجة" action={<Link href="/search">عرض المزيد</Link>}/>{["صنعاء الجميلة", "التراث اليمني", "منتخبنا الوطني", "تقنية وابتكار"].map((trend,index)=><div className="trend-item" key={trend}><span><i/> <b>{trend}</b><small>{5+index*7} منشور جديد</small></span><img src={simpleImages[index]} alt=""/></div>)}</Surface><Surface className="rail-card"><SectionHeading title="الفعاليات القادمة" action={<Link href="/media">عرض المزيد</Link>}/><div className="event-mini"><div className="event-date"><b>25</b><span>أغسطس</span></div><div><b>معرض الكتاب اليمني</b><p>الأحد، 25 أغسطس · صنعاء</p></div><img src={assets.campus} alt="معرض الكتاب"/></div></Surface><Surface className="rail-card"><SectionHeading title="الأصدقاء النشطون"/><div className="active-friends">{people.slice(1,6).map(person=><div key={person.id}><Avatar person={person} size="md"/><span>{person.name.split(" ")[0]}</span></div>)}</div></Surface></aside>; }
 
 export function HomePage() { const feed = useQuery({ queryKey: ["rest", "feed"], queryFn: api.getFeed, retry: 1 }); const renderedPosts = feed.data?.items.map(asPost) ?? []; return <AppShell><div className="home-columns"><div className="feed-column"><Stories/><Composer/>{feed.isLoading && <Surface className="content-placeholder"><LoaderCircle className="animate-spin" size={28}/><p>يجري تحميل أحدث المنشورات…</p></Surface>}{feed.isError && <Surface className="content-placeholder"><WifiOff size={28}/><h3>تعذر تحميل التغذية</h3><p>تحقق من اتصالك ثم أعد المحاولة.</p><button className="button outline" onClick={()=>feed.refetch()}>إعادة المحاولة</button></Surface>}{!feed.isLoading && !feed.isError && renderedPosts.length === 0 && <Surface className="content-placeholder"><FileText size={28}/><h3>لا توجد منشورات بعد</h3><p>كن أول من يشارك فكرة مع مجتمع يمنا.</p></Surface>}{renderedPosts.map(post=><PostCard post={post} key={post.id}/>)}</div><TrendRail/></div></AppShell>; }

@@ -88,16 +88,51 @@ describe("عقود REST للحساب والدعم", () => {
     expect(init.method).toBe("DELETE");
   });
 
-  it("يرفع الوسيط كـ FormData إلى المسار المحمي دون فرض ترويسة JSON", async () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ id: "asset-1", kind: "IMAGE", publicUrl: "/manus-storage/asset-1", mimeType: "image/png", byteSize: 4, createdAt: "2026-08-20T00:00:00.000Z" }), { status: 201 }));
+  it("يرفع الوسيط كـ FormData بتقدم ظاهر وترويسة وصول، ويقبل الإلغاء", async () => {
+    setRestAccessToken("media-token-for-test");
+    const requests: UploadRequest[] = [];
+    class UploadRequest {
+      status = 0;
+      responseText = "";
+      withCredentials = false;
+      headers = new Map<string, string>();
+      form?: FormData;
+      upload = { onprogress: null as ((event: ProgressEvent<EventTarget>) => void) | null };
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      onabort: (() => void) | null = null;
+      constructor() { requests.push(this); }
+      open(method: string, url: string) { expect(method).toBe("POST"); expect(url).toBe("/api/v1/media/upload"); }
+      setRequestHeader(name: string, value: string) { this.headers.set(name, value); }
+      send(form: FormData) {
+        this.form = form;
+        this.upload.onprogress?.({ lengthComputable: true, loaded: 1, total: 2 } as ProgressEvent<EventTarget>);
+        this.status = 201;
+        this.responseText = JSON.stringify({ id: "asset-1", kind: "IMAGE", publicUrl: "/manus-storage/asset-1", mimeType: "image/png", byteSize: 4, createdAt: "2026-08-20T00:00:00.000Z" });
+        this.onload?.();
+      }
+      abort() { this.onabort?.(); }
+    }
+    vi.stubGlobal("XMLHttpRequest", UploadRequest);
+    const progress: number[] = [];
 
-    await api.uploadMedia(new File(["data"], "photo.png", { type: "image/png" }));
+    const uploaded = await api.uploadMedia(new File(["data"], "photo.png", { type: "image/png" }), { postId: "post-1", onProgress: value => progress.push(value) });
 
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("/api/v1/media/upload");
-    expect(init.method).toBe("POST");
-    expect(init.body).toBeInstanceOf(FormData);
-    expect(new Headers(init.headers).get("Content-Type")).toBeNull();
+    expect(requests).toHaveLength(1);
+    expect(requests[0].headers.get("Authorization")).toBe("Bearer media-token-for-test");
+    expect(requests[0].form).toBeInstanceOf(FormData);
+    expect(requests[0].form?.get("postId")).toBe("post-1");
+    expect(progress).toEqual([50, 100]);
+    expect(uploaded.id).toBe("asset-1");
+
+    class PendingUploadRequest extends UploadRequest {
+      override send(form: FormData) { this.form = form; }
+    }
+    vi.stubGlobal("XMLHttpRequest", PendingUploadRequest);
+    const controller = new AbortController();
+    const pending = api.uploadMedia(new File(["video"], "clip.mp4", { type: "video/mp4" }), { signal: controller.signal });
+    controller.abort();
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
   });
 
   it("يجلب إحصاءات الإدارة عبر العقد المحمي الصحيح", async () => {

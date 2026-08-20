@@ -190,6 +190,26 @@ describe("تدفقات المستخدم الأساسية", () => {
       return jsonResponse({ items: [], nextCursor: null });
     });
     vi.stubGlobal("fetch", fetchMock);
+    const uploadedForms: FormData[] = [];
+    class CompletedImageUploadRequest {
+      status = 0;
+      responseText = "";
+      withCredentials = false;
+      upload = { onprogress: null as ((event: ProgressEvent<EventTarget>) => void) | null };
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      onabort: (() => void) | null = null;
+      open() { /* لا يلزم اتصال حقيقي في الاختبار */ }
+      setRequestHeader() { /* الترويسة مغطاة في اختبار عميل REST */ }
+      send(body: FormData) {
+        uploadedForms.push(body);
+        this.status = 201;
+        this.responseText = JSON.stringify({ id: "media-1", postId: createdPost.id });
+        this.onload?.();
+      }
+      abort() { this.onabort?.(); }
+    }
+    vi.stubGlobal("XMLHttpRequest", CompletedImageUploadRequest);
     setPath("/create");
     const user = userEvent.setup();
     renderWithQuery(<CreatePage />);
@@ -199,10 +219,9 @@ describe("تدفقات المستخدم الأساسية", () => {
     await user.upload(screen.getByLabelText("إرفاق صورة أو فيديو"), image);
     await user.click(screen.getByRole("button", { name: "نشر" }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/media/upload", expect.objectContaining({ method: "POST", body: expect.any(FormData) })));
-    const uploadCall = fetchMock.mock.calls.find(([url]) => String(url).endsWith("/media/upload"));
-    expect((uploadCall?.[1] as RequestInit).body).toBeInstanceOf(FormData);
-    expect(((uploadCall?.[1] as RequestInit).body as FormData).get("postId")).toBe(createdPost.id);
+    await waitFor(() => expect(uploadedForms).toHaveLength(1));
+    expect(uploadedForms[0]).toBeInstanceOf(FormData);
+    expect(uploadedForms[0].get("postId")).toBe(createdPost.id);
   });
 
   it("يرفع فيديو MP4 بعد إنشاء المنشور ويعرضه كمشغل في مكتبة الفيديو", async () => {
@@ -219,6 +238,28 @@ describe("تدفقات المستخدم الأساسية", () => {
       return jsonResponse({ items: [], nextCursor: null });
     });
     vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("URL", { createObjectURL: vi.fn(() => "blob:video-preview"), revokeObjectURL: vi.fn() });
+    const uploadedForms: FormData[] = [];
+    class CompletedUploadRequest {
+      status = 0;
+      responseText = "";
+      withCredentials = false;
+      upload = { onprogress: null as ((event: ProgressEvent<EventTarget>) => void) | null };
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      onabort: (() => void) | null = null;
+      open() { /* لا يلزم اتصال حقيقي في الاختبار */ }
+      setRequestHeader() { /* تتحقق اختبارات api من الترويسة تفصيلياً */ }
+      send(body: FormData) {
+        uploadedForms.push(body);
+        this.upload.onprogress?.({ lengthComputable: true, loaded: 1, total: 2 } as unknown as ProgressEvent<EventTarget>);
+        this.status = 201;
+        this.responseText = JSON.stringify({ ...videoMedia[0], postId: createdPost.id });
+        this.onload?.();
+      }
+      abort() { this.onabort?.(); }
+    }
+    vi.stubGlobal("XMLHttpRequest", CompletedUploadRequest);
     const user = userEvent.setup();
 
     setPath("/create");
@@ -226,11 +267,12 @@ describe("تدفقات المستخدم الأساسية", () => {
     await user.type(await screen.findByPlaceholderText("بم تفكر اليوم يا أروى صنعاء؟"), createdPost.body);
     const video = new File(["video-body"], "sanaa.mp4", { type: "video/mp4" });
     await user.upload(screen.getByLabelText("إرفاق صورة أو فيديو"), video);
+    expect(screen.getByText("sanaa.mp4")).toBeTruthy();
+    expect(create.container.querySelector("video.composer-video-preview")?.getAttribute("src")).toBe("blob:video-preview");
     await user.click(screen.getByRole("button", { name: "نشر" }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/media/upload", expect.objectContaining({ method: "POST", body: expect.any(FormData) })));
-    const uploadCall = fetchMock.mock.calls.find(([url]) => String(url).endsWith("/media/upload"));
-    const body = (uploadCall?.[1] as RequestInit).body as FormData;
+    await waitFor(() => expect(uploadedForms).toHaveLength(1));
+    const body = uploadedForms[0];
     expect((body.get("file") as File).type).toBe("video/mp4");
     expect(body.get("postId")).toBe(createdPost.id);
     create.unmount();

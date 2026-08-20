@@ -84,6 +84,67 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}, retryA
   return payload as T;
 }
 
+export type MediaUploadOptions = {
+  postId?: string;
+  albumId?: string;
+  signal?: AbortSignal;
+  onProgress?: (percent: number) => void;
+};
+
+function cancelledUploadError() {
+  const error = new Error("تم إلغاء رفع الملف");
+  error.name = "AbortError";
+  return error;
+}
+
+export function uploadMediaWithProgress(file: File, options: MediaUploadOptions = {}): Promise<ApiMediaAsset> {
+  return new Promise((resolve, reject) => {
+    if (options.signal?.aborted) {
+      reject(cancelledUploadError());
+      return;
+    }
+
+    const form = new FormData();
+    form.append("file", file);
+    if (options.postId) form.append("postId", options.postId);
+    if (options.albumId) form.append("albumId", options.albumId);
+
+    const request = new XMLHttpRequest();
+    const token = readAccessToken();
+    const detachAbort = () => options.signal?.removeEventListener("abort", abort);
+    const abort = () => request.abort();
+
+    request.open("POST", `${API_BASE}/media/upload`);
+    request.withCredentials = true;
+    if (token) request.setRequestHeader("Authorization", `Bearer ${token}`);
+    request.upload.onprogress = event => {
+      if (event.lengthComputable) options.onProgress?.(Math.round((event.loaded / event.total) * 100));
+    };
+    request.onload = () => {
+      detachAbort();
+      const payload = JSON.parse(request.responseText || "{}") as { message?: string | string[] } & ApiMediaAsset;
+      if (request.status >= 200 && request.status < 300) {
+        options.onProgress?.(100);
+        resolve(payload);
+        return;
+      }
+      const message = Array.isArray(payload.message) ? payload.message.join("، ") : payload.message || "تعذر رفع الملف";
+      if (request.status === 401) clearRestAccessToken();
+      reject(new ApiError(request.status, message));
+    };
+    request.onerror = () => {
+      detachAbort();
+      reject(new ApiError(0, "تعذر الاتصال أثناء رفع الملف"));
+    };
+    request.onabort = () => {
+      detachAbort();
+      reject(cancelledUploadError());
+    };
+    options.signal?.addEventListener("abort", abort, { once: true });
+    request.send(form);
+  });
+}
+
 export const api = {
   register: (payload: { displayName: string; email?: string; phone?: string; password: string }) => apiRequest<AuthResponse>("/auth/register", { method: "POST", body: JSON.stringify(payload) }),
   login: (identifier: string, password: string) => apiRequest<AuthResponse>("/auth/login", { method: "POST", body: JSON.stringify({ identifier, password }) }),
@@ -125,7 +186,7 @@ export const api = {
   getMedia: (kind?: ApiMediaAsset["kind"]) => apiRequest<ApiMediaAsset[]>(`/media${kind ? `?kind=${encodeURIComponent(kind)}` : ""}`),
   getMediaAlbums: () => apiRequest<ApiAlbum[]>("/media/albums"),
   createMediaAlbum: (payload: Pick<ApiAlbum, "title" | "description" | "coverUrl">) => apiRequest<ApiAlbum>("/media/albums", { method: "POST", body: JSON.stringify(payload) }),
-  uploadMedia: (file: File, options?: { postId?: string; albumId?: string }) => { const form = new FormData(); form.append("file", file); if (options?.postId) form.append("postId", options.postId); if (options?.albumId) form.append("albumId", options.albumId); return apiRequest<ApiMediaAsset>("/media/upload", { method: "POST", body: form }); },
+  uploadMedia: (file: File, options?: MediaUploadOptions) => uploadMediaWithProgress(file, options),
   deleteMedia: (mediaId: string) => apiRequest<void>(`/media/${encodeURIComponent(mediaId)}`, { method: "DELETE" }),
   search: (query: string, type: "all" | "users" | "posts" | "communities" = "all") => apiRequest<ApiSearchResponse>(`/search?q=${encodeURIComponent(query)}&type=${type}`),
   getAdminStats: () => apiRequest<ApiAdminStats>("/admin/stats"),
