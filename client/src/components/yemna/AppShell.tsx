@@ -3,8 +3,9 @@ import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import * as Icons from "lucide-react";
 import { Bell, ChevronDown, Menu, MessageCircle, Moon, Plus, Search, X } from "lucide-react";
+import { toast } from "sonner";
 import { navItems } from "@/lib/yemnaData";
-import { asPerson } from "@/lib/api";
+import { api, asPerson, clearRestAccessToken } from "@/lib/api";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { Avatar, SearchBox } from "./UI";
 import { YemnaLogo } from "./YemnaLogo";
@@ -23,12 +24,23 @@ const sideItems = [
 function NavIcon({ icon, size = 20 }: { icon: string; size?: number }) { const Component = Icons[icon as keyof typeof Icons] as React.ComponentType<{size?: number}>; return Component ? <Component size={size}/> : <Icons.Circle size={size}/>; }
 
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
   const is = (path: string) => path === "/" ? location === "/" : location.startsWith(path);
   const currentPerson = currentUser ? asPerson(currentUser) : null;
   const currentUserName = currentUser?.displayName || currentUser?.fullName || currentUser?.username || "حساب يمنا";
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+      clearRestAccessToken();
+      setMobileMenuOpen(false);
+      navigate("/login");
+      toast.success("تم تسجيل الخروج بأمان");
+    } catch {
+      toast.error("تعذر إنهاء الجلسة من الخادم. تحقق من اتصالك ثم أعد المحاولة.");
+    }
+  };
   return <div className="app-shell">
     <header className="desktop-header">
       <YemnaLogo compact/>
@@ -42,11 +54,11 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       <aside className="mobile-menu-drawer">
         <div className="mobile-menu-head">{isCurrentUserLoading ? <div className="mobile-menu-profile" aria-label="يجري تحميل الحساب"><span className="avatar avatar-md"/><div><strong>جارٍ تحميل الحساب…</strong></div></div> : currentPerson ? <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="mobile-menu-profile"><Avatar person={currentPerson}/><div><strong>{currentUserName}</strong><small>عرض الملف الشخصي</small></div></Link> : <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="mobile-menu-profile"><Icons.LogIn size={20}/><div><strong>تسجيل الدخول</strong><small>ادخل إلى حسابك</small></div></Link>}<button className="icon-button" type="button" aria-label="إغلاق القائمة" onClick={() => setMobileMenuOpen(false)}><X/></button></div>
         <nav aria-label="روابط القائمة">{sideItems.map((item) => <Link key={item.key} href={item.path} onClick={() => setMobileMenuOpen(false)} className={is(item.path) ? "mobile-menu-link active" : "mobile-menu-link"}><span className="relative"><NavIcon icon={item.icon}/>{item.badge && <i className="nav-badge">{item.badge}</i>}</span><span>{item.label}</span></Link>)}</nav>
-        <div className="mobile-menu-foot"><Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="mobile-menu-link"><Icons.UserRound size={20}/><span>الملف الشخصي</span></Link><button className="theme-row" type="button"><Moon size={18}/> الوضع الداكن <span className="fake-switch"/></button></div>
+        <div className="mobile-menu-foot">{currentPerson ? <><Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="mobile-menu-link"><Icons.UserRound size={20}/><span>الملف الشخصي</span></Link><button className="theme-row" type="button" onClick={handleLogout}><Icons.LogOut size={18}/> تسجيل الخروج</button></> : <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="mobile-menu-link"><Icons.LogIn size={20}/><span>تسجيل الدخول</span></Link>}<button className="theme-row" type="button"><Moon size={18}/> الوضع الداكن <span className="fake-switch"/></button></div>
       </aside>
     </div>}
     <main className="desktop-layout">
-      <aside className="sidebar-right"><nav>{sideItems.map((item) => <Link key={item.key} href={item.path} className={is(item.path) ? "side-link active" : "side-link"}><span className="relative"><NavIcon icon={item.icon}/>{item.badge && <i className="nav-badge">{item.badge}</i>}</span><span>{item.label}</span></Link>)}</nav><div className="sidebar-bottom"><button className="theme-row"><Moon size={18}/> الوضع الداكن <span className="fake-switch"/></button><small>© 2025 يمنا<br/>جميع الحقوق محفوظة</small></div></aside>
+      <aside className="sidebar-right"><nav>{sideItems.map((item) => <Link key={item.key} href={item.path} className={is(item.path) ? "side-link active" : "side-link"}><span className="relative"><NavIcon icon={item.icon}/>{item.badge && <i className="nav-badge">{item.badge}</i>}</span><span>{item.label}</span></Link>)}</nav><div className="sidebar-bottom">{currentPerson && <button className="theme-row" type="button" onClick={handleLogout}><Icons.LogOut size={18}/> تسجيل الخروج</button>}<button className="theme-row" type="button"><Moon size={18}/> الوضع الداكن <span className="fake-switch"/></button><small>© 2025 يمنا<br/>جميع الحقوق محفوظة</small></div></aside>
       <section className="page-stage">{title && <div className="mobile-page-title"><h1>{title}</h1></div>}{children}</section>
     </main>
     <nav className="mobile-nav" aria-label="التنقل السفلي"><Link href="/" className={is("/") ? "active" : ""}><Icons.House size={20}/><span>الرئيسية</span></Link><Link href="/friends"><Icons.Users size={20}/><span>الأصدقاء</span></Link><Link href="/create" className="create-nav"><Plus size={25}/></Link><Link href="/notifications"><span className="relative"><Icons.Bell size={20}/><i className="nav-badge">3</i></span><span>الإشعارات</span></Link><button type="button" className="menu-trigger" aria-label="فتح القائمة" onClick={() => setMobileMenuOpen(true)}><Icons.Menu size={20}/><span>القائمة</span></button></nav>

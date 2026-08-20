@@ -1,6 +1,7 @@
 /** فلسفة يمنا: بطاقة منشور موحدة تغلّب المحتوى العربي والصورة على الزخرفة. */
 import { useState } from "react";
 import { Bookmark, Ellipsis, Heart, MessageCircle, Send, Share2 } from "lucide-react";
+import { Link } from "wouter";
 import type { Post } from "@/lib/yemnaData";
 import { Avatar, Verified } from "./UI";
 
@@ -19,7 +20,7 @@ export function PostCard({ post, compact = false }: { post: Post; compact?: bool
     <div className="post-stats"><span className="reaction-stack"><i>👍</i><i>❤</i><i>😮</i> {count}</span><span>{post.comments} تعليقاً &nbsp; {post.shares} مشاركة</span></div>
     <div className="post-actions">
       <button className={liked ? "action active-like" : "action"} onClick={() => setLiked(!liked)}><Heart size={19} fill={liked ? "currentColor" : "none"}/> {liked ? "أعجبني" : "أعجبني"}</button>
-      <button className="action" onClick={() => setShowComments(!showComments)}><MessageCircle size={19}/> تعليق</button>
+      <Link href={`/post/${post.id}`} className="action"><MessageCircle size={19}/> تعليق</Link>
       <button className="action"><Share2 size={19}/> مشاركة</button>
       <button className={saved ? "action active-like" : "action"} onClick={() => setSaved(!saved)}><Bookmark size={19} fill={saved ? "currentColor" : "none"}/> حفظ</button>
     </div>

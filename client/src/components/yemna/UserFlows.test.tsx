@@ -8,7 +8,7 @@ import { AppShell } from "./AppShell";
 import { LoginPage } from "@/pages/YemnaPages";
 import { LiveSearchPage } from "@/pages/LiveSearchPage";
 import { AccountSuitePage, RelationsCompletionPage } from "@/pages/CompletionSuite";
-import { CreatePostDetailPage } from "@/pages/ReferenceSuite";
+import { CreatePostDetailPage, PostDetailPage, ProfileCollectionPage } from "@/pages/ReferenceSuite";
 import { CurrentUserProvider, useCurrentUser } from "@/contexts/CurrentUserContext";
 
 function setPath(path: string) {
@@ -150,5 +150,65 @@ describe("تدفقات المستخدم الأساسية", () => {
     expect(editLink.getAttribute("href")).toBe("/account/edit");
     await user.click(editLink);
     expect(window.location.pathname).toBe("/account/edit");
+  });
+
+  it("ينشئ منشوراً عبر REST ثم ينتقل إلى معرف المنشور الذي أعاده الخادم", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const liveUser = { id: "user-9", displayName: "هدى إب", username: "huda-ibb", avatarUrl: "https://example.test/huda.jpg" };
+    const createdPost = { id: "post-22", body: "يوم جميل في إب", createdAt: new Date().toISOString(), author: liveUser, _count: { comments: 0, reactions: 0, shares: 0 } };
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.endsWith("/posts") && init?.method === "POST") return jsonResponse(createdPost);
+      return jsonResponse({ items: [], nextCursor: null });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    setPath("/create/post");
+    const user = userEvent.setup();
+    renderWithQuery(<CreatePostDetailPage />);
+
+    await user.type(await screen.findByPlaceholderText("بم تفكر اليوم يا هدى إب؟"), createdPost.body);
+    await user.click(screen.getByRole("button", { name: "نشر" }));
+
+    await waitFor(() => expect(window.location.pathname).toBe("/post/post-22"));
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/posts", expect.objectContaining({ method: "POST", body: JSON.stringify({ body: createdPost.body, visibility: "PUBLIC" }) }));
+  });
+
+  it("ينشر تعليقاً عبر REST ويعرض وسائط الحساب الحقيقية ويُنهي الجلسة من القائمة", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const liveUser = { id: "user-10", displayName: "ليان عدن", username: "layan-aden", avatarUrl: "https://example.test/layan.jpg" };
+    const post = { id: "post-99", body: "تجربة منشور حقيقي", createdAt: new Date().toISOString(), author: liveUser, _count: { comments: 0, reactions: 0, shares: 0 } };
+    const media = [{ id: "media-1", kind: "IMAGE", publicUrl: "https://example.test/yemna-photo.jpg", mimeType: "image/jpeg", byteSize: 1200, createdAt: new Date().toISOString() }];
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.endsWith("/posts/post-99/comments") && init?.method === "POST") return jsonResponse({ id: "comment-1", body: "تعليق حقيقي", createdAt: new Date().toISOString(), author: liveUser });
+      if (url.endsWith("/posts/post-99/comments")) return jsonResponse([]);
+      if (url.endsWith("/posts/post-99")) return jsonResponse(post);
+      if (url.endsWith("/media?kind=IMAGE")) return jsonResponse(media);
+      if (url.endsWith("/auth/logout")) return { ok: true, status: 204, json: async () => ({}) } as Response;
+      return jsonResponse({ items: [], nextCursor: null });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    setPath("/post/post-99");
+    const detail = renderWithQuery(<PostDetailPage />);
+    await user.type(await screen.findByPlaceholderText("اكتب تعليقاً..."), "تعليق حقيقي");
+    await user.click(screen.getByRole("button", { name: "نشر التعليق" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/posts/post-99/comments", expect.objectContaining({ method: "POST", body: JSON.stringify({ body: "تعليق حقيقي" }) })));
+    detail.unmount();
+
+    setPath("/photos");
+    const collection = renderWithQuery(<ProfileCollectionPage />);
+    expect((await screen.findByAltText("وسائط من حسابك")).getAttribute("src")).toBe(media[0].publicUrl);
+    collection.unmount();
+
+    setPath("/");
+    renderWithQuery(<AppShell title="اختبار الخروج"><p>محتوى اختبار</p></AppShell>);
+    await user.click(await screen.findByRole("button", { name: "تسجيل الخروج" }));
+    await waitFor(() => expect(window.location.pathname).toBe("/login"));
+    expect(sessionStorage.getItem("yemna_access_token")).toBeNull();
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/auth/logout", expect.objectContaining({ method: "POST" }));
   });
 });

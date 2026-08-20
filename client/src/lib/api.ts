@@ -11,6 +11,7 @@ export type ApiUser = { id: string; displayName: string; username: string; fullN
 export type ApiMedia = { url?: string | null; kind?: string };
 export type ApiPost = { id: string; body: string; publishedAt?: string | null; createdAt: string; author: ApiUser; media?: ApiMedia[]; _count: { comments: number; reactions: number; shares: number } };
 export type FeedResponse = { items: ApiPost[]; nextCursor: string | null };
+export type ApiComment = { id: string; body: string; createdAt: string; author: ApiUser; replies?: ApiComment[] };
 export type ApiMessage = { id: string; body: string; createdAt: string; sender: ApiUser; conversationId: string };
 export type ApiConversation = { id: string; kind: "DIRECT" | "GROUP"; title?: string | null; participants: Array<{ user: ApiUser }>; messages?: ApiMessage[]; lastReadAt?: string | null };
 export type ApiNotification = { id: string; type: string; title: string; body?: string | null; linkUrl?: string | null; createdAt: string; readAt?: string | null; actor?: ApiUser | null };
@@ -86,8 +87,12 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}, retryA
 export const api = {
   register: (payload: { displayName: string; email?: string; phone?: string; password: string }) => apiRequest<AuthResponse>("/auth/register", { method: "POST", body: JSON.stringify(payload) }),
   login: (identifier: string, password: string) => apiRequest<AuthResponse>("/auth/login", { method: "POST", body: JSON.stringify({ identifier, password }) }),
+  logout: () => apiRequest<void>("/auth/logout", { method: "POST" }, false),
   getFeed: () => apiRequest<FeedResponse>("/posts?limit=20"),
-  createPost: (body: string) => apiRequest<ApiPost>("/posts", { method: "POST", body: JSON.stringify({ body, visibility: "PUBLIC" }) }),
+  getPost: (postId: string) => apiRequest<ApiPost>(`/posts/${encodeURIComponent(postId)}`),
+  createPost: (body: string, visibility: "PUBLIC" | "FRIENDS" | "PRIVATE" = "PUBLIC") => apiRequest<ApiPost>("/posts", { method: "POST", body: JSON.stringify({ body, visibility }) }),
+  getPostComments: (postId: string) => apiRequest<ApiComment[]>(`/posts/${encodeURIComponent(postId)}/comments`),
+  createPostComment: (postId: string, body: string) => apiRequest<ApiComment>(`/posts/${encodeURIComponent(postId)}/comments`, { method: "POST", body: JSON.stringify({ body }) }),
   getMe: () => apiRequest<ApiUser>("/users/me"),
   updateMe: (payload: Partial<Pick<ApiUser, "displayName" | "fullName" | "username" | "bio" | "city" | "governorate" | "avatarUrl">>) => apiRequest<ApiUser>("/users/me", { method: "PATCH", body: JSON.stringify(payload) }),
   getUser: (username: string) => apiRequest<ApiUser>(`/users/${encodeURIComponent(username)}`),
