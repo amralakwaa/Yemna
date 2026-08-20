@@ -19,6 +19,8 @@ export type ApiFriendRequest = { id: string; requester: ApiUser; createdAt?: str
 export type ApiFollow = { id: string; follower?: ApiUser; followed?: ApiUser; createdAt?: string };
 export type ApiBlock = { id: string; blocked: ApiUser; createdAt?: string };
 export type ApiCommunity = { id: string; name: string; slug: string; description?: string | null; coverUrl?: string | null; visibility?: "PUBLIC" | "PRIVATE"; owner?: ApiUser; _count?: { members?: number; posts?: number } };
+export type ApiSearchPost = Omit<ApiPost, "_count"> & { _count: { comments: number; reactions: number } };
+export type ApiSearchResponse = { users: ApiUser[]; posts: ApiSearchPost[]; communities: ApiCommunity[] };
 type AuthResponse = { accessToken: string; user: ApiUser };
 
 function readAccessToken() { try { return sessionStorage.getItem(ACCESS_TOKEN_KEY); } catch { return null; } }
@@ -67,6 +69,7 @@ export const api = {
   getCommunities: () => apiRequest<ApiCommunity[]>("/communities"),
   joinCommunity: (communityId: string) => apiRequest<unknown>(`/communities/${encodeURIComponent(communityId)}/join`, { method: "POST" }),
   leaveCommunity: (communityId: string) => apiRequest<void>(`/communities/${encodeURIComponent(communityId)}/leave`, { method: "DELETE" }),
+  search: (query: string, type: "all" | "users" | "posts" | "communities" = "all") => apiRequest<ApiSearchResponse>(`/search?q=${encodeURIComponent(query)}&type=${type}`),
 };
 
 function relativeTime(value?: string | null) {

@@ -1,0 +1,17 @@
+.realtime-status {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: .72rem;
+  font-weight: 700;
+  gap: .3rem;
+  line-height: 1;
+  padding: .42rem .58rem;
+  white-space: nowrap;
+}
+
+.realtime-status-connected { background: #e8f7f0; color: #18794e; }
+.realtime-status-connecting,
+.realtime-status-reconnecting { background: #fff4dd; color: #9a5a02; }
+.realtime-status-offline,
+.realtime-status-error { background: #fbeaec; color: #a21f35; }

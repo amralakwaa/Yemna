@@ -13,9 +13,9 @@ export class SearchService {
   async posts(query: string) { const term = this.term(query); return this.database().post.findMany({ where: { body: { contains: term, mode: "insensitive" }, status: PostStatus.PUBLISHED, visibility: PostVisibility.PUBLIC }, include: { author: { select: userSummary }, _count: { select: { comments: true, reactions: true } } }, take: 30, orderBy: { publishedAt: "desc" } }); }
   async communities(query: string) { const term = this.term(query); return this.database().community.findMany({ where: { visibility: CommunityVisibility.PUBLIC, OR: [{ name: { contains: term, mode: "insensitive" } }, { description: { contains: term, mode: "insensitive" } }] }, include: { owner: { select: userSummary }, _count: { select: { members: true, posts: true } } }, take: 30, orderBy: { createdAt: "desc" } }); }
   async search(query: string, type: "all" | "users" | "posts" | "communities" = "all") {
-    if (type === "users") return { users: await this.users(query) };
-    if (type === "posts") return { posts: await this.posts(query) };
-    if (type === "communities") return { communities: await this.communities(query) };
+    if (type === "users") return { users: await this.users(query), posts: [], communities: [] };
+    if (type === "posts") return { users: [], posts: await this.posts(query), communities: [] };
+    if (type === "communities") return { users: [], posts: [], communities: await this.communities(query) };
     const [users, posts, communities] = await Promise.all([this.users(query), this.posts(query), this.communities(query)]);
     return { users, posts, communities };
   }

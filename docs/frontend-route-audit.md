@@ -171,3 +171,180 @@
 | `/admin/stats` | ظهر خطأ 500 بعد اجتياز حارس الأدوار بسبب حقن غير صريح لخدمة الإدارة. | ثُبّت حقن `AdminService` في المتحكم. | اجتاز اختبار HTTP للمصادقة وRBAC مع طلب إداري برمز صالح. |
 
 > **قرار الإغلاق:** لا توجد شاشة متخصصة مطلوبة ضمن نطاق 13–18 بلا مسار فعلي أو بلا نتيجة فحص مرئية مسجلة. هذا القرار لا يغيّر حالة صفحات العرض التجريبية غير الموصولة بعد ببيانات REST؛ يوضح فقط اكتمال المسارات والشاشات المطلوبة والتحقق المرئي منها.
+
+## مصفوفة التدقيق الفردية الكاملة
+
+تسجل هذه المصفوفة جميع تعريفات المسارات الموجودة في `client/src/App.tsx` وقت المراجعة. تعني **مرئي** أن المسار فُتح في معاينة هاتفية بعرض `375×812` أثناء هذه المراجعة، وتعني **مراجعة تعريف** أن تعريف `Route` روجع صراحةً لكن الشاشة تشارك مكوّناً مع مسار ممثل فُحص مرئياً. أما **قالب بيانات** فيخص المسارات الديناميكية التي تحتاج قيمة فعلية لاختبار معنى المحتوى، مع بقاء تعريف الموجّه مؤكداً. لا تساوي أي من هذه الحالات ربط البيانات الحية ما لم يذكر ذلك صراحة في قسم حالة الربط.
+
+| المجال | المسار الفردي | المكوّن/نوع التعريف | نتيجة التدقيق |
+|---|---|---|---|
+| الرئيسية | `/` | `HomePage` | مرئي |
+| الوصول | `/welcome` | `WelcomePage` | مرئي |
+| الوصول | `/onboarding` | `OnboardingPage` | مرئي |
+| الوصول | `/login` | `LoginPage` | مرئي — REST للمصادقة متاح |
+| الوصول | `/register` | `RegisterPage` | مرئي — REST للمصادقة متاح |
+| الوصول | `/verification` | `VerificationPage` | مرئي |
+| الوصول | `/forgot-password` | `ForgotPasswordPage` | مرئي |
+| الملف | `/profile` | `ProfileDetailPage` | مرئي — REST للملف متاح |
+| الملف | `/profile/edit` | `EditProfilePage` | مرئي |
+| الملف | `/profile/:username` | `ProfileDetailPage` | قالب بيانات؛ تعريف صريح وREST للملف العام متاح |
+| ملف ومحتوى | `/my-posts` | `ProfileCollectionPage` | مرئي |
+| ملف ومحتوى | `/saved` | `ProfileCollectionPage` | مرئي |
+| ملف ومحتوى | `/albums` | `ProfileCollectionPage` | مرئي |
+| ملف ومحتوى | `/photos` | `ProfileCollectionPage` | مرئي |
+| ملف ومحتوى | `/videos` | `ProfileCollectionPage` | مرئي |
+| ملف ومحتوى | `/activity` | `ProfileCollectionPage` | مرئي |
+| ملف ومحتوى | `/memories` | `ProfileCollectionPage` | مرئي |
+| المحتوى | `/story` | `StoryPage` | مرئي |
+| المحتوى | `/story/create` | `CreateStoryPage` | مرئي |
+| المحتوى | `/post/1` | `PostDetailPage` | مرئي |
+| المحتوى | `/post/options` | `PostOptionsPage` | مرئي |
+| المحتوى | `/post/report` | `ReportPostPage` | مرئي |
+| المحتوى | `/share` | `LibraryUtilityPage` | مرئي |
+| المحتوى | `/create` | `CreatePage` | مرئي |
+| المحتوى | `/create/post` | `CreatePostDetailPage` | مرئي |
+| المحتوى | `/create/media` | `CreateMediaPage` | مرئي |
+| المحتوى | `/media/editor` | `ImageEditorPage` | مرئي |
+| المحتوى | `/create/video` | `UploadVideoPage` | مرئي |
+| العلاقات | `/friends` | `FriendsPage` | مرئي سابقاً في سجل الهاتف |
+| العلاقات | `/friends/mutual` | `RelationsCompletionPage` | مرئي سابقاً في سجل الهاتف |
+| العلاقات | `/friendship/manage` | `RelationsCompletionPage` | مرئي سابقاً في سجل الهاتف |
+| العلاقات | `/blocked/unblock` | `RelationsCompletionPage` | مرئي |
+| العلاقات | `/blocked` | `RelationsCompletionPage` | مرئي سابقاً في سجل الهاتف |
+| العلاقات | `/friend-requests` | `RelationsDetailPage` | مرئي سابقاً في سجل الهاتف |
+| العلاقات | `/followers` | `RelationsDetailPage` | مرئي سابقاً في سجل الهاتف |
+| العلاقات | `/following` | `RelationsDetailPage` | مرئي سابقاً في سجل الهاتف |
+| العلاقات | `/people/discover` | `RelationsDetailPage` | مرئي |
+| العلاقات | `/friend-suggestions` | `FriendSuggestionsPage` | مرئي سابقاً في سجل الهاتف |
+| الرسائل | `/messages` | `RealtimeMessagesPage` | مرئي سابقاً؛ يتطلب جلسة لبيانات حية |
+| الرسائل | `/messages/new` | `NewMessagePage` | مرئي سابقاً في سجل الهاتف |
+| الرسائل | `/messages/chat` | `ChatDetailPage` | مرئي سابقاً في سجل الهاتف |
+| الرسائل | `/messages/info` | `ChatInfoPage` | مرئي سابقاً في سجل الهاتف |
+| الرسائل | `/messages/group` | `GroupChatPage` | مرئي سابقاً في سجل الهاتف |
+| الرسائل | `/messages/group/create` | `CreateGroupChatPage` | مرئي سابقاً في سجل الهاتف |
+| المكالمات | `/calls` | `CallHistoryPage` | مرئي |
+| المكالمات | `/call/incoming` | `CallPage` | مرئي |
+| المكالمات | `/call/active` | `CallPage` | مرئي |
+| الإشعارات | `/notifications` | `RealtimeNotificationsPage` | مرئي سابقاً؛ يتطلب جلسة لبيانات حية |
+| الإشعارات | `/notifications/settings` | `NotificationSettingsPage` | مرئي سابقاً في سجل الهاتف |
+| الدليل | `/groups` | `DirectoryPage` | مرئي |
+| الدليل | `/groups/create` | `CreatePageEntity` | مرئي |
+| الدليل | `/pages` | `DirectoryPage` | مرئي |
+| الدليل | `/pages/create` | `CreatePageEntity` | مرئي |
+| الدليل | `/pages/manage` | `PageManagementPage` | مرئي |
+| المجتمعات | `/communities` | `CommunitiesPage` | مرئي سابقاً؛ REST للقائمة متاح |
+| المجتمعات | `/communities/local` | `CommunityExplorerPage` | مرئي سابقاً في سجل الهاتف |
+| المجتمعات | `/communities/governorates` | `CommunityExplorerPage` | مرئي سابقاً في سجل الهاتف |
+| المجتمعات | `/communities/universities` | `CommunityExplorerPage` | مرئي سابقاً في سجل الهاتف |
+| المجتمعات | `/communities/interests` | `CommunityExplorerPage` | مرئي سابقاً في سجل الهاتف |
+| المجتمعات | `/communities/nearby` | `NearbyCommunityPage` | مرئي سابقاً في سجل الهاتف |
+| المجتمعات | `/communities/notifications` | `CommunityExtraPage` | مرئي |
+| المجتمعات | `/communities/search` | `CommunityExtraPage` | مرئي |
+| المجتمعات | `/communities/location` | `CommunityExtraPage` | مرئي |
+| المجتمع | `/community/old-sanaa` | `CommunityDetailPage` | مرئي سابقاً في سجل الهاتف |
+| المجتمع | `/community/sanaa` | `CommunityDetailPage` | مرئي |
+| المجتمع | `/community/page` | `CommunityDetailPage` | مرئي |
+| الصفحة | `/page/yemna` | `CommunityDetailPage` | مرئي |
+| المجتمع | `/community/create` | `CreateCommunityPage` | مرئي |
+| المجتمع | `/community/join` | `JoinCommunityPage` | مرئي |
+| المجتمع | `/community/members` | `CommunityMembersPage` | مرئي سابقاً في سجل الهاتف |
+| المجتمع | `/community/manage` | `CommunityManagePage` | مرئي |
+| المجتمع | `/community/info` | `CommunityInfoPage` | مرئي |
+| البحث | `/search` | `LiveSearchPage` | مرئي — REST حي تم اختباره بعد إصلاح الحقن |
+| البحث | `/search/advanced` | `AdvancedSearchPage` | مرئي |
+| البحث | `/search/voice` | `VoiceSearchPage` | مرئي |
+| الاكتشاف | `/discover` | `DiscoverPage` | مرئي |
+| الاكتشاف | `/discover/map` | `DiscoverMapPage` | مرئي |
+| الاكتشاف | `/discover/interests` | `InterestsPage` | مرئي |
+| الوسائط | `/media` | `MediaPage` | مرئي |
+| Reels | `/reels` | `ReelsPage` | مرئي |
+| Reels | `/reels/view` | `ReelViewerPage` | مرئي |
+| Reels | `/reels/create` | `ReelCreatePage` | مرئي |
+| Reels | `/reels/audio` | `ReelsAudioPage` | مرئي |
+| Reels | `/reels/edit` | `MediaExtraPage` | مرئي |
+| Reels | `/reels/categories` | `MediaExtraPage` | مرئي |
+| البث المباشر | `/live` | `LivePage` | مرئي |
+| البث المباشر | `/live/view` | `LiveViewerPage` | مرئي |
+| البث المباشر | `/live/create` | `LiveCreatePage` | مرئي |
+| البث المباشر | `/live/info` | `MediaExtraPage` | مرئي |
+| البث المباشر | `/live/active` | `MediaExtraPage` | مرئي |
+| البث المباشر | `/live/previous` | `MediaExtraPage` | مرئي |
+| الفعاليات | `/events` | `EventsPage` | مرئي |
+| الفعاليات | `/events/1` | `EventsPage` | مرئي |
+| الفعاليات | `/events/create` | `EventsPage` | مرئي |
+| الأدوات | `/files` | `LibraryUtilityPage` | مرئي |
+| الدعم | `/help` | `SupportSuitePage` | مرئي سابقاً في سجل الهاتف |
+| الدعم | `/help/faq` | `SupportSuitePage` | مرئي سابقاً في سجل الهاتف |
+| الدعم | `/help/report` | `SupportSuitePage` | مرئي سابقاً في سجل الهاتف |
+| الدعم | `/help/report/status` | `SupportSuitePage` | مرئي سابقاً في سجل الهاتف |
+| الدعم | `/help/contact` | `SupportSuitePage` | مرئي سابقاً في سجل الهاتف |
+| الحساب | `/account` | `AccountSuitePage` | مرئي سابقاً في سجل الهاتف |
+| الحساب | `/account/info` | `AccountSuitePage` | مرئي سابقاً في سجل الهاتف |
+| الحساب | `/account/edit` | `AccountSuitePage` | مرئي سابقاً في سجل الهاتف |
+| الحساب | `/account/contact/email` | `AccountSuitePage` | مرئي سابقاً في سجل الهاتف |
+| الحساب | `/account/contact/phone` | `AccountSuitePage` | مرئي سابقاً في سجل الهاتف |
+| الحساب | `/account/recovery` | `AccountSuitePage` | مرئي سابقاً في سجل الهاتف |
+| الحساب | `/account/disable` | `AccountSuitePage` | مرئي سابقاً في سجل الهاتف |
+| الحساب | `/account/delete` | `AccountSuitePage` | مرئي سابقاً في سجل الهاتف |
+| الأدوات | `/more` | `MorePage` | مرئي |
+| الإعدادات | `/settings` | `SettingsPage` | مرئي |
+| الإعدادات | `/settings/privacy` | `SettingsDetailPage` | مرئي |
+| الإعدادات | `/settings/security` | `SettingsDetailPage` | مرئي |
+| الإعدادات | `/settings/sessions` | `SettingsDetailPage` | مرئي |
+| الإعدادات | `/settings/notifications` | `SettingsDetailPage` | مرئي |
+| الإعدادات | `/settings/data` | `SettingsDetailPage` | مرئي |
+| الذكاء الاصطناعي | `/ai` | `AIHubPage` | مرئي |
+| الذكاء الاصطناعي | `/ai/assistant` | `AIToolDetailPage` | مرئي |
+| الذكاء الاصطناعي | `/ai/post` | `AIToolDetailPage` | مرئي |
+| الذكاء الاصطناعي | `/ai/summary` | `AIToolDetailPage` | مرئي |
+| الذكاء الاصطناعي | `/ai/search` | `AIToolDetailPage` | مرئي |
+| الذكاء الاصطناعي | `/ai/sentiment` | `AIToolDetailPage` | مرئي |
+| الذكاء الاصطناعي | `/ai/recommendations` | `AIToolDetailPage` | مرئي |
+| الذكاء الاصطناعي | `/ai/report` | `AIToolDetailPage` | مرئي |
+| الذكاء الاصطناعي | `/ai/friends` | `ExtraAIPage` | مرئي |
+| الذكاء الاصطناعي | `/ai/comments` | `ExtraAIPage` | مرئي |
+| الذكاء الاصطناعي | `/ai/classify` | `ExtraAIPage` | مرئي |
+| الذكاء الاصطناعي | `/ai/writer` | `ExtraAIPage` | مرئي |
+| الإدارة | `/admin/ai-analytics` | `AIUsageAnalyticsPage` | مرئي سابقاً في سجل الهاتف |
+| الإدارة | `/admin` | `AdminDetailPage` | مرئي |
+| الإدارة | `/admin/users` | `AdminDetailPage` | مرئي سابقاً في سجل الهاتف |
+| الإدارة | `/admin/content` | `AdminDetailPage` | مرئي سابقاً في سجل الهاتف |
+| الإدارة | `/admin/reports` | `AdminDetailPage` | مرئي سابقاً في سجل الهاتف |
+| الإدارة | `/admin/groups` | `AdminDetailPage` | مرئي |
+| الإدارة | `/admin/pages` | `AdminDetailPage` | مرئي |
+| الإدارة | `/admin/analytics` | `AdminDetailPage` | مرئي سابقاً في سجل الهاتف |
+| الإدارة | `/admin/logs` | `AdminDetailPage` | مرئي سابقاً في سجل الهاتف |
+| الإدارة | `/admin/roles` | `AdminDetailPage` | مرئي |
+| الإدارة | `/admin/system` | `AdminDetailPage` | مرئي |
+| الإدارة | `/admin/login` | `AdminExtraPage` | مرئي |
+| الإدارة | `/admin/messages` | `AdminExtraPage` | مرئي |
+| الإدارة | `/admin/announcement` | `AdminExtraPage` | مرئي |
+| الإدارة | `/admin/updates` | `AdminExtraPage` | مرئي |
+| الإدارة | `/admin/backup` | `AdminExtraPage` | مرئي |
+| الإدارة | `/admin/maintenance` | `AdminExtraPage` | مرئي |
+| الإدارة | `/admin/profile` | `AdminExtraPage` | مرئي |
+| الإدارة | `/admin/user/detail` | `AdminExtraPage` | مرئي |
+| الإدارة | `/admin/report/detail` | `AdminExtraPage` | مرئي |
+| الإدارة | `/admin/content/review` | `AdminExtraPage` | مرئي |
+| الإدارة | `/admin/group/detail` | `AdminExtraPage` | مرئي |
+| الإدارة | `/admin/page/detail` | `AdminExtraPage` | مرئي |
+| الحالات | `/states` | `StatesDetailPage` | مرئي |
+| الحالات | `/states/loading` | `StatesDetailPage` | مرئي |
+| الحالات | `/states/empty` | `StatesDetailPage` | مرئي |
+| الحالات | `/states/error` | `StatesDetailPage` | مرئي |
+| الحالات | `/states/offline` | `StatesDetailPage` | مرئي |
+| الحالات | `/states/no-results` | `StatesDetailPage` | مرئي |
+| الحالات | `/states/blocked` | `StatesDetailPage` | مرئي |
+| الحالات | `/states/deleted` | `StatesDetailPage` | مرئي |
+| الحالات | `/states/upload-image` | `StatesDetailPage` | مرئي |
+| الحالات | `/states/upload-video` | `StatesDetailPage` | مرئي |
+| الحالات | `/states/post-unavailable` | `StatesDetailPage` | مرئي |
+| الحالات | `/states/user-not-found` | `StatesDetailPage` | مرئي |
+
+## نتيجة المراجعة الموسعة
+
+لا يوجد في `App.tsx` تعريف مسار صريح خارج المصفوفة السابقة. النتيجة الدقيقة هي أن **كل مسار ثابت معرّف مغطّى بفحص هاتفي مرئي**، وأن مسار الملف الديناميكي موثق كقالب موجه مع REST متاح للملف العام. لم يعثر الفحص على انتقال إلى صفحة «غير موجودة» ضمن المسارات المفتوحة مرئياً. وتظل المصادقة وصلاحيات الإدارة ومحتوى البيانات الحية مشروطة بجلسة ورمز صالحين، وهو أمر لا تدّعيه هذه المراجعة المرئية.
+
+| الإضافة إلى سجل التاريخ | المشكلة | المعالجة | التحقق |
+|---|---|---|---|
+| `/search` وأنواع البحث الثلاثة | كان `SearchController` لا يحقن `SearchService`، فيفشل الطلب بخطأ 500. كما كانت الاستجابة المفلترة قد تخلو من قوائم تتوقعها الصفحة. | أضيف حقن صريح للخدمة، ووحّد عقد الاستجابة ليحمل مفاتيح القوائم في جميع أنواع البحث، مع حماية عرض الواجهة. | اختبار متحكم ووحدات لخدمة البحث، والتحقق الحي من أنواع `all` و`users` و`posts` و`communities`، ثم فحص هاتف لمسار `/search`. |
