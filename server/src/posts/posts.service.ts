@@ -19,7 +19,7 @@ export class PostsService {
   }
 
   async feed(query: ListPostsDto) {
-    const take = query.limit ?? 20;
+    const take = typeof query.limit === "number" ? query.limit : Number(query.limit) || 20;
     const rows = await this.database().post.findMany({
       where: { status: PostStatus.PUBLISHED, visibility: PostVisibility.PUBLIC },
       include: postInclude,

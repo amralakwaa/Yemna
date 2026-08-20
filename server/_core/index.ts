@@ -33,7 +33,6 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
-  await bootstrapNestApi(app);
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   // tRPC API
@@ -44,6 +43,12 @@ async function startServer() {
       createContext,
     })
   );
+  // NestJS installs a terminal 404 handler during init. Keeping it in its own
+  // sub-application prevents that handler from shadowing Vite's client route
+  // fallback while preserving the public /api/v1 REST contract.
+  const nestApi = express();
+  app.use("/api", nestApi);
+  await bootstrapNestApi(nestApi, "");
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
