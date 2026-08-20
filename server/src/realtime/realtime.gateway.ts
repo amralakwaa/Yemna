@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import type { Server, Socket } from "socket.io";
+import { DEVELOPMENT_JWT_ACCESS_SECRET } from "../config/env";
 import type { JwtPayload } from "../auth/auth.types";
 import { RealtimeEventsService } from "./realtime-events.service";
 
@@ -28,7 +29,7 @@ export class RealtimeGateway implements OnModuleDestroy {
     try {
       const token = this.extractToken(client);
       if (!token) throw new Error("missing token");
-      const secret = this.config.get<string>("YEMNA_JWT_ACCESS_SECRET") ?? "yemna-development-access-secret-change-me";
+      const secret = this.config.get<string>("YEMNA_JWT_ACCESS_SECRET") ?? this.config.get<string>("JWT_SECRET") ?? DEVELOPMENT_JWT_ACCESS_SECRET;
       const user = await this.jwt.verifyAsync<JwtPayload>(token, { secret });
       client.data.user = user;
       await client.join(`user:${user.sub}`);

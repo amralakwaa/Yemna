@@ -3,6 +3,7 @@ import { JwtService } from "@nestjs/jwt";
 import { AppRole } from "@prisma/client";
 import type { Server } from "http";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { DEVELOPMENT_JWT_ACCESS_SECRET } from "../config/env";
 import { bootstrapNestApi } from "../nest";
 
 describe("HTTP authentication and RBAC", () => {
@@ -30,7 +31,7 @@ describe("HTTP authentication and RBAC", () => {
   async function tokenFor(role: AppRole) {
     return jwt.signAsync(
       { sub: `test-${role.toLowerCase()}`, role, sessionId: "session-test" },
-      { secret: process.env.YEMNA_JWT_ACCESS_SECRET ?? "development-only-secret-change-before-production", expiresIn: "15m" }
+      { secret: process.env.YEMNA_JWT_ACCESS_SECRET ?? process.env.JWT_SECRET ?? DEVELOPMENT_JWT_ACCESS_SECRET, expiresIn: "15m" }
     );
   }
 

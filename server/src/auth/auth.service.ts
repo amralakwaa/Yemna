@@ -4,7 +4,7 @@ import { JwtService } from "@nestjs/jwt";
 import { AccountStatus, Prisma, type User } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
-import type { YemnaEnv } from "../config/env";
+import { DEVELOPMENT_JWT_ACCESS_SECRET, type YemnaEnv } from "../config/env";
 import { PrismaService } from "../prisma/prisma.service";
 import type { AuthTokens, JwtPayload } from "./auth.types";
 import type { LoginDto, RegisterDto } from "./dto/auth.dto";
@@ -69,7 +69,8 @@ export class AuthService {
     const expiresAt = new Date(Date.now() + this.config.get("YEMNA_REFRESH_TOKEN_DAYS", { infer: true }) * 86_400_000);
     const session = await this.prisma.authSession.create({ data: { userId: user.id, tokenHash: await bcrypt.hash(secret, 12), expiresAt, ipAddress: metadata.ipAddress, userAgent: metadata.userAgent?.slice(0, 512) } });
     const payload: JwtPayload = { sub: user.id, role: user.role, sessionId: session.id };
-    const accessToken = await this.jwt.signAsync(payload, { secret: this.config.get("YEMNA_JWT_ACCESS_SECRET", { infer: true }) ?? "development-only-secret-change-before-production", expiresIn: this.config.get("YEMNA_JWT_ACCESS_TTL", { infer: true }) });
+    const accessSecret = this.config.get("YEMNA_JWT_ACCESS_SECRET", { infer: true }) ?? this.config.get("JWT_SECRET", { infer: true }) ?? DEVELOPMENT_JWT_ACCESS_SECRET;
+    const accessToken = await this.jwt.signAsync(payload, { secret: accessSecret, expiresIn: this.config.get("YEMNA_JWT_ACCESS_TTL", { infer: true }) });
     return { accessToken, refreshToken: `${session.id}.${secret}`, user: this.publicUser(user) };
   }
 
