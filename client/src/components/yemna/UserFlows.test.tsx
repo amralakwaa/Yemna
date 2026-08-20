@@ -7,7 +7,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppShell } from "./AppShell";
 import { LoginPage } from "@/pages/YemnaPages";
 import { LiveSearchPage } from "@/pages/LiveSearchPage";
-import { AccountSuitePage } from "@/pages/CompletionSuite";
+import { AccountSuitePage, RelationsCompletionPage } from "@/pages/CompletionSuite";
+import { CreatePostDetailPage } from "@/pages/ReferenceSuite";
 import { CurrentUserProvider, useCurrentUser } from "@/contexts/CurrentUserContext";
 
 function setPath(path: string) {
@@ -77,6 +78,24 @@ describe("تدفقات المستخدم الأساسية", () => {
 
     await waitFor(() => expect(screen.getAllByText("ريم اليمن")).toHaveLength(2));
     expect(screen.getAllByAltText("ريم اليمن").every(image => image.getAttribute("src") === updatedUser.avatarUrl)).toBe(true);
+  });
+
+  it("يعرض الحساب الحي في العلاقات وواجهة إنشاء محتوى الوسائط بدلاً من الاسم التجريبي", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const liveUser = { id: "user-7", displayName: "سلمى تعز", username: "salma-taiz", avatarUrl: "https://example.test/salma.jpg" };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(liveUser)));
+
+    setPath("/friends/mutual");
+    const relations = renderWithQuery(<RelationsCompletionPage />);
+    expect((await screen.findAllByAltText("سلمى تعز")).length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByAltText("عمر الحضرمي")).toBeNull();
+    relations.unmount();
+
+    setPath("/create/post");
+    renderWithQuery(<CreatePostDetailPage />);
+    expect((await screen.findAllByText("سلمى تعز")).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByAltText("سلمى تعز").every(image => image.getAttribute("src") === liveUser.avatarUrl)).toBe(true);
+    expect(screen.queryByText("عمر بلال الأكوع")).toBeNull();
   });
 
   it("يعيد تسجيل الدخول الناجح المستخدم إلى التغذية ويخزن رمز الوصول في جلسة المتصفح", async () => {
