@@ -2,7 +2,7 @@ import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AdminDetailPage } from "./AdminAISuite";
+import { AdminAccessGuard } from "./AdminAccessGuard";
 
 function setPath(path: string) {
   window.history.replaceState({}, "", path);
@@ -11,7 +11,7 @@ function setPath(path: string) {
 
 function renderAdminPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={client}><AdminDetailPage /></QueryClientProvider>);
+  return render(<QueryClientProvider client={client}><AdminAccessGuard /></QueryClientProvider>);
 }
 
 describe("حالات الوصول إلى الإدارة", () => {
@@ -25,11 +25,11 @@ describe("حالات الوصول إلى الإدارة", () => {
     vi.unstubAllGlobals();
   });
 
-  it("لا يعرض بيانات الإدارة الحية للمستخدم غير المسجل", () => {
+  it("لا يعرض أي بيانات إدارية للمستخدم غير المسجل", () => {
     renderAdminPage();
 
-    expect(screen.getByText("سجّل الدخول بحساب مدير لعرض بيانات الإدارة الحية.")).toBeTruthy();
-    expect(screen.getByText("سجّل الدخول بحساب مدير لمراجعة تذاكر الدعم وحالاتها.")).toBeTruthy();
+    expect(screen.getByText("تسجيل الدخول مطلوب")).toBeTruthy();
+    expect(screen.getByText(/تتطلب لوحة الإدارة تسجيل الدخول بحساب يحمل صلاحية المدير/)).toBeTruthy();
     expect(screen.queryByText("بيانات توضيحية")).toBeNull();
   });
 
@@ -43,8 +43,9 @@ describe("حالات الوصول إلى الإدارة", () => {
 
     renderAdminPage();
 
-    await waitFor(() => expect(screen.getAllByText("حسابك لا يحمل صلاحية المدير.").length).toBeGreaterThanOrEqual(2));
-    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/v1/admin/reports"), expect.any(Object));
-    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/v1/admin/tickets"), expect.any(Object));
+    await waitFor(() => expect(screen.getByText("لا يمكن فتح لوحة الإدارة")).toBeTruthy());
+    expect(screen.getByText(/حسابك لا يحمل صلاحية المدير/)).toBeTruthy();
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/v1/admin/stats"), expect.any(Object));
+    expect(screen.queryByText("بيانات توضيحية")).toBeNull();
   });
 });
