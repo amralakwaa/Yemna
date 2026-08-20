@@ -1,12 +1,14 @@
 /** فلسفة يمنا: هيكل متجاوب RTL يوحّد سطح المكتب والهاتف دون تصغير قسري لواجهة سطح المكتب. */
-import { useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import * as Icons from "lucide-react";
 import { Bell, ChevronDown, Menu, MessageCircle, Moon, Plus, Search, X } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { navItems } from "@/lib/yemnaData";
 import { api, asPerson, clearRestAccessToken } from "@/lib/api";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
+import { useRealtimeSubscription } from "@/lib/realtime";
 import { Avatar, SearchBox } from "./UI";
 import { YemnaLogo } from "./YemnaLogo";
 
@@ -27,9 +29,19 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const [location, navigate] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
+  const queryClient = useQueryClient();
+  const notificationsQuery = useQuery({ queryKey: ["rest", "notifications"], queryFn: api.getNotifications, enabled: Boolean(currentUser), staleTime: 15_000, refetchInterval: 30_000 });
+  const conversationsQuery = useQuery({ queryKey: ["rest", "conversations"], queryFn: api.getConversations, enabled: Boolean(currentUser), staleTime: 15_000, refetchInterval: 30_000 });
+  const refreshCounters = useCallback(() => { void queryClient.invalidateQueries({ queryKey: ["rest", "notifications"] }); void queryClient.invalidateQueries({ queryKey: ["rest", "conversations"] }); }, [queryClient]);
+  useRealtimeSubscription(["message:new", "notification:new", "notification:read"], refreshCounters);
   const is = (path: string) => path === "/" ? location === "/" : location.startsWith(path);
   const currentPerson = currentUser ? asPerson(currentUser) : null;
   const currentUserName = currentUser?.displayName || currentUser?.fullName || currentUser?.username || "حساب يمنا";
+  const notifications = Array.isArray(notificationsQuery.data) ? notificationsQuery.data : [];
+  const conversations = Array.isArray(conversationsQuery.data) ? conversationsQuery.data : [];
+  const notificationCount = notifications.filter(notification => !notification.readAt).length;
+  const messageCount = conversations.filter(conversation => { const latest = conversation.messages?.[0]; if (!latest || latest.sender.id === currentUser?.id) return false; return !conversation.lastReadAt || Date.parse(latest.createdAt) > Date.parse(conversation.lastReadAt); }).length;
+  const badgeFor = (key: string, fallback?: number) => key === "alerts" ? notificationCount : key === "messages" ? messageCount : fallback;
   const handleLogout = async () => {
     try {
       await api.logout();
@@ -45,23 +57,23 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     <header className="desktop-header">
       <YemnaLogo compact/>
       <SearchBox />
-      <nav className="top-nav" aria-label="التنقل الرئيسي">{navItems.map((item) => <Link key={item.key} href={item.path} className={is(item.path) ? "top-nav-link active" : "top-nav-link"}><span className="relative"><NavIcon icon={item.icon} size={23}/>{item.badge && <i className="nav-badge">{item.badge}</i>}</span><small>{item.label}</small></Link>)}</nav>
+      <nav className="top-nav" aria-label="التنقل الرئيسي">{navItems.map((item) => { const badge = badgeFor(item.key, item.badge); return <Link key={item.key} href={item.path} className={is(item.path) ? "top-nav-link active" : "top-nav-link"}><span className="relative"><NavIcon icon={item.icon} size={23}/>{Boolean(badge) && <i className="nav-badge">{badge}</i>}</span><small>{item.label}</small></Link>; })}</nav>
       {isCurrentUserLoading ? <div className="header-profile" aria-label="يجري تحميل الحساب"><span className="avatar avatar-md"/><strong>جارٍ تحميل الحساب…</strong></div> : currentPerson ? <Link href="/profile" className="header-profile" aria-label={`عرض الملف الشخصي لـ ${currentUserName}`}><Avatar person={currentPerson}/><strong>{currentUserName}</strong><ChevronDown size={16}/></Link> : <Link href="/login" className="header-profile" aria-label="تسجيل الدخول"><Icons.LogIn size={19}/><strong>تسجيل الدخول</strong></Link>}
     </header>
-    <header className="mobile-header"><button className="icon-button" type="button" aria-label="فتح القائمة" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen(true)}><Menu/></button><YemnaLogo compact/><div><Link href="/search" className="icon-button"><Search/></Link><Link href="/notifications" className="icon-button"><Bell/></Link></div></header>
+    <header className="mobile-header"><button className="icon-button" type="button" aria-label="فتح القائمة" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen(true)}><Menu/></button><YemnaLogo compact/><div><Link href="/search" className="icon-button"><Search/></Link><Link href="/notifications" className="icon-button"><span className="relative"><Bell/>{notificationCount > 0 && <i className="nav-badge">{notificationCount}</i>}</span></Link></div></header>
     {mobileMenuOpen && <div className="mobile-menu-layer" role="dialog" aria-modal="true" aria-label="القائمة الرئيسية">
       <button className="mobile-menu-backdrop" type="button" aria-label="إغلاق القائمة" onClick={() => setMobileMenuOpen(false)}/>
       <aside className="mobile-menu-drawer">
         <div className="mobile-menu-head">{isCurrentUserLoading ? <div className="mobile-menu-profile" aria-label="يجري تحميل الحساب"><span className="avatar avatar-md"/><div><strong>جارٍ تحميل الحساب…</strong></div></div> : currentPerson ? <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="mobile-menu-profile"><Avatar person={currentPerson}/><div><strong>{currentUserName}</strong><small>عرض الملف الشخصي</small></div></Link> : <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="mobile-menu-profile"><Icons.LogIn size={20}/><div><strong>تسجيل الدخول</strong><small>ادخل إلى حسابك</small></div></Link>}<button className="icon-button" type="button" aria-label="إغلاق القائمة" onClick={() => setMobileMenuOpen(false)}><X/></button></div>
-        <nav aria-label="روابط القائمة">{sideItems.map((item) => <Link key={item.key} href={item.path} onClick={() => setMobileMenuOpen(false)} className={is(item.path) ? "mobile-menu-link active" : "mobile-menu-link"}><span className="relative"><NavIcon icon={item.icon}/>{item.badge && <i className="nav-badge">{item.badge}</i>}</span><span>{item.label}</span></Link>)}</nav>
+        <nav aria-label="روابط القائمة">{sideItems.map((item) => { const badge = badgeFor(item.key, item.badge); return <Link key={item.key} href={item.path} onClick={() => setMobileMenuOpen(false)} className={is(item.path) ? "mobile-menu-link active" : "mobile-menu-link"}><span className="relative"><NavIcon icon={item.icon}/>{Boolean(badge) && <i className="nav-badge">{badge}</i>}</span><span>{item.label}</span></Link>; })}</nav>
         <div className="mobile-menu-foot">{currentPerson ? <><Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="mobile-menu-link"><Icons.UserRound size={20}/><span>الملف الشخصي</span></Link><button className="theme-row" type="button" onClick={handleLogout}><Icons.LogOut size={18}/> تسجيل الخروج</button></> : <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="mobile-menu-link"><Icons.LogIn size={20}/><span>تسجيل الدخول</span></Link>}<button className="theme-row" type="button"><Moon size={18}/> الوضع الداكن <span className="fake-switch"/></button></div>
       </aside>
     </div>}
     <main className="desktop-layout">
-      <aside className="sidebar-right"><nav>{sideItems.map((item) => <Link key={item.key} href={item.path} className={is(item.path) ? "side-link active" : "side-link"}><span className="relative"><NavIcon icon={item.icon}/>{item.badge && <i className="nav-badge">{item.badge}</i>}</span><span>{item.label}</span></Link>)}</nav><div className="sidebar-bottom">{currentPerson && <button className="theme-row" type="button" onClick={handleLogout}><Icons.LogOut size={18}/> تسجيل الخروج</button>}<button className="theme-row" type="button"><Moon size={18}/> الوضع الداكن <span className="fake-switch"/></button><small>© 2025 يمنا<br/>جميع الحقوق محفوظة</small></div></aside>
+      <aside className="sidebar-right"><nav>{sideItems.map((item) => { const badge = badgeFor(item.key, item.badge); return <Link key={item.key} href={item.path} className={is(item.path) ? "side-link active" : "side-link"}><span className="relative"><NavIcon icon={item.icon}/>{Boolean(badge) && <i className="nav-badge">{badge}</i>}</span><span>{item.label}</span></Link>; })}</nav><div className="sidebar-bottom">{currentPerson && <button className="theme-row" type="button" onClick={handleLogout}><Icons.LogOut size={18}/> تسجيل الخروج</button>}<button className="theme-row" type="button"><Moon size={18}/> الوضع الداكن <span className="fake-switch"/></button><small>© 2025 يمنا<br/>جميع الحقوق محفوظة</small></div></aside>
       <section className="page-stage">{title && <div className="mobile-page-title"><h1>{title}</h1></div>}{children}</section>
     </main>
-    <nav className="mobile-nav" aria-label="التنقل السفلي"><Link href="/" className={is("/") ? "active" : ""}><Icons.House size={20}/><span>الرئيسية</span></Link><Link href="/friends"><Icons.Users size={20}/><span>الأصدقاء</span></Link><Link href="/create" className="create-nav"><Plus size={25}/></Link><Link href="/notifications"><span className="relative"><Icons.Bell size={20}/><i className="nav-badge">3</i></span><span>الإشعارات</span></Link><button type="button" className="menu-trigger" aria-label="فتح القائمة" onClick={() => setMobileMenuOpen(true)}><Icons.Menu size={20}/><span>القائمة</span></button></nav>
+    <nav className="mobile-nav" aria-label="التنقل السفلي"><Link href="/" className={is("/") ? "active" : ""}><Icons.House size={20}/><span>الرئيسية</span></Link><Link href="/friends"><Icons.Users size={20}/><span>الأصدقاء</span></Link><Link href="/create" className="create-nav"><Plus size={25}/></Link><Link href="/notifications"><span className="relative"><Icons.Bell size={20}/>{notificationCount > 0 && <i className="nav-badge">{notificationCount}</i>}</span><span>الإشعارات</span></Link><button type="button" className="menu-trigger" aria-label="فتح القائمة" onClick={() => setMobileMenuOpen(true)}><Icons.Menu size={20}/><span>القائمة</span></button></nav>
   </div>;
 }
 

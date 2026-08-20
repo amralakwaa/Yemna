@@ -32,6 +32,11 @@ export class CreateCommentDto {
   parentId?: string;
 }
 
+export class UpdateCommentDto {
+  @IsString() @MinLength(1) @MaxLength(2_000) @Transform(trim)
+  body!: string;
+}
+
 export class ReactToPostDto {
   @IsEnum(ReactionType)
   type!: ReactionType;

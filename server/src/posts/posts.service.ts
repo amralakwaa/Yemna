@@ -1,7 +1,7 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import { PostStatus, PostVisibility, Prisma, ReactionType } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
-import { CreateCommentDto, CreatePostDto, ListPostsDto, ReactToPostDto, UpdatePostDto } from "./dto/post.dto";
+import { CreateCommentDto, CreatePostDto, ListPostsDto, ReactToPostDto, UpdateCommentDto, UpdatePostDto } from "./dto/post.dto";
 
 const postInclude = {
   author: { select: { id: true, displayName: true, username: true, avatarUrl: true } },
@@ -68,6 +68,21 @@ export class PostsService {
   async listComments(postId: string) {
     await this.get(postId);
     return this.database().comment.findMany({ where: { postId, parentId: null }, include: { author: { select: { id: true, displayName: true, username: true, avatarUrl: true } }, replies: { include: { author: { select: { id: true, displayName: true, username: true, avatarUrl: true } } }, orderBy: { createdAt: "asc" } } }, orderBy: { createdAt: "asc" } });
+  }
+
+  async updateComment(userId: string, postId: string, commentId: string, dto: UpdateCommentDto) {
+    const comment = await this.database().comment.findFirst({ where: { id: commentId, postId } });
+    if (!comment) throw new NotFoundException("التعليق غير موجود");
+    if (comment.authorId !== userId) throw new ForbiddenException("لا تملك صلاحية تعديل هذا التعليق");
+    return this.database().comment.update({ where: { id: commentId }, data: { body: dto.body }, include: { author: { select: { id: true, displayName: true, username: true, avatarUrl: true } } } });
+  }
+
+  async removeComment(userId: string, postId: string, commentId: string) {
+    const comment = await this.database().comment.findFirst({ where: { id: commentId, postId } });
+    if (!comment) throw new NotFoundException("التعليق غير موجود");
+    if (comment.authorId !== userId) throw new ForbiddenException("لا تملك صلاحية حذف هذا التعليق");
+    await this.database().comment.delete({ where: { id: commentId } });
+    return { success: true };
   }
 
   async react(userId: string, postId: string, dto: ReactToPostDto) {

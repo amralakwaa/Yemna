@@ -8,7 +8,7 @@ export class ApiError extends Error {
 }
 
 export type ApiUser = { id: string; displayName: string; username: string; fullName?: string | null; email?: string | null; phone?: string | null; avatarUrl?: string | null; bio?: string | null; city?: string | null; governorate?: string | null; createdAt?: string; status?: string | null; settings?: { showOnlineStatus?: boolean; allowDirectMessages?: boolean } | null };
-export type ApiMedia = { url?: string | null; kind?: string };
+export type ApiMedia = { url?: string | null; publicUrl?: string | null; kind?: string };
 export type ApiPost = { id: string; body: string; publishedAt?: string | null; createdAt: string; author: ApiUser; media?: ApiMedia[]; _count: { comments: number; reactions: number; shares: number } };
 export type FeedResponse = { items: ApiPost[]; nextCursor: string | null };
 export type ApiComment = { id: string; body: string; createdAt: string; author: ApiUser; replies?: ApiComment[] };
@@ -91,8 +91,12 @@ export const api = {
   getFeed: () => apiRequest<FeedResponse>("/posts?limit=20"),
   getPost: (postId: string) => apiRequest<ApiPost>(`/posts/${encodeURIComponent(postId)}`),
   createPost: (body: string, visibility: "PUBLIC" | "FRIENDS" | "PRIVATE" = "PUBLIC") => apiRequest<ApiPost>("/posts", { method: "POST", body: JSON.stringify({ body, visibility }) }),
+  updatePost: (postId: string, payload: { body?: string; visibility?: "PUBLIC" | "FRIENDS" | "PRIVATE" }) => apiRequest<ApiPost>(`/posts/${encodeURIComponent(postId)}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deletePost: (postId: string) => apiRequest<{ success: boolean }>(`/posts/${encodeURIComponent(postId)}`, { method: "DELETE" }),
   getPostComments: (postId: string) => apiRequest<ApiComment[]>(`/posts/${encodeURIComponent(postId)}/comments`),
   createPostComment: (postId: string, body: string) => apiRequest<ApiComment>(`/posts/${encodeURIComponent(postId)}/comments`, { method: "POST", body: JSON.stringify({ body }) }),
+  updatePostComment: (postId: string, commentId: string, body: string) => apiRequest<ApiComment>(`/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`, { method: "PATCH", body: JSON.stringify({ body }) }),
+  deletePostComment: (postId: string, commentId: string) => apiRequest<{ success: boolean }>(`/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`, { method: "DELETE" }),
   getMe: () => apiRequest<ApiUser>("/users/me"),
   updateMe: (payload: Partial<Pick<ApiUser, "displayName" | "fullName" | "username" | "bio" | "city" | "governorate" | "avatarUrl">>) => apiRequest<ApiUser>("/users/me", { method: "PATCH", body: JSON.stringify(payload) }),
   getUser: (username: string) => apiRequest<ApiUser>(`/users/${encodeURIComponent(username)}`),
@@ -121,7 +125,7 @@ export const api = {
   getMedia: (kind?: ApiMediaAsset["kind"]) => apiRequest<ApiMediaAsset[]>(`/media${kind ? `?kind=${encodeURIComponent(kind)}` : ""}`),
   getMediaAlbums: () => apiRequest<ApiAlbum[]>("/media/albums"),
   createMediaAlbum: (payload: Pick<ApiAlbum, "title" | "description" | "coverUrl">) => apiRequest<ApiAlbum>("/media/albums", { method: "POST", body: JSON.stringify(payload) }),
-  uploadMedia: (file: File) => { const form = new FormData(); form.append("file", file); return apiRequest<ApiMediaAsset>("/media/upload", { method: "POST", body: form }); },
+  uploadMedia: (file: File, options?: { postId?: string; albumId?: string }) => { const form = new FormData(); form.append("file", file); if (options?.postId) form.append("postId", options.postId); if (options?.albumId) form.append("albumId", options.albumId); return apiRequest<ApiMediaAsset>("/media/upload", { method: "POST", body: form }); },
   deleteMedia: (mediaId: string) => apiRequest<void>(`/media/${encodeURIComponent(mediaId)}`, { method: "DELETE" }),
   search: (query: string, type: "all" | "users" | "posts" | "communities" = "all") => apiRequest<ApiSearchResponse>(`/search?q=${encodeURIComponent(query)}&type=${type}`),
   getAdminStats: () => apiRequest<ApiAdminStats>("/admin/stats"),
@@ -146,5 +150,5 @@ function relativeTime(value?: string | null) {
 
 function numericUiId(value: string) { return Array.from(value).reduce((total, character) => ((total * 31) + character.charCodeAt(0)) >>> 0, 7); }
 export function asPerson(user: ApiUser): Person { return { id: numericUiId(user.id), name: user.displayName, handle: `@${user.username}`, avatar: user.avatarUrl || "https://i.pravatar.cc/160?img=12", online: false }; }
-export function asPost(post: ApiPost): Post { return { id: post.id, author: asPerson(post.author), time: relativeTime(post.publishedAt || post.createdAt), text: post.body, image: post.media?.find(media => media.kind === "IMAGE" || media.kind === "VIDEO")?.url || undefined, reactions: post._count.reactions, comments: post._count.comments, shares: post._count.shares }; }
+export function asPost(post: ApiPost): Post { const media = post.media?.find(item => item.kind === "IMAGE" || item.kind === "VIDEO"); return { id: post.id, author: asPerson(post.author), time: relativeTime(post.publishedAt || post.createdAt), text: post.body, image: media?.publicUrl || media?.url || undefined, reactions: post._count.reactions, comments: post._count.comments, shares: post._count.shares }; }
 export function asRelativeTime(value?: string | null) { return relativeTime(value); }

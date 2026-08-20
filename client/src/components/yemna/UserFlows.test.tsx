@@ -5,7 +5,7 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppShell } from "./AppShell";
-import { LoginPage } from "@/pages/YemnaPages";
+import { CreatePage, LoginPage } from "@/pages/YemnaPages";
 import { LiveSearchPage } from "@/pages/LiveSearchPage";
 import { AccountSuitePage, RelationsCompletionPage } from "@/pages/CompletionSuite";
 import { CreatePostDetailPage, PostDetailPage, ProfileCollectionPage } from "@/pages/ReferenceSuite";
@@ -62,9 +62,13 @@ describe("تدفقات المستخدم الأساسية", () => {
     sessionStorage.setItem("yemna_access_token", "test-access-token");
     const originalUser = { id: "user-1", displayName: "ريم صنعاء", username: "reem-sanaa", avatarUrl: "https://example.test/reem-before.jpg" };
     const updatedUser = { ...originalUser, displayName: "ريم اليمن", avatarUrl: "https://example.test/reem-after.jpg" };
-    vi.stubGlobal("fetch", vi.fn()
-      .mockResolvedValueOnce(jsonResponse(originalUser))
-      .mockResolvedValueOnce(jsonResponse(updatedUser)));
+    let userReadCount = 0;
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(userReadCount++ === 0 ? originalUser : updatedUser);
+      if (url.endsWith("/notifications") || url.endsWith("/messages/conversations")) return jsonResponse([]);
+      return jsonResponse({ items: [], nextCursor: null });
+    }));
     const user = userEvent.setup();
     renderWithQuery(<><CurrentUserRefreshControl/><AppShell title="اختبار الحساب"><p>محتوى اختبار</p></AppShell></>);
 
@@ -172,6 +176,53 @@ describe("تدفقات المستخدم الأساسية", () => {
 
     await waitFor(() => expect(window.location.pathname).toBe("/post/post-22"));
     expect(fetchMock).toHaveBeenCalledWith("/api/v1/posts", expect.objectContaining({ method: "POST", body: JSON.stringify({ body: createdPost.body, visibility: "PUBLIC" }) }));
+  });
+
+  it("يرفع مرفق الصورة بعد إنشاء المنشور ويربطه بمعرف المنشور الحقيقي", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const liveUser = { id: "user-12", displayName: "راشد مأرب", username: "rashid-marib", avatarUrl: "https://example.test/rashid.jpg" };
+    const createdPost = { id: "post-media-1", body: "صورة من مأرب", createdAt: new Date().toISOString(), author: liveUser, _count: { comments: 0, reactions: 0, shares: 0 } };
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.endsWith("/posts") && init?.method === "POST") return jsonResponse(createdPost);
+      if (url.endsWith("/media/upload") && init?.method === "POST") return jsonResponse({ id: "media-1", postId: createdPost.id });
+      return jsonResponse({ items: [], nextCursor: null });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    setPath("/create");
+    const user = userEvent.setup();
+    renderWithQuery(<CreatePage />);
+
+    await user.type(await screen.findByPlaceholderText("بم تفكر اليوم يا راشد مأرب؟"), createdPost.body);
+    const image = new File(["image-body"], "marib.jpg", { type: "image/jpeg" });
+    await user.upload(screen.getByLabelText("إرفاق صورة أو فيديو"), image);
+    await user.click(screen.getByRole("button", { name: "نشر" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/media/upload", expect.objectContaining({ method: "POST", body: expect.any(FormData) })));
+    const uploadCall = fetchMock.mock.calls.find(([url]) => String(url).endsWith("/media/upload"));
+    expect((uploadCall?.[1] as RequestInit).body).toBeInstanceOf(FormData);
+    expect(((uploadCall?.[1] as RequestInit).body as FormData).get("postId")).toBe(createdPost.id);
+  });
+
+  it("يعرض عدّادات الرسائل والإشعارات من REST بدلاً من الشارات الثابتة", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const liveUser = { id: "user-13", displayName: "إيمان حضرموت", username: "iman-hadramout" };
+    const unreadAt = new Date().toISOString();
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.endsWith("/notifications")) return jsonResponse([{ id: "notice-1", readAt: null }, { id: "notice-2", readAt: unreadAt }]);
+      if (url.endsWith("/messages/conversations")) return jsonResponse([{ id: "conversation-1", lastReadAt: null, messages: [{ id: "message-1", createdAt: unreadAt, sender: { id: "user-14" } }] }]);
+      return jsonResponse({ items: [], nextCursor: null });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderWithQuery(<AppShell title="اختبار العدّادات"><p>محتوى اختبار</p></AppShell>);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/notifications", expect.anything()));
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/messages/conversations", expect.anything());
+    expect(screen.queryByText("3")).toBeNull();
+    await waitFor(() => expect(screen.getAllByText("1").length).toBeGreaterThanOrEqual(2));
   });
 
   it("ينشر تعليقاً عبر REST ويعرض وسائط الحساب الحقيقية ويُنهي الجلسة من القائمة", async () => {

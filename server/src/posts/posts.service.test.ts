@@ -13,7 +13,7 @@ function makePrisma(configured = true) {
       update: vi.fn(async ({ data }: { data: unknown }) => ({ id: "post-1", ...data })),
     },
     reaction: { findFirst: vi.fn(async () => null), delete: vi.fn(), deleteMany: vi.fn(), create: vi.fn() },
-    comment: { findFirst: vi.fn(async () => null), create: vi.fn(async () => ({ id: "comment-1" })), findMany: vi.fn(async () => []) },
+    comment: { findFirst: vi.fn(async () => null), create: vi.fn(async () => ({ id: "comment-1" })), update: vi.fn(async ({ data }: { data: unknown }) => ({ id: "comment-1", ...data })), delete: vi.fn(async () => undefined), findMany: vi.fn(async () => []) },
     savedPost: { findUnique: vi.fn(async () => null), create: vi.fn(async () => ({ id: "saved-1" })), delete: vi.fn() },
     $transaction: vi.fn(async () => []),
   };
@@ -50,6 +50,22 @@ describe("PostsService", () => {
     const service = new PostsService(prisma as never);
     await service.comment("user-1", "post-1", { body: "تعليق تجريبي" });
     expect(prisma.comment.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ authorId: "user-1", postId: "post-1", body: "تعليق تجريبي" }) }));
+  });
+
+  it("يعدّل التعليق للمالك فقط ويحفظ النص الجديد", async () => {
+    const prisma = makePrisma();
+    prisma.comment.findFirst.mockResolvedValue({ id: "comment-1", postId: "post-1", authorId: "user-1" });
+    const service = new PostsService(prisma as never);
+    await service.updateComment("user-1", "post-1", "comment-1", { body: "نص محدّث" });
+    expect(prisma.comment.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "comment-1" }, data: { body: "نص محدّث" } }));
+  });
+
+  it("يرفض حذف تعليق لا يملكه المستخدم", async () => {
+    const prisma = makePrisma();
+    prisma.comment.findFirst.mockResolvedValue({ id: "comment-1", postId: "post-1", authorId: "user-2" });
+    const service = new PostsService(prisma as never);
+    await expect(service.removeComment("user-1", "post-1", "comment-1")).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.comment.delete).not.toHaveBeenCalled();
   });
 
   it("يحفظ المنشور للمستخدم عند عدم وجود سجل حفظ سابق", async () => {
