@@ -39,8 +39,26 @@ export class PostsService {
   }
 
   async create(authorId: string, dto: CreatePostDto) {
-    if (!dto.body) throw new ForbiddenException("يجب إضافة نص أو وسائط للمنشور");
-    return this.database().post.create({ data: { authorId, body: dto.body, visibility: dto.visibility ?? PostVisibility.PUBLIC }, include: postInclude });
+    const mediaIds = [...new Set(dto.mediaIds ?? [])];
+    if (!dto.body && !mediaIds.length) throw new ForbiddenException("يجب إضافة نص أو وسائط للمنشور");
+    const database = this.database();
+    let media: Array<{ id: string }> = [];
+    if (mediaIds.length) {
+      media = await database.mediaAsset.findMany({
+        where: { id: { in: mediaIds }, ownerId: authorId, postId: null },
+        select: { id: true },
+      });
+      if (media.length !== mediaIds.length) throw new ForbiddenException("لا يمكن إرفاق وسائط غير مملوكة أو مرتبطة بمنشور آخر");
+    }
+    return database.post.create({
+      data: {
+        authorId,
+        body: dto.body || " ",
+        visibility: dto.visibility ?? PostVisibility.PUBLIC,
+        ...(media.length ? { media: { connect: media.map(asset => ({ id: asset.id })) } } : {}),
+      },
+      include: postInclude,
+    });
   }
 
   async update(userId: string, id: string, dto: UpdatePostDto) {

@@ -175,7 +175,7 @@ describe("تدفقات المستخدم الأساسية", () => {
     await user.click(screen.getByRole("button", { name: "نشر" }));
 
     await waitFor(() => expect(window.location.pathname).toBe("/post/post-22"));
-    expect(fetchMock).toHaveBeenCalledWith("/api/v1/posts", expect.objectContaining({ method: "POST", body: JSON.stringify({ body: createdPost.body, visibility: "PUBLIC" }) }));
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/posts", expect.objectContaining({ method: "POST", body: JSON.stringify({ body: createdPost.body, visibility: "PUBLIC", mediaIds: [] }) }));
   });
 
   it("يفتح زر رفع الفيديو في الصفحة الرئيسية منتقي ملفات الفيديو للمستخدم المسجل", async () => {
@@ -201,7 +201,7 @@ describe("تدفقات المستخدم الأساسية", () => {
     expect(fileInput.accept).toBe("video/*");
   });
 
-  it("يرفع مرفق الصورة بعد إنشاء المنشور ويربطه بمعرف المنشور الحقيقي", async () => {
+  it("يرفع مرفق الصورة قبل إنشاء المنشور ويربط معرفه بالمنشور", async () => {
     sessionStorage.setItem("yemna_access_token", "test-access-token");
     const liveUser = { id: "user-12", displayName: "راشد مأرب", username: "rashid-marib", avatarUrl: "https://example.test/rashid.jpg" };
     const createdPost = { id: "post-media-1", body: "صورة من مأرب", createdAt: new Date().toISOString(), author: liveUser, _count: { comments: 0, reactions: 0, shares: 0 } };
@@ -209,7 +209,7 @@ describe("تدفقات المستخدم الأساسية", () => {
       const url = String(input);
       if (url.endsWith("/users/me")) return jsonResponse(liveUser);
       if (url.endsWith("/posts") && init?.method === "POST") return jsonResponse(createdPost);
-      if (url.endsWith("/media/upload") && init?.method === "POST") return jsonResponse({ id: "media-1", postId: createdPost.id });
+      if (url.endsWith("/media/upload") && init?.method === "POST") return jsonResponse({ id: "media-1" });
       return jsonResponse({ items: [], nextCursor: null });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -227,7 +227,7 @@ describe("تدفقات المستخدم الأساسية", () => {
       send(body: FormData) {
         uploadedForms.push(body);
         this.status = 201;
-        this.responseText = JSON.stringify({ id: "media-1", postId: createdPost.id });
+        this.responseText = JSON.stringify({ id: "media-1" });
         this.onload?.();
       }
       abort() { this.onabort?.(); }
@@ -244,10 +244,11 @@ describe("تدفقات المستخدم الأساسية", () => {
 
     await waitFor(() => expect(uploadedForms).toHaveLength(1));
     expect(uploadedForms[0]).toBeInstanceOf(FormData);
-    expect(uploadedForms[0].get("postId")).toBe(createdPost.id);
+    expect(uploadedForms[0].get("postId")).toBeNull();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/posts", expect.objectContaining({ method: "POST", body: JSON.stringify({ body: createdPost.body, visibility: "PUBLIC", mediaIds: ["media-1"] }) })));
   });
 
-  it("يرفع فيديو MP4 بعد إنشاء المنشور ويعرضه كمشغل في مكتبة الفيديو", async () => {
+  it("يرفع فيديو MP4 قبل إنشاء المنشور ويربطه ويعرضه كمشغل في مكتبة الفيديو", async () => {
     sessionStorage.setItem("yemna_access_token", "test-access-token");
     const liveUser = { id: "user-video", displayName: "أروى صنعاء", username: "arwa-sanaa", avatarUrl: "https://example.test/arwa.jpg" };
     const createdPost = { id: "post-video-1", body: "فيديو من صنعاء", createdAt: new Date().toISOString(), author: liveUser, _count: { comments: 0, reactions: 0, shares: 0 } };
@@ -256,7 +257,7 @@ describe("تدفقات المستخدم الأساسية", () => {
       const url = String(input);
       if (url.endsWith("/users/me")) return jsonResponse(liveUser);
       if (url.endsWith("/posts") && init?.method === "POST") return jsonResponse(createdPost);
-      if (url.endsWith("/media/upload") && init?.method === "POST") return jsonResponse({ ...videoMedia[0], postId: createdPost.id });
+      if (url.endsWith("/media/upload") && init?.method === "POST") return jsonResponse(videoMedia[0]);
       if (url.endsWith("/media?kind=VIDEO")) return jsonResponse(videoMedia);
       return jsonResponse({ items: [], nextCursor: null });
     });
@@ -277,7 +278,7 @@ describe("تدفقات المستخدم الأساسية", () => {
         uploadedForms.push(body);
         this.upload.onprogress?.({ lengthComputable: true, loaded: 1, total: 2 } as unknown as ProgressEvent<EventTarget>);
         this.status = 201;
-        this.responseText = JSON.stringify({ ...videoMedia[0], postId: createdPost.id });
+        this.responseText = JSON.stringify(videoMedia[0]);
         this.onload?.();
       }
       abort() { this.onabort?.(); }
@@ -297,7 +298,8 @@ describe("تدفقات المستخدم الأساسية", () => {
     await waitFor(() => expect(uploadedForms).toHaveLength(1));
     const body = uploadedForms[0];
     expect((body.get("file") as File).type).toBe("video/mp4");
-    expect(body.get("postId")).toBe(createdPost.id);
+    expect(body.get("postId")).toBeNull();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/posts", expect.objectContaining({ method: "POST", body: JSON.stringify({ body: createdPost.body, visibility: "PUBLIC", mediaIds: [videoMedia[0].id] }) })));
     create.unmount();
 
     setPath("/videos");

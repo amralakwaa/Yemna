@@ -12,6 +12,7 @@ function makePrisma(configured = true) {
       create: vi.fn(async ({ data }: { data: unknown }) => ({ id: "post-1", ...data })),
       update: vi.fn(async ({ data }: { data: unknown }) => ({ id: "post-1", ...data })),
     },
+    mediaAsset: { findMany: vi.fn(async () => []) },
     reaction: { findFirst: vi.fn(async () => null), delete: vi.fn(), deleteMany: vi.fn(), create: vi.fn() },
     comment: { findFirst: vi.fn(async () => null), create: vi.fn(async () => ({ id: "comment-1" })), update: vi.fn(async ({ data }: { data: unknown }) => ({ id: "comment-1", ...data })), delete: vi.fn(async () => undefined), findMany: vi.fn(async () => []) },
     savedPost: { findUnique: vi.fn(async () => null), create: vi.fn(async () => ({ id: "saved-1" })), delete: vi.fn() },
@@ -30,6 +31,22 @@ describe("PostsService", () => {
     const service = new PostsService(prisma as never);
     await service.create("user-1", { body: "منشور تجريبي", visibility: PostVisibility.PUBLIC });
     expect(prisma.post.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ authorId: "user-1", body: "منشور تجريبي" }) }));
+  });
+
+  it("يربط فقط الوسائط المرفوعة وغير المرتبطة التي يملكها ناشر المنشور", async () => {
+    const prisma = makePrisma();
+    prisma.mediaAsset.findMany.mockResolvedValue([{ id: "asset-1" }]);
+    const service = new PostsService(prisma as never);
+    await service.create("user-1", { body: "منشور بصورة", mediaIds: ["asset-1"] });
+    expect(prisma.mediaAsset.findMany).toHaveBeenCalledWith({ where: { id: { in: ["asset-1"] }, ownerId: "user-1", postId: null }, select: { id: true } });
+    expect(prisma.post.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ media: { connect: [{ id: "asset-1" }] } }) }));
+  });
+
+  it("يرفض ربط وسيط لا يملكه المستخدم أو مرتبط مسبقاً بمنشور", async () => {
+    const prisma = makePrisma();
+    const service = new PostsService(prisma as never);
+    await expect(service.create("user-1", { body: "منشور بصورة", mediaIds: ["asset-1"] })).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.post.create).not.toHaveBeenCalled();
   });
 
   it("يرفض منشوراً بلا نص أو وسائط", async () => {

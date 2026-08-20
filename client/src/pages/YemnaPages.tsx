@@ -52,17 +52,18 @@ function Composer({ onDone }: { onDone?: () => void }) {
   };
   const createPost = useMutation({
     mutationFn: async ({ body, attachments }: { body: string; attachments: File[] }) => {
-      const post = await api.createPost(body || " ");
+      const mediaIds: string[] = [];
       if (attachments.length) {
         uploadAbort.current = new AbortController();
         for (const [index, file] of attachments.entries()) {
-          await uploadMediaWithProgress(file, { postId: post.id, signal: uploadAbort.current.signal, onProgress: percent => setUploadProgress({ current: index + 1, total: attachments.length, percent }) });
+          const asset = await uploadMediaWithProgress(file, { signal: uploadAbort.current.signal, onProgress: percent => setUploadProgress({ current: index + 1, total: attachments.length, percent }) });
+          mediaIds.push(asset.id);
         }
       }
-      return post;
+      return api.createPost(body || " ", "PUBLIC", mediaIds);
     },
     onSuccess: () => { setContent(""); clearAttachments(); queryClient.invalidateQueries({ queryKey: ["rest", "feed"] }); queryClient.invalidateQueries({ queryKey: ["rest", "media"] }); toast.success("تم نشر منشورك في يمنا"); onDone?.(); },
-    onError: (error) => { queryClient.invalidateQueries({ queryKey: ["rest", "feed"] }); if (error instanceof Error && error.name === "AbortError") toast.info("تم نشر النص دون رفع المرفق الملغى."); else toast.error(error instanceof ApiError && error.status === 401 ? "سجّل الدخول أولاً لنشر منشور" : "تعذر نشر المنشور أو رفع مرفقاته، حاول لاحقاً"); },
+    onError: (error) => { queryClient.invalidateQueries({ queryKey: ["rest", "feed"] }); if (error instanceof Error && error.name === "AbortError") toast.info("تم إلغاء الرفع ولن يُنشر المنشور."); else toast.error(error instanceof ApiError && error.status === 401 ? "سجّل الدخول أولاً لنشر منشور" : "تعذر نشر المنشور أو رفع مرفقاته، حاول لاحقاً"); },
     onSettled: () => { uploadAbort.current = null; setUploadProgress({ current: 0, total: 0, percent: 0 }); }
   });
   const pickFiles = (selected: FileList | null) => {

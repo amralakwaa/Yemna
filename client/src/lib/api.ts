@@ -151,7 +151,7 @@ export const api = {
   logout: () => apiRequest<void>("/auth/logout", { method: "POST" }, false),
   getFeed: () => apiRequest<FeedResponse>("/posts?limit=20"),
   getPost: (postId: string) => apiRequest<ApiPost>(`/posts/${encodeURIComponent(postId)}`),
-  createPost: (body: string, visibility: "PUBLIC" | "FRIENDS" | "PRIVATE" = "PUBLIC") => apiRequest<ApiPost>("/posts", { method: "POST", body: JSON.stringify({ body, visibility }) }),
+  createPost: (body: string, visibility: "PUBLIC" | "FRIENDS" | "PRIVATE" = "PUBLIC", mediaIds: string[] = []) => apiRequest<ApiPost>("/posts", { method: "POST", body: JSON.stringify({ body, visibility, mediaIds }) }),
   updatePost: (postId: string, payload: { body?: string; visibility?: "PUBLIC" | "FRIENDS" | "PRIVATE" }) => apiRequest<ApiPost>(`/posts/${encodeURIComponent(postId)}`, { method: "PATCH", body: JSON.stringify(payload) }),
   deletePost: (postId: string) => apiRequest<{ success: boolean }>(`/posts/${encodeURIComponent(postId)}`, { method: "DELETE" }),
   getPostComments: (postId: string) => apiRequest<ApiComment[]>(`/posts/${encodeURIComponent(postId)}/comments`),
