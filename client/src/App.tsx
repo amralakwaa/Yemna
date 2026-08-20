@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { CurrentUserProvider } from "./contexts/CurrentUserContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { HomePage, LoginPage, FriendsPage, MediaPage, SettingsPage, CommunitiesPage, CreatePage, NotFoundPage } from "./pages/YemnaPages";
 import { CreateMediaPage, CreatePostDetailPage, CreateStoryPage, EditProfilePage, ForgotPasswordPage, ImageEditorPage, OnboardingPage, PostDetailPage, PostOptionsPage, ProfileCollectionPage, ProfileDetailPage, RegisterPage, ReportPostPage, StoryPage, UploadVideoPage, VerificationPage, WelcomePage } from "./pages/ReferenceSuite";
@@ -35,4 +36,4 @@ function Router() { return <Switch>
   <Route path="/ai" component={AIHubPage}/>{aiTools.map(path=><Route key={path} path={path} component={AIToolDetailPage}/>)}{aiExtras.map(path=><Route key={path} path={path} component={ExtraAIPage}/>)}
   <Route path="/admin/ai-analytics" component={AdminAccessGuard}/>{adminDetails.map(path=><Route key={path} path={path} component={AdminAccessGuard}/>)}{adminExtras.map(path=><Route key={path} path={path} component={AdminAccessGuard}/>)}{states.map(path=><Route key={path} path={path} component={StatesDetailPage}/>)}<Route component={NotFoundPage}/>
 </Switch>; }
-export default function App() { return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster richColors position="top-center"/><Router/></TooltipProvider></ThemeProvider></ErrorBoundary>; }
+export default function App() { return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><CurrentUserProvider><Toaster richColors position="top-center"/><Router/></CurrentUserProvider></TooltipProvider></ThemeProvider></ErrorBoundary>; }

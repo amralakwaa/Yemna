@@ -8,6 +8,7 @@ import { AppShell } from "./AppShell";
 import { LoginPage } from "@/pages/YemnaPages";
 import { LiveSearchPage } from "@/pages/LiveSearchPage";
 import { AccountSuitePage } from "@/pages/CompletionSuite";
+import { CurrentUserProvider, useCurrentUser } from "@/contexts/CurrentUserContext";
 
 function setPath(path: string) {
   window.history.replaceState({}, "", path);
@@ -16,7 +17,12 @@ function setPath(path: string) {
 
 function renderWithQuery(ui: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+  return render(<QueryClientProvider client={client}><CurrentUserProvider>{ui}</CurrentUserProvider></QueryClientProvider>);
+}
+
+function CurrentUserRefreshControl() {
+  const { refreshUser } = useCurrentUser();
+  return <button type="button" onClick={() => { void refreshUser(); }}>تحديث بيانات الحساب</button>;
 }
 
 function jsonResponse(payload: unknown) {
@@ -36,7 +42,7 @@ describe("تدفقات المستخدم الأساسية", () => {
 
   it("ينتقل بالتنقل المشترك من العلاقات إلى الإشعارات ويفتح قائمة الهاتف إلى البحث", async () => {
     const user = userEvent.setup();
-    render(<AppShell title="اختبار التدفق"><p>محتوى اختبار</p></AppShell>);
+    renderWithQuery(<AppShell title="اختبار التدفق"><p>محتوى اختبار</p></AppShell>);
 
     await user.click(screen.getAllByRole("link", { name: "الأصدقاء" })[0]);
     expect(window.location.pathname).toBe("/friends");
@@ -49,6 +55,28 @@ describe("تدفقات المستخدم الأساسية", () => {
     await user.click(within(drawer).getByRole("link", { name: "استكشاف" }));
     expect(window.location.pathname).toBe("/search");
     expect(screen.queryByRole("dialog", { name: "القائمة الرئيسية" })).toBeNull();
+  });
+
+  it("يعرض بيانات الحساب الحية في الغلاف ويحدّث الاسم والصورة بعد إعادة الجلب", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const originalUser = { id: "user-1", displayName: "ريم صنعاء", username: "reem-sanaa", avatarUrl: "https://example.test/reem-before.jpg" };
+    const updatedUser = { ...originalUser, displayName: "ريم اليمن", avatarUrl: "https://example.test/reem-after.jpg" };
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse(originalUser))
+      .mockResolvedValueOnce(jsonResponse(updatedUser)));
+    const user = userEvent.setup();
+    renderWithQuery(<><CurrentUserRefreshControl/><AppShell title="اختبار الحساب"><p>محتوى اختبار</p></AppShell></>);
+
+    expect(await screen.findByText("ريم صنعاء")).toBeTruthy();
+    expect(screen.queryByText("عمر الحضرمي")).toBeNull();
+    expect(screen.getByAltText("ريم صنعاء").getAttribute("src")).toBe(originalUser.avatarUrl);
+
+    await user.click(screen.getAllByRole("button", { name: "فتح القائمة" })[0]);
+    expect(within(screen.getByRole("dialog", { name: "القائمة الرئيسية" })).getByText("ريم صنعاء")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "تحديث بيانات الحساب" }));
+
+    await waitFor(() => expect(screen.getAllByText("ريم اليمن")).toHaveLength(2));
+    expect(screen.getAllByAltText("ريم اليمن").every(image => image.getAttribute("src") === updatedUser.avatarUrl)).toBe(true);
   });
 
   it("يعيد تسجيل الدخول الناجح المستخدم إلى التغذية ويخزن رمز الوصول في جلسة المتصفح", async () => {

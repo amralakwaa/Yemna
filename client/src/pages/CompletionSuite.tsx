@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AppShell, AdminShell } from "@/components/yemna/AppShell";
 import { Avatar } from "@/components/yemna/UI";
+import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { api, ApiError, asPerson, hasRestSession } from "@/lib/api";
 import { people } from "@/lib/yemnaData";
 import { Activity, ArrowLeft, BarChart3, Bell, Bot, BrainCircuit, Check, ChevronLeft, CircleAlert, CircleHelp, Clock3, FileQuestion, Headphones, ImageUp, LifeBuoy, LockKeyhole, Mail, MessageCircle, Phone, Search, Send, ShieldAlert, ShieldCheck, Sparkles, Trash2, UserRound, UserRoundCheck, UserRoundCog, UserRoundX, UsersRound, Zap } from "lucide-react";
@@ -73,9 +74,16 @@ export function AccountSuitePage() {
   const signedIn = hasRestSession();
   const profile = useQuery({ queryKey: ["rest", "users", "me"], queryFn: api.getMe, enabled: signedIn, retry: 1 });
   const queryClient = useQueryClient();
+  const { refreshUser, setCurrentUser } = useCurrentUser();
   const updateProfile = useMutation({
     mutationFn: api.updateMe,
-    onSuccess: () => { setSaved(true); void queryClient.invalidateQueries({ queryKey: ["rest", "users", "me"] }); toast.success("تم حفظ بيانات الملف الشخصي"); },
+    onSuccess: updatedUser => {
+      setCurrentUser(updatedUser);
+      setSaved(true);
+      void queryClient.invalidateQueries({ queryKey: ["rest", "users", "me"] });
+      void refreshUser().catch(() => undefined);
+      toast.success("تم حفظ بيانات الملف الشخصي");
+    },
     onError: error => toast.error(error instanceof ApiError ? error.message : "تعذر حفظ البيانات، حاول لاحقاً"),
   });
   const submitProfile = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -97,7 +105,7 @@ export function AccountSuitePage() {
     }
   };
   const account = profile.data;
-  const accountAvatar = account ? { id: account.id, name: account.displayName || account.fullName || "حساب يمنا", avatar: avatarPreview || account.avatarUrl || people[0].avatar, online: false } : people[0];
+  const accountAvatar = account ? { id: Number.parseInt(account.id, 10) || 0, name: account.displayName || account.fullName || "حساب يمنا", handle: `@${account.username || "yemna"}`, avatar: avatarPreview || account.avatarUrl || people[0].avatar, online: false } : people[0];
   const title = mode === "info" ? "معلومات الحساب" : mode === "edit" ? "تعديل البيانات" : mode === "contact/email" ? "تغيير البريد الإلكتروني" : mode === "contact/phone" ? "تغيير رقم الهاتف" : mode === "recovery" ? "استعادة الحساب" : mode === "disable" ? "تعطيل الحساب" : mode === "delete" ? "حذف الحساب" : "الحساب";
   return <AppShell title={title}><main className="completion-page account-suite">
     {mode === "overview" && <><SuiteHead eyebrow="مساحتك في يمنا" title="إدارة معلومات حسابك" text="اضبط بياناتك ووسائل استردادك حتى تبقى تجربتك داخل المجتمع واضحة وآمنة."/><section className="account-nav">{accountLinks.map(([label,text,href,Icon])=>{const I=Icon as typeof UserRound; return <Link href={href as string} key={label as string}><i><I/></i><div><strong>{label as string}</strong><p>{text as string}</p></div><ChevronLeft/></Link>})}</section><section className="account-danger"><div><UserRoundX/><div><strong>إيقاف أو حذف الحساب</strong><p>اختر التعطيل المؤقت أو الحذف النهائي وفق احتياجك.</p></div></div><div><Link href="/account/disable">تعطيل</Link><Link href="/account/delete">حذف الحساب</Link></div></section></>}

@@ -33,8 +33,18 @@ type AuthResponse = { accessToken: string; user: ApiUser };
 function readAccessToken() { try { return sessionStorage.getItem(ACCESS_TOKEN_KEY); } catch { return null; } }
 export function getRestAccessToken() { return readAccessToken(); }
 export function hasRestSession() { return Boolean(readAccessToken()); }
-export function setRestAccessToken(token: string) { try { sessionStorage.setItem(ACCESS_TOKEN_KEY, token); } catch { /* session storage is unavailable */ } }
-export function clearRestAccessToken() { try { sessionStorage.removeItem(ACCESS_TOKEN_KEY); } catch { /* session storage is unavailable */ } }
+function notifyRestSessionChange() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("yemna-session-change"));
+}
+
+export function setRestAccessToken(token: string) {
+  try { sessionStorage.setItem(ACCESS_TOKEN_KEY, token); } catch { /* session storage is unavailable */ }
+  notifyRestSessionChange();
+}
+export function clearRestAccessToken() {
+  try { sessionStorage.removeItem(ACCESS_TOKEN_KEY); } catch { /* session storage is unavailable */ }
+  notifyRestSessionChange();
+}
 
 let pendingRefresh: Promise<string | null> | null = null;
 export async function restoreRestAccessToken() {
