@@ -16,7 +16,7 @@ export function PostCard({ post, compact = false }: { post: Post; compact?: bool
       <button className="icon-button" aria-label="خيارات المنشور"><Ellipsis size={20}/></button>
     </header>
     <p className="post-text">{post.text}</p>
-    {post.image && <div className="post-image"><img src={post.image} alt="صورة مرفقة بالمنشور" /></div>}
+    {post.image && <div className="post-image">{post.mediaKind === "VIDEO" ? <video src={post.image} controls preload="metadata" aria-label="فيديو مرفق بالمنشور" /> : <img src={post.image} alt="صورة مرفقة بالمنشور" />}</div>}
     <div className="post-stats"><span className="reaction-stack"><i>👍</i><i>❤</i><i>😮</i> {count}</span><span>{post.comments} تعليقاً &nbsp; {post.shares} مشاركة</span></div>
     <div className="post-actions">
       <button className={liked ? "action active-like" : "action"} onClick={() => setLiked(!liked)}><Heart size={19} fill={liked ? "currentColor" : "none"}/> {liked ? "أعجبني" : "أعجبني"}</button>

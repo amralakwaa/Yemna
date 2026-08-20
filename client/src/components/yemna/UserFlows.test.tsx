@@ -205,6 +205,43 @@ describe("تدفقات المستخدم الأساسية", () => {
     expect(((uploadCall?.[1] as RequestInit).body as FormData).get("postId")).toBe(createdPost.id);
   });
 
+  it("يرفع فيديو MP4 بعد إنشاء المنشور ويعرضه كمشغل في مكتبة الفيديو", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const liveUser = { id: "user-video", displayName: "أروى صنعاء", username: "arwa-sanaa", avatarUrl: "https://example.test/arwa.jpg" };
+    const createdPost = { id: "post-video-1", body: "فيديو من صنعاء", createdAt: new Date().toISOString(), author: liveUser, _count: { comments: 0, reactions: 0, shares: 0 } };
+    const videoMedia = [{ id: "media-video-1", kind: "VIDEO", publicUrl: "https://example.test/sanaa.mp4", mimeType: "video/mp4", byteSize: 2048, createdAt: new Date().toISOString() }];
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.endsWith("/posts") && init?.method === "POST") return jsonResponse(createdPost);
+      if (url.endsWith("/media/upload") && init?.method === "POST") return jsonResponse({ ...videoMedia[0], postId: createdPost.id });
+      if (url.endsWith("/media?kind=VIDEO")) return jsonResponse(videoMedia);
+      return jsonResponse({ items: [], nextCursor: null });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    setPath("/create");
+    const create = renderWithQuery(<CreatePage />);
+    await user.type(await screen.findByPlaceholderText("بم تفكر اليوم يا أروى صنعاء؟"), createdPost.body);
+    const video = new File(["video-body"], "sanaa.mp4", { type: "video/mp4" });
+    await user.upload(screen.getByLabelText("إرفاق صورة أو فيديو"), video);
+    await user.click(screen.getByRole("button", { name: "نشر" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/media/upload", expect.objectContaining({ method: "POST", body: expect.any(FormData) })));
+    const uploadCall = fetchMock.mock.calls.find(([url]) => String(url).endsWith("/media/upload"));
+    const body = (uploadCall?.[1] as RequestInit).body as FormData;
+    expect((body.get("file") as File).type).toBe("video/mp4");
+    expect(body.get("postId")).toBe(createdPost.id);
+    create.unmount();
+
+    setPath("/videos");
+    renderWithQuery(<ProfileCollectionPage />);
+    const player = await screen.findByLabelText("فيديو من حسابك");
+    expect(player.tagName).toBe("VIDEO");
+    expect(player.getAttribute("src")).toBe(videoMedia[0].publicUrl);
+  });
+
   it("يعرض عدّادات الرسائل والإشعارات من REST بدلاً من الشارات الثابتة", async () => {
     sessionStorage.setItem("yemna_access_token", "test-access-token");
     const liveUser = { id: "user-13", displayName: "إيمان حضرموت", username: "iman-hadramout" };

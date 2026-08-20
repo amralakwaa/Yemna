@@ -1,6 +1,6 @@
 /** يمنا: بيانات عرض عربية مركزية، متسقة مع مرجعية واجهة اجتماعية يمنية RTL. */
 export type Person = { id: number; name: string; handle: string; avatar: string; online?: boolean; mutual?: number; verified?: boolean };
-export type Post = { id: string | number; author: Person; group?: string; time: string; text: string; image?: string; reactions: number; comments: number; shares: number; saved?: boolean; media?: number };
+export type Post = { id: string | number; author: Person; group?: string; time: string; text: string; image?: string; mediaKind?: "IMAGE" | "VIDEO"; reactions: number; comments: number; shares: number; saved?: boolean; media?: number };
 
 export const assets = {
   campus: "/manus-storage/yemna-feed-ai-campus_ee5d1644.jpg",
