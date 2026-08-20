@@ -16,6 +16,11 @@ export class StoriesController {
   @Get()
   list() { return this.stories.list(); }
 
+  @Get("archive")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  archive(@Req() req: AuthenticatedRequest) { return this.stories.archive(req.user.sub); }
+
   @Get(":id")
   get(@Param("id") id: string) { return this.stories.get(id); }
 

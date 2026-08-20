@@ -34,6 +34,16 @@ describe("StoriesService", () => {
     expect(prisma.story.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { expiresAt: { gt: expect.any(Date) } } }));
   });
 
+  it("يعرض في الأرشيف قصص المالك المنتهية فقط", async () => {
+    const prisma = makePrisma();
+    const service = new StoriesService(prisma as never, makeMessages() as never);
+    await service.archive("user-1");
+    expect(prisma.story.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { authorId: "user-1", expiresAt: { lte: expect.any(Date) } },
+      orderBy: { expiresAt: "desc" },
+    }));
+  });
+
   it("ينشئ قصة بصور وفيديوهات يملكها المستخدم وغير مرتبطة بمحتوى آخر", async () => {
     const prisma = makePrisma();
     const service = new StoriesService(prisma as never, makeMessages() as never);
@@ -69,7 +79,9 @@ describe("StoriesService", () => {
     const service = new StoriesService(prisma as never, messages as never);
     await service.reply("user-2", "story-1", { body: "  لقطة جميلة  " });
     expect(messages.findOrCreateDirectConversation).toHaveBeenCalledWith("user-2", "user-1");
-    expect(messages.send).toHaveBeenCalledWith("user-2", "conversation-1", { body: "لقطة جميلة" });
+    expect(messages.send).toHaveBeenCalledWith("user-2", "conversation-1", { body: "لقطة جميلة" }, {
+      notification: { title: "رد جديد على قصتك", linkUrl: "/messages/conversation-1" },
+    });
   });
 
   it("يمنع حذف القصة من غير مالكها ويسمح للمالك بحذفها", async () => {

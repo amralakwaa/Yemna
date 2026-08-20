@@ -38,6 +38,15 @@ export class StoriesService {
     return story;
   }
 
+  archive(userId: string) {
+    return this.database().story.findMany({
+      where: { authorId: userId, expiresAt: { lte: new Date() } },
+      include: storyInclude,
+      orderBy: { expiresAt: "desc" },
+      take: 100,
+    });
+  }
+
   async create(userId: string, dto: CreateStoryDto) {
     const database = this.database();
     const media = await database.mediaAsset.findFirst({
@@ -80,7 +89,9 @@ export class StoriesService {
     const body = dto.body.trim();
     if (!body) throw new BadRequestException("لا يمكن إرسال رد فارغ");
     const conversation = await this.messages.findOrCreateDirectConversation(userId, story.author.id);
-    return this.messages.send(userId, conversation.id, { body });
+    return this.messages.send(userId, conversation.id, { body }, {
+      notification: { title: "رد جديد على قصتك", linkUrl: `/messages/${conversation.id}` },
+    });
   }
 
   async remove(userId: string, storyId: string) {

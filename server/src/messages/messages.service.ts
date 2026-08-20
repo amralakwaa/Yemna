@@ -1,15 +1,27 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import { AccountStatus, ConversationKind, Prisma } from "@prisma/client";
-import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { PrismaService } from "../prisma/prisma.service";
 import { RealtimeEventsService } from "../realtime/realtime-events.service";
 import { CreateConversationDto, SendMessageDto } from "./dto/message.dto";
 
 const user = { id: true, displayName: true, username: true, avatarUrl: true } satisfies Prisma.UserSelect;
 
+type MessageSendContext = {
+  notification?: {
+    title: string;
+    linkUrl?: string;
+  };
+};
+
 @Injectable()
 export class MessagesService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService, private readonly realtime: RealtimeEventsService, private readonly notifications: NotificationsService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(RealtimeEventsService) private readonly realtime: RealtimeEventsService,
+    @Inject(NotificationsService) private readonly notifications: NotificationsService,
+  ) {}
+
   private database() { if (!this.prisma.isConfigured()) throw new ServiceUnavailableException("قاعدة البيانات غير مهيأة"); return this.prisma; }
 
   async conversations(userId: string) {
@@ -51,7 +63,7 @@ export class MessagesService {
     return this.database().message.findMany({ where: { conversationId }, include: { sender: { select: user } }, orderBy: { createdAt: "asc" } });
   }
 
-  async send(userId: string, conversationId: string, dto: SendMessageDto) {
+  async send(userId: string, conversationId: string, dto: SendMessageDto, context?: MessageSendContext) {
     await this.assertParticipant(userId, conversationId);
     const [message] = await this.database().$transaction([
       this.database().message.create({ data: { conversationId, senderId: userId, body: dto.body }, include: { sender: { select: user } } }),
@@ -61,7 +73,14 @@ export class MessagesService {
     const recipients = await this.database().conversationParticipant.findMany({ where: { conversationId, userId: { not: userId } }, select: { userId: true } });
     await Promise.all(recipients.map(async ({ userId: recipientId }) => {
       await this.realtime.emit(recipientId, "message:new", { conversationId, message });
-      await this.notifications.create({ recipientId, actorId: userId, type: "MESSAGE", title: `رسالة جديدة من ${message.sender.displayName}`, body: message.body, linkUrl: `/messages/${conversationId}` });
+      await this.notifications.create({
+        recipientId,
+        actorId: userId,
+        type: "MESSAGE",
+        title: context?.notification?.title ?? `رسالة جديدة من ${message.sender.displayName}`,
+        body: message.body,
+        linkUrl: context?.notification?.linkUrl ?? `/messages/${conversationId}`,
+      });
     }));
     return message;
   }
@@ -72,3 +91,4 @@ export class MessagesService {
     return { success: true };
   }
 }
+

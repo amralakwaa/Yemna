@@ -191,6 +191,7 @@ export const api = {
   uploadMedia: (file: File, options?: MediaUploadOptions) => uploadMediaWithProgress(file, options),
   deleteMedia: (mediaId: string) => apiRequest<void>(`/media/${encodeURIComponent(mediaId)}`, { method: "DELETE" }),
   getStories: () => apiRequest<ApiStory[]>("/stories"),
+  getStoryArchive: () => apiRequest<ApiStory[]>("/stories/archive"),
   getStory: (storyId: string) => apiRequest<ApiStory>(`/stories/${encodeURIComponent(storyId)}`),
   createStory: (mediaId: string, caption?: string) => apiRequest<ApiStory>("/stories", { method: "POST", body: JSON.stringify({ mediaId, caption }) }),
   recordStoryView: (storyId: string) => apiRequest<{ success: true; recorded: boolean }>(`/stories/${encodeURIComponent(storyId)}/views`, { method: "POST" }),

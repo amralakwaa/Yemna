@@ -88,6 +88,17 @@ describe("عقود REST للحساب والدعم", () => {
     expect(init.method).toBe("DELETE");
   });
 
+  it("يجلب أرشيف القصص من المسار المحمي المخصص للمالك", async () => {
+    setRestAccessToken("story-archive-token");
+    fetchMock.mockResolvedValue(new Response(JSON.stringify([]), { status: 200 }));
+
+    await api.getStoryArchive();
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/stories/archive");
+    expect(new Headers(init.headers).get("Authorization")).toBe("Bearer story-archive-token");
+  });
+
   it("يرفع الوسيط كـ FormData بتقدم ظاهر وترويسة وصول، ويقبل الإلغاء", async () => {
     setRestAccessToken("media-token-for-test");
     const requests: UploadRequest[] = [];
