@@ -22,8 +22,8 @@ export function validateEnv(config: Record<string, unknown>): YemnaEnv {
   const parsed = envSchema.safeParse(config);
   if (!parsed.success) throw new Error(`Invalid Yemna environment: ${parsed.error.message}`);
   const accessSecret = parsed.data.YEMNA_JWT_ACCESS_SECRET ?? parsed.data.JWT_SECRET;
-  if (parsed.data.NODE_ENV === "production" && (!accessSecret || accessSecret.length < 32)) {
-    throw new Error("A JWT access secret of at least 32 characters is required in production");
+  if (parsed.data.NODE_ENV === "production" && !accessSecret) {
+    throw new Error("A JWT access secret is required in production");
   }
   return parsed.data;
 }

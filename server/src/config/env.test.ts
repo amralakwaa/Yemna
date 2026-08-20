@@ -10,6 +10,10 @@ describe("validateEnv", () => {
     expect(config.JWT_SECRET).toBe(platformSecret);
   });
 
+  it("accepts a non-empty platform JWT secret regardless of its display length", () => {
+    expect(validateEnv({ NODE_ENV: "production", JWT_SECRET: "platform-secret" }).JWT_SECRET).toBe("platform-secret");
+  });
+
   it("rejects production when neither supported access-token secret is present", () => {
     expect(() => validateEnv({ NODE_ENV: "production" })).toThrow("JWT access secret");
   });
