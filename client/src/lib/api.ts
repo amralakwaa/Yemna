@@ -7,7 +7,7 @@ export class ApiError extends Error {
   constructor(public readonly status: number, message: string) { super(message); }
 }
 
-export type ApiUser = { id: string; displayName: string; username: string; avatarUrl?: string | null; bio?: string | null; city?: string | null; governorate?: string | null; createdAt?: string };
+export type ApiUser = { id: string; displayName: string; username: string; fullName?: string | null; email?: string | null; phone?: string | null; avatarUrl?: string | null; bio?: string | null; city?: string | null; governorate?: string | null; createdAt?: string; status?: string | null; settings?: { showOnlineStatus?: boolean; allowDirectMessages?: boolean } | null };
 export type ApiMedia = { url?: string | null; kind?: string };
 export type ApiPost = { id: string; body: string; publishedAt?: string | null; createdAt: string; author: ApiUser; media?: ApiMedia[]; _count: { comments: number; reactions: number; shares: number } };
 export type FeedResponse = { items: ApiPost[]; nextCursor: string | null };
@@ -21,6 +21,13 @@ export type ApiBlock = { id: string; blocked: ApiUser; createdAt?: string };
 export type ApiCommunity = { id: string; name: string; slug: string; description?: string | null; coverUrl?: string | null; visibility?: "PUBLIC" | "PRIVATE"; owner?: ApiUser; _count?: { members?: number; posts?: number } };
 export type ApiSearchPost = Omit<ApiPost, "_count"> & { _count: { comments: number; reactions: number } };
 export type ApiSearchResponse = { users: ApiUser[]; posts: ApiSearchPost[]; communities: ApiCommunity[] };
+export type ApiSupportTicket = { id: string; category: "ACCOUNT" | "TECHNICAL" | "SAFETY" | "OTHER"; subject: string; body: string; status: string; createdAt: string; updatedAt?: string };
+export type ApiMediaAsset = { id: string; kind: "IMAGE" | "VIDEO" | "AUDIO" | "DOCUMENT"; publicUrl: string; mimeType: string; byteSize: number; width?: number | null; height?: number | null; durationSeconds?: number | null; createdAt: string; albumId?: string | null; postId?: string | null };
+export type ApiAlbum = { id: string; title: string; description?: string | null; coverUrl?: string | null; createdAt: string; updatedAt: string; _count: { assets: number } };
+export type ApiAdminStats = { users: number; posts: number; communities: number; openTickets: number; openReports: number };
+export type ApiAdminUser = ApiUser & { role?: string; status?: "ACTIVE" | "DISABLED" | "PENDING_VERIFICATION" | "DELETED" | null; lastLoginAt?: string | null; reason?: never; reporter?: never };
+export type ApiAdminTicket = ApiSupportTicket & { user?: Pick<ApiUser, "id" | "displayName" | "username" | "avatarUrl"> | null };
+export type ApiAdminReport = { id: string; reason: string; details?: string | null; status: "OPEN" | "REVIEWING" | "RESOLVED" | "DISMISSED"; createdAt: string; reporter?: Pick<ApiUser, "id" | "displayName" | "username" | "avatarUrl"> | null; displayName: never };
 type AuthResponse = { accessToken: string; user: ApiUser };
 
 function readAccessToken() { try { return sessionStorage.getItem(ACCESS_TOKEN_KEY); } catch { return null; } }
@@ -32,7 +39,8 @@ export function clearRestAccessToken() { try { sessionStorage.removeItem(ACCESS_
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = readAccessToken();
   const headers = new Headers(init.headers);
-  if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  const isFormData = typeof FormData !== "undefined" && init.body instanceof FormData;
+  if (init.body && !isFormData && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
   const response = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: "include" });
   if (response.status === 204) return undefined as T;
@@ -51,6 +59,7 @@ export const api = {
   getFeed: () => apiRequest<FeedResponse>("/posts?limit=20"),
   createPost: (body: string) => apiRequest<ApiPost>("/posts", { method: "POST", body: JSON.stringify({ body, visibility: "PUBLIC" }) }),
   getMe: () => apiRequest<ApiUser>("/users/me"),
+  updateMe: (payload: Partial<Pick<ApiUser, "displayName" | "fullName" | "username" | "bio" | "city" | "governorate" | "avatarUrl">>) => apiRequest<ApiUser>("/users/me", { method: "PATCH", body: JSON.stringify(payload) }),
   getUser: (username: string) => apiRequest<ApiUser>(`/users/${encodeURIComponent(username)}`),
   getConversations: () => apiRequest<ApiConversation[]>("/messages/conversations"),
   getConversationMessages: (conversationId: string) => apiRequest<ApiMessage[]>(`/messages/conversations/${encodeURIComponent(conversationId)}`),
@@ -64,12 +73,29 @@ export const api = {
   respondToFriendRequest: (requestId: string, action: "accept" | "decline") => apiRequest<unknown>(`/relationships/requests/${encodeURIComponent(requestId)}/respond`, { method: "POST", body: JSON.stringify({ action }) }),
   getFollowers: () => apiRequest<ApiFollow[]>("/relationships/followers"),
   getFollowing: () => apiRequest<ApiFollow[]>("/relationships/following"),
+  getBlocked: () => apiRequest<ApiBlock[]>("/relationships/blocked"),
+  blockUser: (userId: string) => apiRequest<ApiBlock>(`/relationships/block/${encodeURIComponent(userId)}`, { method: "POST" }),
+  unblockUser: (userId: string) => apiRequest<void>(`/relationships/block/${encodeURIComponent(userId)}`, { method: "DELETE" }),
   followUser: (userId: string) => apiRequest<unknown>(`/relationships/follow/${encodeURIComponent(userId)}`, { method: "POST" }),
   unfollowUser: (userId: string) => apiRequest<void>(`/relationships/follow/${encodeURIComponent(userId)}`, { method: "DELETE" }),
   getCommunities: () => apiRequest<ApiCommunity[]>("/communities"),
   joinCommunity: (communityId: string) => apiRequest<unknown>(`/communities/${encodeURIComponent(communityId)}/join`, { method: "POST" }),
   leaveCommunity: (communityId: string) => apiRequest<void>(`/communities/${encodeURIComponent(communityId)}/leave`, { method: "DELETE" }),
+  getSupportTickets: () => apiRequest<ApiSupportTicket[]>("/support/tickets"),
+  createSupportTicket: (payload: Pick<ApiSupportTicket, "category" | "subject" | "body">) => apiRequest<ApiSupportTicket>("/support/tickets", { method: "POST", body: JSON.stringify(payload) }),
+  getMedia: (kind?: ApiMediaAsset["kind"]) => apiRequest<ApiMediaAsset[]>(`/media${kind ? `?kind=${encodeURIComponent(kind)}` : ""}`),
+  getMediaAlbums: () => apiRequest<ApiAlbum[]>("/media/albums"),
+  createMediaAlbum: (payload: Pick<ApiAlbum, "title" | "description" | "coverUrl">) => apiRequest<ApiAlbum>("/media/albums", { method: "POST", body: JSON.stringify(payload) }),
+  uploadMedia: (file: File) => { const form = new FormData(); form.append("file", file); return apiRequest<ApiMediaAsset>("/media/upload", { method: "POST", body: form }); },
+  deleteMedia: (mediaId: string) => apiRequest<void>(`/media/${encodeURIComponent(mediaId)}`, { method: "DELETE" }),
   search: (query: string, type: "all" | "users" | "posts" | "communities" = "all") => apiRequest<ApiSearchResponse>(`/search?q=${encodeURIComponent(query)}&type=${type}`),
+  getAdminStats: () => apiRequest<ApiAdminStats>("/admin/stats"),
+  getAdminUsers: () => apiRequest<ApiAdminUser[]>("/admin/users"),
+  updateAdminUserStatus: (userId: string, status: NonNullable<ApiAdminUser["status"]>) => apiRequest<{ success: true }>(`/admin/users/${encodeURIComponent(userId)}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  getAdminTickets: () => apiRequest<ApiAdminTicket[]>("/admin/tickets"),
+  updateAdminTicketStatus: (ticketId: string, status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED") => apiRequest<{ success: true }>(`/admin/tickets/${encodeURIComponent(ticketId)}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  getAdminReports: () => apiRequest<ApiAdminReport[]>("/admin/reports"),
+  updateAdminReportStatus: (reportId: string, status: ApiAdminReport["status"]) => apiRequest<{ success: true }>(`/admin/reports/${encodeURIComponent(reportId)}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
 };
 
 function relativeTime(value?: string | null) {

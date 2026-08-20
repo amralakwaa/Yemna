@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Inject, Injectable, ServiceUnav
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { AccountStatus, Prisma, type User } from "@prisma/client";
-import * as bcrypt from "bcryptjs";
+import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import type { YemnaEnv } from "../config/env";
 import { PrismaService } from "../prisma/prisma.service";

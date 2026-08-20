@@ -1,6 +1,6 @@
 import { BadRequestException, ServiceUnavailableException, UnauthorizedException } from "@nestjs/common";
 import { AccountStatus, AppRole } from "@prisma/client";
-import * as bcrypt from "bcryptjs";
+import bcrypt from "bcryptjs";
 import { describe, expect, it, vi } from "vitest";
 import { AuthService } from "./auth.service";
 
@@ -45,6 +45,11 @@ function makeService(prisma = makePrisma()) {
 }
 
 describe("AuthService", () => {
+  it("يحمّل دوال bcryptjs بالإدخال المتوافق مع تشغيل ESM", () => {
+    expect(typeof bcrypt.hash).toBe("function");
+    expect(typeof bcrypt.compare).toBe("function");
+  });
+
   it("يرفض المصادقة عندما لا تكون قاعدة البيانات مهيأة", async () => {
     const { service } = makeService(makePrisma(false));
     await expect(service.login({ identifier: "user@yemna.test", password: "strong-password" }, {})).rejects.toBeInstanceOf(ServiceUnavailableException);

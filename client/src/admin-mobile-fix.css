@@ -1,0 +1,78 @@
+@media (max-width: 900px) {
+  .admin-suite {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .admin-suite > aside,
+  .admin-suite > main {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .admin-suite > main {
+    margin: 0;
+    padding: 22px 14px;
+  }
+
+  .admin-suite > main > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  html:has(.admin-suite),
+  body:has(.admin-suite),
+  #root:has(.admin-suite) {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .admin-suite,
+  .admin-suite * {
+    min-width: 0;
+  }
+
+  .admin-suite nav {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+
+  .admin-suite nav a {
+    flex: 0 0 auto;
+  }
+
+  .admin-table-panel {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .responsive-admin-table {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .responsive-admin-table > header,
+  .responsive-admin-table > div {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .responsive-admin-table > header > :nth-child(2),
+  .responsive-admin-table > header > :nth-child(3),
+  .responsive-admin-table > div > :nth-child(2),
+  .responsive-admin-table > div > :nth-child(3) {
+    display: none;
+  }
+
+  .table-tools {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+}
