@@ -31,6 +31,19 @@ describe("عقود REST للحساب والدعم", () => {
     expect(new Headers(init.headers).get("Authorization")).toBe("Bearer access-token-for-test");
   });
 
+  it("يستعيد رمز الوصول من cookie التحديث ثم يعيد طلب الملف الشخصي بعد 401", async () => {
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ accessToken: "refreshed-access-token" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "u-1", displayName: "عمر", username: "omar" }), { status: 200 }));
+
+    const profile = await api.getMe();
+
+    expect(profile.username).toBe("omar");
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(["/api/v1/users/me", "/api/v1/auth/refresh", "/api/v1/users/me"]);
+    expect(new Headers(fetchMock.mock.calls[2]?.[1]?.headers).get("Authorization")).toBe("Bearer refreshed-access-token");
+  });
+
   it("ينشئ طلب دعم بالفئة والعنوان والوصف عبر المسار الصحيح", async () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ id: "ticket-1", category: "TECHNICAL", subject: "مشكلة", body: "تفاصيل كافية للمشكلة", status: "OPEN", createdAt: "2026-08-20T00:00:00.000Z" }), { status: 201 }));
 

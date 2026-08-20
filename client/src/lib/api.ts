@@ -36,7 +36,23 @@ export function hasRestSession() { return Boolean(readAccessToken()); }
 export function setRestAccessToken(token: string) { try { sessionStorage.setItem(ACCESS_TOKEN_KEY, token); } catch { /* session storage is unavailable */ } }
 export function clearRestAccessToken() { try { sessionStorage.removeItem(ACCESS_TOKEN_KEY); } catch { /* session storage is unavailable */ } }
 
-export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+let pendingRefresh: Promise<string | null> | null = null;
+export async function restoreRestAccessToken() {
+  if (readAccessToken()) return readAccessToken();
+  if (!pendingRefresh) pendingRefresh = fetch(`${API_BASE}/auth/refresh`, { method: "POST", credentials: "include" })
+    .then(async response => {
+      if (!response.ok) return null;
+      const payload = await response.json().catch(() => ({})) as Partial<AuthResponse>;
+      if (!payload.accessToken) return null;
+      setRestAccessToken(payload.accessToken);
+      return payload.accessToken;
+    })
+    .catch(() => null)
+    .finally(() => { pendingRefresh = null; });
+  return pendingRefresh;
+}
+
+export async function apiRequest<T>(path: string, init: RequestInit = {}, retryAfterRefresh = true): Promise<T> {
   const token = readAccessToken();
   const headers = new Headers(init.headers);
   const isFormData = typeof FormData !== "undefined" && init.body instanceof FormData;
@@ -47,6 +63,10 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
     const message = Array.isArray(payload.message) ? payload.message.join("، ") : payload.message || "تعذر إكمال الطلب";
+    if (response.status === 401 && retryAfterRefresh && path !== "/auth/refresh") {
+      clearRestAccessToken();
+      if (await restoreRestAccessToken()) return apiRequest<T>(path, init, false);
+    }
     if (response.status === 401) clearRestAccessToken();
     throw new ApiError(response.status, message);
   }

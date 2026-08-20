@@ -11,6 +11,8 @@ import { RelationshipsController } from "../relationships/relationships.controll
 import { RelationshipsService } from "../relationships/relationships.service";
 import { SupportController } from "../support/support.controller";
 import { SupportService } from "../support/support.service";
+import { UsersController } from "../users/users.controller";
+import { UsersService } from "../users/users.service";
 
 describe("production protected-resource injection", () => {
   it.each([
@@ -19,6 +21,7 @@ describe("production protected-resource injection", () => {
     [NotificationsController, NotificationsService],
     [MediaController, MediaService],
     [SupportController, SupportService],
+    [UsersController, UsersService],
   ])("declares an explicit service token for %s", (controller, service) => {
     const dependencies = Reflect.getMetadata(SELF_DECLARED_DEPS_METADATA, controller) as Array<{ index: number; param: unknown }>;
     expect(dependencies).toContainEqual({ index: 0, param: service });
