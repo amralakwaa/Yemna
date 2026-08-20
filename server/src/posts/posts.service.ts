@@ -39,7 +39,7 @@ export class PostsService {
   }
 
   async create(authorId: string, dto: CreatePostDto) {
-    const mediaIds = [...new Set(dto.mediaIds ?? [])];
+    const mediaIds = Array.from(new Set(dto.mediaIds ?? []));
     if (!dto.body && !mediaIds.length) throw new ForbiddenException("يجب إضافة نص أو وسائط للمنشور");
     const database = this.database();
     let media: Array<{ id: string }> = [];

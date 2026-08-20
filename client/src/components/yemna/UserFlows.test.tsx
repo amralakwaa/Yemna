@@ -184,6 +184,7 @@ describe("تدفقات المستخدم الأساسية", () => {
     vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
       if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.endsWith("/stories")) return jsonResponse([]);
       if (url.endsWith("/notifications") || url.endsWith("/messages/conversations")) return jsonResponse([]);
       return jsonResponse({ items: [], nextCursor: null });
     }));

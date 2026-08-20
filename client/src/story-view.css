@@ -1,0 +1,40 @@
+.story-view {
+  width: min(100%, 520px);
+  box-shadow: 0 0 48px rgba(0, 0, 0, 0.52);
+}
+
+.story-view > video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.story-view .story-state {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 32px;
+  text-align: center;
+}
+
+.story-view .story-state h1 {
+  font-size: 23px;
+  font-weight: 800;
+}
+
+.story-view .story-state p {
+  max-width: 260px;
+  color: rgba(255, 255, 255, 0.76);
+  line-height: 1.7;
+}
+
+@media (min-width: 901px) {
+  body:has(.story-view),
+  #root:has(.story-view) {
+    background: #090b0e;
+  }
+}

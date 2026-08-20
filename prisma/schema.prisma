@@ -141,6 +141,7 @@ model User {
   reactions          Reaction[]
   savedPosts         SavedPost[]
   mediaAssets        MediaAsset[]  @relation("mediaOwner")
+  stories            Story[]
   albums             Album[]
   outgoingFriendships Friendship[] @relation("friendRequester")
   incomingFriendships Friendship[] @relation("friendRecipient")
@@ -272,9 +273,24 @@ model MediaAsset {
   owner           User      @relation("mediaOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   post            Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
   album           Album?    @relation(fields: [albumId], references: [id], onDelete: SetNull)
+  story           Story?
 
   @@index([ownerId, createdAt])
   @@index([albumId, createdAt])
+}
+
+model Story {
+  id        String     @id @default(cuid())
+  authorId  String
+  mediaId   String     @unique
+  caption   String?    @db.VarChar(500)
+  expiresAt DateTime
+  createdAt DateTime   @default(now())
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  media     MediaAsset @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+
+  @@index([expiresAt, createdAt])
+  @@index([authorId, createdAt])
 }
 
 model Album {

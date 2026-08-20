@@ -13,11 +13,14 @@ import { api, ApiError, asPerson, asPost, hasRestSession, setRestAccessToken, up
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { useRealtimeSubscription } from "@/lib/realtime";
 
-const storyPeople = [people[1], people[2], people[3], people[4]];
 const simpleImages = [assets.sanaa, assets.socotra, assets.campus, assets.sanaa, assets.socotra, assets.campus];
 const localPlaces = ["صنعاء، اليمن", "عدن، اليمن", "تعز، اليمن", "إب، اليمن", "حضرموت، اليمن", "الحديدة، اليمن"];
 
-function Stories() { return <Surface className="stories"><div className="create-story"><Plus size={27}/><span>إنشاء قصة</span></div>{storyPeople.map((person, index) => <div className="story" key={person.id}><img src={simpleImages[index]} alt=""/><div className="story-overlay"/><Avatar person={person} size="md" ring/><span>{person.name.split(" ")[0]}</span></div>)}</Surface>; }
+function Stories() {
+  const stories = useQuery({ queryKey: ["rest", "stories"], queryFn: api.getStories, retry: 1 });
+  const activeStories = Array.isArray(stories.data) ? stories.data : [];
+  return <Surface className="stories"><Link href="/story/create" className="create-story"><Plus size={27}/><span>إنشاء قصة</span></Link>{stories.isLoading && <div className="story" aria-label="يجري تحميل القصص"><span>…</span></div>}{activeStories.map(story => { const person = asPerson(story.author); const name = story.author.displayName || story.author.fullName || "عضو"; return <Link href={`/story/${story.id}`} className="story" key={story.id}>{story.media.kind === "VIDEO" ? <video src={story.media.publicUrl} muted playsInline preload="metadata"/> : <img src={story.media.publicUrl} alt={`قصة ${name}`}/>}<div className="story-overlay"/><Avatar person={person} size="md" ring/><span>{name.split(" ")[0]}</span></Link>; })}{stories.isError && <span className="stories-error">تعذر تحميل القصص</span>}</Surface>;
+}
 const MAX_VIDEO_BYTES = 25 * 1024 * 1024;
 const attachmentKey = (file: File) => `${file.name}-${file.lastModified}-${file.size}`;
 const formatVideoDuration = (seconds?: number) => !seconds || !Number.isFinite(seconds) ? "جارٍ قراءة المدة…" : `${Math.floor(seconds / 60)}:${Math.floor(seconds % 60).toString().padStart(2, "0")} دقيقة`;
@@ -55,7 +58,8 @@ function Composer({ onDone }: { onDone?: () => void }) {
       const mediaIds: string[] = [];
       if (attachments.length) {
         uploadAbort.current = new AbortController();
-        for (const [index, file] of attachments.entries()) {
+        for (let index = 0; index < attachments.length; index += 1) {
+          const file = attachments[index];
           const asset = await uploadMediaWithProgress(file, { signal: uploadAbort.current.signal, onProgress: percent => setUploadProgress({ current: index + 1, total: attachments.length, percent }) });
           mediaIds.push(asset.id);
         }

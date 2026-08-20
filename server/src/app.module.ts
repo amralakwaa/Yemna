@@ -15,6 +15,7 @@ import { RealtimeModule } from "./realtime/realtime.module";
 import { RelationshipsModule } from "./relationships/relationships.module";
 import { SearchModule } from "./search/search.module";
 import { SupportModule } from "./support/support.module";
+import { StoriesModule } from "./stories/stories.module";
 import { UsersModule } from "./users/users.module";
 
 @Module({
@@ -34,6 +35,7 @@ import { UsersModule } from "./users/users.module";
     MediaModule,
     SearchModule,
     SupportModule,
+    StoriesModule,
     AdminModule,
   ],
 })
