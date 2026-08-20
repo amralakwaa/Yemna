@@ -1,13 +1,15 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import { AccountStatus, ConversationKind, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
+import { RealtimeEventsService } from "../realtime/realtime-events.service";
 import { CreateConversationDto, SendMessageDto } from "./dto/message.dto";
 
 const user = { id: true, displayName: true, username: true, avatarUrl: true } satisfies Prisma.UserSelect;
 
 @Injectable()
 export class MessagesService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService, private readonly realtime: RealtimeEventsService, private readonly notifications: NotificationsService) {}
   private database() { if (!this.prisma.isConfigured()) throw new ServiceUnavailableException("قاعدة البيانات غير مهيأة"); return this.prisma; }
 
   async conversations(userId: string) {
@@ -45,6 +47,11 @@ export class MessagesService {
       this.database().conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } }),
       this.database().conversationParticipant.update({ where: { conversationId_userId: { conversationId, userId } }, data: { lastReadAt: new Date() } }),
     ]);
+    const recipients = await this.database().conversationParticipant.findMany({ where: { conversationId, userId: { not: userId } }, select: { userId: true } });
+    await Promise.all(recipients.map(async ({ userId: recipientId }) => {
+      await this.realtime.emit(recipientId, "message:new", { conversationId, message });
+      await this.notifications.create({ recipientId, actorId: userId, type: "MESSAGE", title: `رسالة جديدة من ${message.sender.displayName}`, body: message.body, linkUrl: `/messages/${conversationId}` });
+    }));
     return message;
   }
 

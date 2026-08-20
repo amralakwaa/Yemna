@@ -11,12 +11,16 @@ export type ApiUser = { id: string; displayName: string; username: string; avata
 export type ApiMedia = { url?: string | null; kind?: string };
 export type ApiPost = { id: string; body: string; publishedAt?: string | null; createdAt: string; author: ApiUser; media?: ApiMedia[]; _count: { comments: number; reactions: number; shares: number } };
 export type FeedResponse = { items: ApiPost[]; nextCursor: string | null };
+export type ApiMessage = { id: string; body: string; createdAt: string; sender: ApiUser; conversationId: string };
+export type ApiConversation = { id: string; kind: "DIRECT" | "GROUP"; title?: string | null; participants: Array<{ user: ApiUser }>; messages?: ApiMessage[]; lastReadAt?: string | null };
+export type ApiNotification = { id: string; type: string; title: string; body?: string | null; linkUrl?: string | null; createdAt: string; readAt?: string | null; actor?: ApiUser | null };
 type AuthResponse = { accessToken: string; user: ApiUser };
 
 function readAccessToken() { try { return sessionStorage.getItem(ACCESS_TOKEN_KEY); } catch { return null; } }
+export function getRestAccessToken() { return readAccessToken(); }
 export function hasRestSession() { return Boolean(readAccessToken()); }
-export function setRestAccessToken(token: string) { try { sessionStorage.setItem(ACCESS_TOKEN_KEY, token); } catch { /* storage is unavailable; the refresh cookie still remains available */ } }
-export function clearRestAccessToken() { try { sessionStorage.removeItem(ACCESS_TOKEN_KEY); } catch { /* storage is unavailable */ } }
+export function setRestAccessToken(token: string) { try { sessionStorage.setItem(ACCESS_TOKEN_KEY, token); } catch { /* session storage is unavailable */ } }
+export function clearRestAccessToken() { try { sessionStorage.removeItem(ACCESS_TOKEN_KEY); } catch { /* session storage is unavailable */ } }
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = readAccessToken();
@@ -41,6 +45,13 @@ export const api = {
   createPost: (body: string) => apiRequest<ApiPost>("/posts", { method: "POST", body: JSON.stringify({ body, visibility: "PUBLIC" }) }),
   getMe: () => apiRequest<ApiUser>("/users/me"),
   getUser: (username: string) => apiRequest<ApiUser>(`/users/${encodeURIComponent(username)}`),
+  getConversations: () => apiRequest<ApiConversation[]>("/messages/conversations"),
+  getConversationMessages: (conversationId: string) => apiRequest<ApiMessage[]>(`/messages/conversations/${encodeURIComponent(conversationId)}`),
+  sendMessage: (conversationId: string, body: string) => apiRequest<ApiMessage>(`/messages/conversations/${encodeURIComponent(conversationId)}/messages`, { method: "POST", body: JSON.stringify({ body }) }),
+  markConversationRead: (conversationId: string) => apiRequest<{ success: true }>(`/messages/conversations/${encodeURIComponent(conversationId)}/read`, { method: "PATCH" }),
+  getNotifications: () => apiRequest<ApiNotification[]>("/notifications"),
+  markNotificationRead: (notificationId: string) => apiRequest<ApiNotification>(`/notifications/${encodeURIComponent(notificationId)}/read`, { method: "PATCH" }),
+  markAllNotificationsRead: () => apiRequest<{ count: number }>("/notifications/read-all", { method: "PATCH" }),
 };
 
 function relativeTime(value?: string | null) {
@@ -57,3 +68,4 @@ function relativeTime(value?: string | null) {
 function numericUiId(value: string) { return Array.from(value).reduce((total, character) => ((total * 31) + character.charCodeAt(0)) >>> 0, 7); }
 export function asPerson(user: ApiUser): Person { return { id: numericUiId(user.id), name: user.displayName, handle: `@${user.username}`, avatar: user.avatarUrl || "https://i.pravatar.cc/160?img=12", online: false }; }
 export function asPost(post: ApiPost): Post { return { id: post.id, author: asPerson(post.author), time: relativeTime(post.publishedAt || post.createdAt), text: post.body, image: post.media?.find(media => media.kind === "IMAGE" || media.kind === "VIDEO")?.url || undefined, reactions: post._count.reactions, comments: post._count.comments, shares: post._count.shares }; }
+export function asRelativeTime(value?: string | null) { return relativeTime(value); }

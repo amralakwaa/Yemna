@@ -10,6 +10,6 @@ import { RolesGuard } from "./roles.guard";
   imports: [PassportModule, JwtModule.register({})],
   controllers: [AuthController],
   providers: [AuthService, JwtAccessStrategy, RolesGuard],
-  exports: [AuthService, RolesGuard],
+  exports: [AuthService, RolesGuard, JwtModule],
 })
 export class AuthModule {}

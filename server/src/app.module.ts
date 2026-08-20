@@ -11,6 +11,7 @@ import { MessagesModule } from "./messages/messages.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { PostsModule } from "./posts/posts.module";
+import { RealtimeModule } from "./realtime/realtime.module";
 import { RelationshipsModule } from "./relationships/relationships.module";
 import { SearchModule } from "./search/search.module";
 import { SupportModule } from "./support/support.module";
@@ -23,6 +24,7 @@ import { UsersModule } from "./users/users.module";
     PrismaModule,
     HealthModule,
     AuthModule,
+    RealtimeModule,
     UsersModule,
     PostsModule,
     RelationshipsModule,
