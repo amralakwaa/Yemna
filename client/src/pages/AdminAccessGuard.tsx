@@ -13,7 +13,7 @@ const adminExtraPaths = new Set([
 ]);
 
 function AdminAccessState({ title, detail }: { title: string; detail: string }) {
-  return <div className="admin-suite" dir="rtl"><main><Surface className="admin-table-panel"><div className="p-6 text-right"><h1 className="mb-3 text-xl font-bold text-slate-900">{title}</h1><p className="m-0 text-sm leading-7 text-slate-600">{detail}</p></div></Surface></main></div>;
+  return <div className="admin-access-state" dir="rtl"><Surface className="admin-access-card"><span className="admin-access-kicker">يمنا · مساحة موثوقة</span><h1>{title}</h1><p>{detail}</p></Surface></div>;
 }
 
 export function AdminAccessGuard() {

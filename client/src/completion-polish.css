@@ -1,0 +1,21 @@
+.completion-page .completion-head{position:relative;padding:18px 20px 19px;margin:0 0 19px;border:1px solid #eee5e7;border-radius:18px;background:linear-gradient(135deg,#fff 0%,#fff8f9 100%);box-shadow:0 10px 28px rgba(57,32,39,.035);overflow:hidden}
+.completion-page .completion-head:before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:linear-gradient(#b51234,#d96b80)}
+.completion-page .completion-head>span{letter-spacing:.01em;margin-bottom:6px}
+.completion-page .completion-head h1{font-size:29px;letter-spacing:-.7px}
+.completion-page .completion-head p{margin-top:7px;color:#6f676b}
+.support-grid>a{border-color:#eee7e9}
+.support-grid>a:focus-visible,.account-nav>a:focus-visible{outline:3px solid rgba(181,18,52,.2);outline-offset:2px}
+.support-grid>a:nth-child(2) i{color:#a66d13;background:#fff7e7}
+.support-grid>a:nth-child(3) i{color:#277f61;background:#eaf8f1}
+.support-grid>a:nth-child(4) i{color:#6d4b91;background:#f3eefb}
+.support-grid>a:hover strong,.account-nav>a:hover strong{color:#a50f30}
+.account-nav>a{position:relative;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.account-nav>a:before{content:"";width:3px;align-self:stretch;background:transparent;border-radius:99px;transition:background .18s ease}
+.account-nav>a:hover{transform:translateY(-1px);border-color:#ebc7d0;box-shadow:0 10px 22px rgba(57,32,39,.06)}
+.account-nav>a:hover:before{background:#b51234}
+.account-nav>a:nth-child(2) i{color:#8f5d1b;background:#fff7e7}.account-nav>a:nth-child(3) i{color:#277f61;background:#eaf8f1}.account-nav>a:nth-child(4) i{color:#416d9e;background:#edf4fc}.account-nav>a:nth-child(5) i{color:#6d4b91;background:#f3eefb}
+.admin-access-state{position:relative;inset:auto;width:100%;min-height:100dvh;background:radial-gradient(circle at 82% 15%,rgba(181,18,52,.07),transparent 27%),#f4f6f8}
+.admin-access-card{border-top:4px solid #b51234;box-shadow:0 18px 42px rgba(57,32,39,.075)}
+.admin-access-kicker{display:block;margin:0 0 11px;color:#b51234;font-size:12px;font-weight:800;letter-spacing:.02em}
+.admin-access-card p{max-width:42ch}
+@media(max-width:760px){.completion-page .completion-head{padding:16px 17px;border-radius:15px}.completion-page .completion-head h1{font-size:24px}.account-nav>a:before{width:2px}.admin-access-card{border-radius:16px!important}.admin-access-kicker{font-size:11px}}
