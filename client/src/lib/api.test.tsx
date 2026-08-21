@@ -56,6 +56,20 @@ describe("عقود REST للحساب والدعم", () => {
     expect(new Headers(fetchMock.mock.calls[2]?.[1]?.headers).get("Authorization")).toBe("Bearer refreshed-access-token");
   });
 
+  it("يجلب الملف العام بالاسم أو المعرف مع ترميز قيمة المسار", async () => {
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "u-1", username: "أحمد يمني", displayName: "أحمد" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "u/2", displayName: "حساب بالمعرف" }), { status: 200 }));
+
+    await api.getUser("أحمد يمني");
+    await api.getUser("u/2");
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/v1/users/%D8%A3%D8%AD%D9%85%D8%AF%20%D9%8A%D9%85%D9%86%D9%8A",
+      "/api/v1/users/u%2F2",
+    ]);
+  });
+
   it("ينشئ طلب دعم بالفئة والعنوان والوصف عبر المسار الصحيح", async () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ id: "ticket-1", category: "TECHNICAL", subject: "مشكلة", body: "تفاصيل كافية للمشكلة", status: "OPEN", createdAt: "2026-08-20T00:00:00.000Z" }), { status: 201 }));
 
