@@ -2,7 +2,7 @@
 import { useCallback, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import * as Icons from "lucide-react";
-import { Bell, ChevronDown, Menu, MessageCircle, Moon, Plus, Search, X } from "lucide-react";
+import { Bell, ChevronDown, Menu, MessageCircle, Moon, Plus, Search, SquarePen, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { navItems } from "@/lib/yemnaData";
@@ -43,6 +43,13 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const notificationCount = notifications.filter(notification => !notification.readAt).length;
   const messageCount = conversations.reduce((total, conversation) => total + (conversation.unreadCount ?? 0), 0);
   const badgeFor = (key: string, fallback?: number) => key === "alerts" ? notificationCount : key === "messages" ? messageCount : fallback;
+  const isGroupsDirectory = location === "/groups" || location === "/pages";
+  const isMessagesPage = location === "/messages";
+  const mobilePageAction = isGroupsDirectory
+    ? <Link href={location === "/pages" ? "/pages/create" : "/groups/create"} className="icon-button" aria-label={location === "/pages" ? "إنشاء صفحة" : "إنشاء مجموعة"}><Plus/></Link>
+    : isMessagesPage
+      ? <Link href="/messages/new" className="icon-button" aria-label="رسالة جديدة"><SquarePen/></Link>
+      : <><Link href="/search" className="icon-button" aria-label="البحث"><Search/></Link><Link href="/notifications" className="icon-button" aria-label="الإشعارات"><span className="relative"><Bell/>{notificationCount > 0 && <i className="nav-badge">{notificationCount}</i>}</span></Link></>;
   const handleLogout = async () => {
     try {
       await api.logout();
@@ -61,7 +68,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       <nav className="top-nav" aria-label="التنقل الرئيسي">{navItems.map((item) => { const badge = badgeFor(item.key, item.badge); return <Link key={item.key} href={item.path} className={is(item.path) ? "top-nav-link active" : "top-nav-link"}><span className="relative"><NavIcon icon={item.icon} size={23}/>{Boolean(badge) && <i className="nav-badge">{badge}</i>}</span><small>{item.label}</small></Link>; })}</nav>
       {isCurrentUserLoading ? <div className="header-profile" aria-label="يجري تحميل الحساب"><span className="avatar avatar-md"/><strong>جارٍ تحميل الحساب…</strong></div> : currentPerson ? <Link href="/profile" className="header-profile" aria-label={`عرض الملف الشخصي لـ ${currentUserName}`}><Avatar person={currentPerson}/><strong>{currentUserName}</strong><ChevronDown size={16}/></Link> : <Link href="/login" className="header-profile" aria-label="تسجيل الدخول"><Icons.LogIn size={19}/><strong>تسجيل الدخول</strong></Link>}
     </header>
-    <header className="mobile-header"><button className="icon-button" type="button" aria-label="فتح القائمة" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen(true)}><Menu/></button><YemnaLogo compact/><div><Link href="/search" className="icon-button"><Search/></Link><Link href="/notifications" className="icon-button"><span className="relative"><Bell/>{notificationCount > 0 && <i className="nav-badge">{notificationCount}</i>}</span></Link></div></header>
+    <header className={title ? "mobile-header mobile-header-page" : "mobile-header"}><button className="icon-button" type="button" aria-label="فتح القائمة" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen(true)}><Menu/></button>{title ? <h1 className="mobile-context-title">{title}</h1> : <YemnaLogo compact/>}<div className="mobile-header-actions">{title ? mobilePageAction : <><Link href="/search" className="icon-button" aria-label="البحث"><Search/></Link><Link href="/notifications" className="icon-button" aria-label="الإشعارات"><span className="relative"><Bell/>{notificationCount > 0 && <i className="nav-badge">{notificationCount}</i>}</span></Link></>}</div></header>
     {mobileMenuOpen && <div className="mobile-menu-layer" role="dialog" aria-modal="true" aria-label="القائمة الرئيسية">
       <button className="mobile-menu-backdrop" type="button" aria-label="إغلاق القائمة" onClick={() => setMobileMenuOpen(false)}/>
       <aside className="mobile-menu-drawer">

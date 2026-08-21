@@ -20,4 +20,9 @@ describe("mobile subpage layout contract", () => {
     expect(stylesheet).toContain(".notifications-page .notification-row{display:grid");
     expect(stylesheet).toContain(".profile-page .profile-main{display:flex;flex-wrap:wrap");
   });
+
+  it("uses one contextual mobile header instead of duplicating the page title", () => {
+    expect(stylesheet).toContain(".mobile-header.mobile-header-page{display:grid");
+    expect(stylesheet).toContain(".mobile-page-title,.page-stage .social-topbar{display:none}");
+  });
 });
