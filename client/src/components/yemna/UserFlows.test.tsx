@@ -8,6 +8,7 @@ import { AppShell } from "./AppShell";
 import { CreatePage, HomePage, LoginPage } from "@/pages/YemnaPages";
 import { LiveSearchPage } from "@/pages/LiveSearchPage";
 import { AccountSuitePage, RelationsCompletionPage } from "@/pages/CompletionSuite";
+import { RealtimeMessagesPage } from "@/pages/RealtimePages";
 import { CreatePostDetailPage, PostDetailPage, ProfileCollectionPage } from "@/pages/ReferenceSuite";
 import { CurrentUserProvider, useCurrentUser } from "@/contexts/CurrentUserContext";
 
@@ -33,6 +34,7 @@ function jsonResponse(payload: unknown) {
 describe("تدفقات المستخدم الأساسية", () => {
   beforeEach(() => {
     sessionStorage.clear();
+    localStorage.clear();
     setPath("/");
   });
 
@@ -117,6 +119,7 @@ describe("تدفقات المستخدم الأساسية", () => {
 
     await waitFor(() => expect(window.location.pathname).toBe("/"));
     expect(sessionStorage.getItem("yemna_access_token")).toBe("test-access-token");
+    expect(localStorage.getItem("yemna_access_token")).toBe("test-access-token");
   });
 
   it("يعرض نتائج البحث الحي ويوصلها إلى الملف العام وإلى استكشاف المجتمع", async () => {
@@ -328,6 +331,34 @@ describe("تدفقات المستخدم الأساسية", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/v1/messages/conversations", expect.anything());
     expect(screen.queryByText("3")).toBeNull();
     await waitFor(() => expect(screen.getAllByText("1").length).toBeGreaterThanOrEqual(2));
+  });
+
+  it("يعرض المحادثات الحقيقية ويفلترها ويرسل رسالة جديدة عبر REST", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const me = { id: "user-me", displayName: "سارة صنعاء", username: "sara-sanaa" };
+    const conversation = { id: "conversation-live", kind: "DIRECT", title: null, participants: [{ user: me }, { user: { id: "user-other", displayName: "خالد تعز", username: "khaled-taiz" } }], messages: [{ id: "message-old", body: "مرحباً", createdAt: new Date().toISOString(), sender: me, conversationId: "conversation-live" }] };
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(me);
+      if (url.endsWith("/messages/conversations") && init?.method === "POST") return jsonResponse(conversation);
+      if (url.endsWith("/messages/conversations")) return jsonResponse([conversation]);
+      if (url.endsWith("/messages/conversations/conversation-live")) return jsonResponse(conversation.messages);
+      if (url.endsWith("/messages/conversations/conversation-live/messages")) return jsonResponse({ id: "message-new", body: "رسالة اختبار", createdAt: new Date().toISOString(), sender: me, conversationId: "conversation-live" });
+      if (url.endsWith("/messages/conversations/conversation-live/read")) return jsonResponse({ success: true });
+      return jsonResponse({ items: [], nextCursor: null });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    setPath("/messages");
+    renderWithQuery(<RealtimeMessagesPage />);
+
+    expect(await screen.findByText("سارة صنعاء، خالد تعز")).toBeTruthy();
+    await user.type(screen.getByPlaceholderText("بحث في الرسائل"), "لا توجد");
+    expect(await screen.findByText("لا توجد محادثات مطابقة.")).toBeTruthy();
+    await user.clear(screen.getByPlaceholderText("بحث في الرسائل"));
+    await user.type(screen.getByPlaceholderText("اكتب رسالة..."), "رسالة اختبار");
+    await user.click(screen.getByRole("button", { name: "إرسال الرسالة" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/messages/conversations/conversation-live/messages", expect.objectContaining({ method: "POST", body: JSON.stringify({ body: "رسالة اختبار" }) })));
   });
 
   it("ينشر تعليقاً عبر REST ويعرض وسائط الحساب الحقيقية ويُنهي الجلسة من القائمة", async () => {
