@@ -121,6 +121,19 @@ describe("عقود REST للحساب والدعم", () => {
     expect(fetchMock.mock.calls[1]?.[1]?.method).toBe("DELETE");
   });
 
+  it("يفتح محادثة مباشرة مع المستخدم الآخر عبر العقد الصحيح", async () => {
+    setRestAccessToken("message-token");
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ id: "conversation-1", participants: [] }), { status: 201 }));
+
+    await api.findOrCreateDirectConversation("user/2");
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/messages/conversations/direct");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual({ userId: "user/2" });
+    expect(new Headers(init.headers).get("Authorization")).toBe("Bearer message-token");
+  });
+
   it("يلغي حظر المستخدم عبر المسار المحمي الصحيح", async () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
 

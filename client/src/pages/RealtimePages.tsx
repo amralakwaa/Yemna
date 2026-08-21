@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, ImagePlus, LoaderCircle, MoreHorizontal, Plus, Send, Settings, WifiOff, X } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import { AppShell } from "@/components/yemna/AppShell";
 import { Avatar, Pill, SearchBox, SectionHeading, Surface } from "@/components/yemna/UI";
@@ -26,13 +26,18 @@ export function RealtimeMessagesPage() {
   const queryClient = useQueryClient();
   const signedIn = hasRestSession();
   const realtimeStatus = useRealtimeConnectionStatus();
-  const [selectedId, setSelectedId] = useState<string>();
+  const [location] = useLocation();
+  const requestedConversationId = new URLSearchParams(location.split("?")[1] || "").get("conversation") || undefined;
+  const [selectedId, setSelectedId] = useState<string | undefined>(requestedConversationId);
   const [text, setText] = useState("");
   const [attachment, setAttachment] = useState<File>();
   const [typingUserId, setTypingUserId] = useState<string>();
   const me = useQuery({ queryKey: ["rest", "me"], queryFn: api.getMe, enabled: signedIn, staleTime: 60_000 });
   const conversations = useQuery({ queryKey: ["rest", "conversations"], queryFn: api.getConversations, enabled: signedIn });
-  useEffect(() => { if (!selectedId && conversations.data?.[0]) setSelectedId(conversations.data[0].id); }, [conversations.data, selectedId]);
+  useEffect(() => {
+    if (requestedConversationId && conversations.data?.some(conversation => conversation.id === requestedConversationId)) setSelectedId(requestedConversationId);
+    else if (!selectedId && conversations.data?.[0]) setSelectedId(conversations.data[0].id);
+  }, [conversations.data, requestedConversationId, selectedId]);
   const selected = conversations.data?.find(conversation => conversation.id === selectedId);
   const [conversationSearch, setConversationSearch] = useState("");
   const visibleConversations = useMemo(() => conversations.data?.filter(conversation => {

@@ -26,6 +26,17 @@ describe("RelationshipsService", () => {
     expect(prisma.friendship.create).toHaveBeenCalledWith({ data: { requesterId: "user-1", recipientId: "user-2" } });
   });
 
+  it("ينشئ متابعة متبادلة تلقائياً عند قبول طلب الصداقة", async () => {
+    const prisma = makePrisma();
+    prisma.friendship.findUnique.mockResolvedValue({ id: "friendship-1", requesterId: "user-2", recipientId: "user-1", status: "PENDING" });
+    prisma.friendship.update.mockResolvedValue({ id: "friendship-1", status: "ACCEPTED" });
+    const service = new RelationshipsService(prisma as never);
+    await service.respondToFriendRequest("user-1", "friendship-1", "accept");
+    expect(prisma.follow.upsert).toHaveBeenCalledTimes(2);
+    expect(prisma.follow.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: { followerId: "user-1", followedId: "user-2" } }));
+    expect(prisma.follow.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: { followerId: "user-2", followedId: "user-1" } }));
+  });
+
   it("ينشئ متابعة واحدة قابلة للإعادة دون تكرار", async () => {
     const prisma = makePrisma();
     const service = new RelationshipsService(prisma as never);

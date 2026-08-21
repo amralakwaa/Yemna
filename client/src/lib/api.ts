@@ -177,6 +177,7 @@ export const api = {
   getUser: (username: string) => apiRequest<ApiUser>(`/users/${encodeURIComponent(username)}`),
   getConversations: () => apiRequest<ApiConversation[]>("/messages/conversations"),
   createConversation: (participantIds: string[], title?: string) => apiRequest<ApiConversation>("/messages/conversations", { method: "POST", body: JSON.stringify({ participantIds, title }) }),
+  findOrCreateDirectConversation: (userId: string) => apiRequest<ApiConversation>("/messages/conversations/direct", { method: "POST", body: JSON.stringify({ userId }) }),
   getConversationMessages: (conversationId: string) => apiRequest<ApiMessage[]>(`/messages/conversations/${encodeURIComponent(conversationId)}`),
   getConversationMessagesPage: (conversationId: string, cursor?: string, limit = 30) => apiRequest<{ items: ApiMessage[]; nextCursor: string | null }>(`/messages/conversations/${encodeURIComponent(conversationId)}/page?limit=${limit}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`),
   sendMessage: (conversationId: string, body: string, mediaId?: string) => apiRequest<ApiMessage>(`/messages/conversations/${encodeURIComponent(conversationId)}/messages`, { method: "POST", body: JSON.stringify({ body, ...(mediaId ? { mediaId } : {}) }) }),

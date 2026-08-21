@@ -60,7 +60,16 @@ export class RelationshipsService {
   async respondToFriendRequest(actorId: string, requestId: string, action: "accept" | "decline") {
     const request = await this.database().friendship.findUnique({ where: { id: requestId } });
     if (!request || request.recipientId !== actorId || request.status !== FriendshipStatus.PENDING) throw new NotFoundException("طلب الصداقة غير متاح");
-    return this.database().friendship.update({ where: { id: requestId }, data: { status: action === "accept" ? FriendshipStatus.ACCEPTED : FriendshipStatus.DECLINED, respondedAt: new Date() } });
+    const updated = await this.database().friendship.update({ where: { id: requestId }, data: { status: action === "accept" ? FriendshipStatus.ACCEPTED : FriendshipStatus.DECLINED, respondedAt: new Date() } });
+    if (action === "accept") {
+      // كما في المنصات الاجتماعية الشبيهة بفيسبوك: قبول الصداقة يجعل الطرفين
+      // يتابعان تحديثات بعضهما، مع بقاء إمكانية إلغاء المتابعة لاحقاً.
+      await Promise.all([
+        this.database().follow.upsert({ where: { followerId_followedId: { followerId: actorId, followedId: request.requesterId } }, create: { followerId: actorId, followedId: request.requesterId }, update: {} }),
+        this.database().follow.upsert({ where: { followerId_followedId: { followerId: request.requesterId, followedId: actorId } }, create: { followerId: request.requesterId, followedId: actorId }, update: {} }),
+      ]);
+    }
+    return updated;
   }
 
   async listRequests(userId: string) {
