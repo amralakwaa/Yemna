@@ -15,7 +15,7 @@
 ## متغيرات التشغيل المطلوبة
 
 ```bash
-YEMNA_DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/yemna?schema=public
+YEMNA_DATABASE_URL=<يُحفظ رابط الاتصال في Secrets فقط>
 YEMNA_JWT_ACCESS_SECRET=change-this-to-a-random-secret-of-at-least-32-characters
 YEMNA_REDIS_URL=redis://HOST:6379
 YEMNA_CORS_ORIGINS=https://your-frontend.example

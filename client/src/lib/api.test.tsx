@@ -17,6 +17,18 @@ describe("عقود REST للحساب والدعم", () => {
     vi.stubGlobal("fetch", fetchMock);
   });
 
+  it("يحفظ رمز الجلسة في التخزين الدائم ويمسحه عند تسجيل الخروج الصريح", () => {
+    setRestAccessToken("persistent-session-token");
+
+    expect(localStorage.getItem("yemna_access_token")).toBe("persistent-session-token");
+    expect(sessionStorage.getItem("yemna_access_token")).toBe("persistent-session-token");
+
+    clearRestAccessToken();
+
+    expect(localStorage.getItem("yemna_access_token")).toBeNull();
+    expect(sessionStorage.getItem("yemna_access_token")).toBeNull();
+  });
+
   it("يرسل تحديث الملف الشخصي إلى مسار المستخدم المحمي", async () => {
     setRestAccessToken("access-token-for-test");
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ id: "u-1", displayName: "عمر", username: "omar" }), { status: 200 }));

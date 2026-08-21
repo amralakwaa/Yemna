@@ -33,7 +33,14 @@ export type ApiAdminTicket = ApiSupportTicket & { user?: Pick<ApiUser, "id" | "d
 export type ApiAdminReport = { id: string; reason: string; details?: string | null; status: "OPEN" | "REVIEWING" | "RESOLVED" | "DISMISSED"; createdAt: string; reporter?: Pick<ApiUser, "id" | "displayName" | "username" | "avatarUrl"> | null; displayName: never };
 type AuthResponse = { accessToken: string; user: ApiUser };
 
-function readAccessToken() { try { return sessionStorage.getItem(ACCESS_TOKEN_KEY); } catch { return null; } }
+function readAccessToken() {
+  try {
+    const persistentToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+    if (persistentToken) return persistentToken;
+  } catch { /* persistent storage is unavailable */ }
+
+  try { return sessionStorage.getItem(ACCESS_TOKEN_KEY); } catch { return null; }
+}
 export function getRestAccessToken() { return readAccessToken(); }
 export function hasRestSession() { return Boolean(readAccessToken()); }
 function notifyRestSessionChange() {
@@ -41,10 +48,12 @@ function notifyRestSessionChange() {
 }
 
 export function setRestAccessToken(token: string) {
+  try { localStorage.setItem(ACCESS_TOKEN_KEY, token); } catch { /* persistent storage is unavailable */ }
   try { sessionStorage.setItem(ACCESS_TOKEN_KEY, token); } catch { /* session storage is unavailable */ }
   notifyRestSessionChange();
 }
 export function clearRestAccessToken() {
+  try { localStorage.removeItem(ACCESS_TOKEN_KEY); } catch { /* persistent storage is unavailable */ }
   try { sessionStorage.removeItem(ACCESS_TOKEN_KEY); } catch { /* session storage is unavailable */ }
   notifyRestSessionChange();
 }
