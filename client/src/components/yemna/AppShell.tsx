@@ -16,7 +16,7 @@ const sideItems = [
   ...navItems.slice(0, 4),
   { key: "pages", label: "الصفحات", path: "/pages", icon: "Flag" },
   { key: "events", label: "الفعاليات", path: "/events", icon: "CalendarDays" },
-  { key: "friend-suggestions", label: "اقتراحات الأصدقاء والمتابعة", path: "/friends/suggestions", icon: "UserPlus" },
+  { key: "friend-suggestions", label: "اقتراحات الأصدقاء والمتابعة", path: "/people/suggestions", icon: "UserPlus" },
   navItems[5],
   { key: "saved", label: "المحفوظات", path: "/saved", icon: "Bookmark" },
   navItems[4],
