@@ -56,3 +56,23 @@ describe("RelationshipsService", () => {
     expect(prisma.friendship.findMany).not.toHaveBeenCalled();
   });
 });
+
+  it("يمنع طلب الصداقة عندما يختار صاحب الحساب لا أحد", async () => {
+    const prisma = makePrisma();
+    prisma.user.findUnique
+      .mockResolvedValueOnce({ id: "user-2" })
+      .mockResolvedValueOnce({ id: "user-2", settings: { friendRequestPermission: "NOBODY", followPermission: "EVERYONE" } });
+    const service = new RelationshipsService(prisma as never);
+    await expect(service.sendFriendRequest("user-1", "user-2")).rejects.toThrow("لا يستقبل هذا الحساب");
+    expect(prisma.friendship.create).not.toHaveBeenCalled();
+  });
+
+  it("يسمح بالمتابعة من الأصدقاء فقط عند وجود صداقة مقبولة", async () => {
+    const prisma = makePrisma();
+    prisma.user.findUnique
+      .mockResolvedValueOnce({ id: "user-2" })
+      .mockResolvedValueOnce({ id: "user-2", settings: { friendRequestPermission: "EVERYONE", followPermission: "FRIENDS" } });
+    const service = new RelationshipsService(prisma as never);
+    await expect(service.follow("user-1", "user-2")).rejects.toThrow("يسمح هذا الحساب بالمتابعة");
+    expect(prisma.follow.upsert).not.toHaveBeenCalled();
+  });

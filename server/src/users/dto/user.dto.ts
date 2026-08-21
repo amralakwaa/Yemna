@@ -1,5 +1,5 @@
 import { Transform } from "class-transformer";
-import { IsBoolean, IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
+import { IsBoolean, IsEnum, IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
 
 const trim = ({ value }: { value: unknown }) => (typeof value === "string" ? value.trim() : value);
 
@@ -26,10 +26,22 @@ export class UpdateMyProfileDto {
   avatarUrl?: string;
 }
 
+export enum RelationPermissionDto {
+  EVERYONE = "EVERYONE",
+  FRIENDS = "FRIENDS",
+  NOBODY = "NOBODY",
+}
+
 export class UpdateMySettingsDto {
   @IsOptional() @IsBoolean()
   showOnlineStatus?: boolean;
 
   @IsOptional() @IsBoolean()
   allowDirectMessages?: boolean;
+
+  @IsOptional() @IsEnum(RelationPermissionDto)
+  friendRequestPermission?: RelationPermissionDto;
+
+  @IsOptional() @IsEnum(RelationPermissionDto)
+  followPermission?: RelationPermissionDto;
 }

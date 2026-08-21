@@ -7,7 +7,7 @@ export class ApiError extends Error {
   constructor(public readonly status: number, message: string) { super(message); }
 }
 
-export type ApiUser = { id: string; displayName: string; username: string; fullName?: string | null; email?: string | null; phone?: string | null; avatarUrl?: string | null; bio?: string | null; city?: string | null; governorate?: string | null; createdAt?: string; status?: string | null; settings?: { showOnlineStatus?: boolean; allowDirectMessages?: boolean } | null };
+export type ApiUser = { id: string; displayName: string; username: string; fullName?: string | null; email?: string | null; phone?: string | null; avatarUrl?: string | null; bio?: string | null; city?: string | null; governorate?: string | null; createdAt?: string; status?: string | null; settings?: { showOnlineStatus?: boolean; allowDirectMessages?: boolean; friendRequestPermission?: "EVERYONE" | "FRIENDS" | "NOBODY"; followPermission?: "EVERYONE" | "FRIENDS" | "NOBODY" } | null };
 export type ApiMedia = { url?: string | null; publicUrl?: string | null; kind?: string };
 export type ApiPost = { id: string; body: string; publishedAt?: string | null; createdAt: string; author: ApiUser; media?: ApiMedia[]; _count: { comments: number; reactions: number; shares: number } };
 export type FeedResponse = { items: ApiPost[]; nextCursor: string | null };
@@ -172,6 +172,7 @@ export const api = {
   deletePostComment: (postId: string, commentId: string) => apiRequest<{ success: boolean }>(`/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`, { method: "DELETE" }),
   getMe: () => apiRequest<ApiUser>("/users/me"),
   updateMe: (payload: Partial<Pick<ApiUser, "displayName" | "fullName" | "username" | "bio" | "city" | "governorate" | "avatarUrl">>) => apiRequest<ApiUser>("/users/me", { method: "PATCH", body: JSON.stringify(payload) }),
+  updateSettings: (payload: { friendRequestPermission?: "EVERYONE" | "FRIENDS" | "NOBODY"; followPermission?: "EVERYONE" | "FRIENDS" | "NOBODY"; showOnlineStatus?: boolean; allowDirectMessages?: boolean }) => apiRequest<ApiUser>("/users/me/settings", { method: "PATCH", body: JSON.stringify(payload) }),
   getUser: (username: string) => apiRequest<ApiUser>(`/users/${encodeURIComponent(username)}`),
   getConversations: () => apiRequest<ApiConversation[]>("/messages/conversations"),
   createConversation: (participantIds: string[], title?: string) => apiRequest<ApiConversation>("/messages/conversations", { method: "POST", body: JSON.stringify({ participantIds, title }) }),

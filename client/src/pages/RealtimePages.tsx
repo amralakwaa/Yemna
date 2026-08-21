@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/yemna/AppShell";
 import { Avatar, Pill, SearchBox, SectionHeading, Surface } from "@/components/yemna/UI";
 import { api, asPerson, asRelativeTime, hasRestSession } from "@/lib/api";
+import { compressImageForUpload } from "@/lib/media";
 import { emitRealtime, type RealtimeConnectionStatus, useRealtimeConnectionStatus, useRealtimeSubscription } from "@/lib/realtime";
 
 function SignInRequired({ title }: { title: string }) {
@@ -40,7 +41,7 @@ export function RealtimeMessagesPage() {
   }) ?? [], [conversationSearch, conversations.data]);
   const messages = useInfiniteQuery({ queryKey: ["rest", "conversation", selectedId], queryFn: ({ pageParam }) => api.getConversationMessagesPage(selectedId!, pageParam, 30), initialPageParam: undefined as string | undefined, getNextPageParam: page => page.nextCursor ?? undefined, enabled: signedIn && Boolean(selectedId) });
   const messageItems = messages.data?.pages.flatMap(page => page.items) ?? [];
-  const send = useMutation({ mutationFn: async () => { let mediaId: string | undefined; if (attachment) mediaId = (await api.uploadMedia(attachment)).id; try { return await api.sendMessage(selectedId!, text.trim(), mediaId); } catch (error) { if (mediaId) void api.deleteMedia(mediaId).catch(() => undefined); throw error; } }, onSuccess: () => { setText(""); setAttachment(undefined); emitRealtime("typing:stop", { conversationId: selectedId! }); void messages.refetch(); queryClient.invalidateQueries({ queryKey: ["rest", "conversations"] }); }, onError: () => toast.error("تعذر إرسال الرسالة أو الصورة، حاول مجدداً") });
+  const send = useMutation({ mutationFn: async () => { let mediaId: string | undefined; if (attachment) mediaId = (await api.uploadMedia(await compressImageForUpload(attachment))).id; try { return await api.sendMessage(selectedId!, text.trim(), mediaId); } catch (error) { if (mediaId) void api.deleteMedia(mediaId).catch(() => undefined); throw error; } }, onSuccess: () => { setText(""); setAttachment(undefined); emitRealtime("typing:stop", { conversationId: selectedId! }); void messages.refetch(); queryClient.invalidateQueries({ queryKey: ["rest", "conversations"] }); }, onError: () => toast.error("تعذر إرسال الرسالة أو الصورة، حاول مجدداً") });
   useEffect(() => { if (selectedId) void api.markConversationRead(selectedId).catch(() => undefined); }, [selectedId]);
   const onEvent = useCallback((event: { name: string; payload: unknown }) => { const payload = event.payload as { conversationId?: string; userId?: string }; queryClient.invalidateQueries({ queryKey: ["rest", "conversations"] }); if (payload.conversationId === selectedId) { if (event.name === "typing:start") setTypingUserId(payload.userId); else if (event.name === "typing:stop") setTypingUserId(undefined); else void messages.refetch(); } }, [messages, queryClient, selectedId]);
   useRealtimeSubscription(["message:new", "message:read", "typing:start", "typing:stop"], onEvent);

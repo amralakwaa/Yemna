@@ -27,6 +27,11 @@ enum PostVisibility {
   ONLY_ME
   COMMUNITY
 }
+enum RelationPermission {
+  EVERYONE
+  FRIENDS
+  NOBODY
+}
 
 enum PostStatus {
   DRAFT
@@ -186,8 +191,10 @@ model UserSettings {
   userId              String         @id
   profileVisibility   PostVisibility @default(PUBLIC)
   showOnlineStatus    Boolean        @default(true)
-  allowDirectMessages Boolean        @default(true)
-  createdAt           DateTime       @default(now())
+    allowDirectMessages   Boolean           @default(true)
+  friendRequestPermission RelationPermission @default(EVERYONE)
+  followPermission       RelationPermission @default(EVERYONE)
+  createdAt              DateTime          @default(now())
   updatedAt           DateTime       @updatedAt
   user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

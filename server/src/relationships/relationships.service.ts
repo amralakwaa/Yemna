@@ -1,5 +1,5 @@
-import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
-import { FriendshipStatus, Prisma } from "@prisma/client";
+import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
+import { FriendshipStatus, Prisma, RelationPermission } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
 const person = {
@@ -26,9 +26,19 @@ export class RelationshipsService {
     if (block) throw new ConflictException("لا يمكن تنفيذ الإجراء بسبب حالة الحظر");
   }
 
+  private async assertRelationPermission(actorId: string, targetId: string, kind: "friendRequest" | "follow") {
+    const target = await this.database().user.findUnique({ where: { id: targetId }, select: { id: true, settings: { select: { friendRequestPermission: true, followPermission: true } } } });
+    const permission = kind === "friendRequest" ? target?.settings?.friendRequestPermission : target?.settings?.followPermission;
+    if (!permission || permission === RelationPermission.EVERYONE) return;
+    if (permission === RelationPermission.NOBODY) throw new ForbiddenException(kind === "friendRequest" ? "لا يستقبل هذا الحساب طلبات صداقة حالياً" : "لا يسمح هذا الحساب بالمتابعة حالياً");
+    const friendship = await this.database().friendship.findFirst({ where: { status: FriendshipStatus.ACCEPTED, OR: [{ requesterId: actorId, recipientId: targetId }, { requesterId: targetId, recipientId: actorId }] }, select: { id: true } });
+    if (!friendship) throw new ForbiddenException(kind === "friendRequest" ? "يسمح هذا الحساب بطلبات الصداقة من الأصدقاء فقط" : "يسمح هذا الحساب بالمتابعة من الأصدقاء فقط");
+  }
+
   async sendFriendRequest(actorId: string, recipientId: string) {
     await this.assertTarget(actorId, recipientId);
     await this.assertNotBlocked(actorId, recipientId);
+    await this.assertRelationPermission(actorId, recipientId, "friendRequest");
     const existing = await this.database().friendship.findFirst({ where: { OR: [{ requesterId: actorId, recipientId }, { requesterId: recipientId, recipientId: actorId }] } });
     if (existing?.status === FriendshipStatus.ACCEPTED) throw new ConflictException("أنتم أصدقاء بالفعل");
     if (existing?.status === FriendshipStatus.PENDING) throw new ConflictException("يوجد طلب صداقة قائم بالفعل");
@@ -62,6 +72,7 @@ export class RelationshipsService {
   async follow(actorId: string, targetId: string) {
     await this.assertTarget(actorId, targetId);
     await this.assertNotBlocked(actorId, targetId);
+    await this.assertRelationPermission(actorId, targetId, "follow");
     return this.database().follow.upsert({ where: { followerId_followedId: { followerId: actorId, followedId: targetId } }, create: { followerId: actorId, followedId: targetId }, update: {} });
   }
 
