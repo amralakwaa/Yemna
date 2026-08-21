@@ -60,8 +60,9 @@ export function clearRestAccessToken() {
 }
 
 let pendingRefresh: Promise<string | null> | null = null;
-export async function restoreRestAccessToken() {
-  if (readAccessToken()) return readAccessToken();
+export async function restoreRestAccessToken(options: { force?: boolean } = {}) {
+  const storedToken = readAccessToken();
+  if (storedToken && !options.force) return storedToken;
   if (!pendingRefresh) pendingRefresh = fetch(`${API_BASE}/auth/refresh`, { method: "POST", credentials: "include" })
     .then(async response => {
       if (!response.ok) return null;

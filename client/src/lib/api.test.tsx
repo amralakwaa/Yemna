@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { api, clearRestAccessToken, setRestAccessToken } from "./api";
+import { api, clearRestAccessToken, restoreRestAccessToken, setRestAccessToken } from "./api";
 
 describe("عقود REST للحساب والدعم", () => {
   const fetchMock = vi.fn();
@@ -27,6 +27,17 @@ describe("عقود REST للحساب والدعم", () => {
 
     expect(localStorage.getItem("yemna_access_token")).toBeNull();
     expect(sessionStorage.getItem("yemna_access_token")).toBeNull();
+  });
+
+  it("يجرب refresh عند التحميل القسري حتى مع وجود رمز قديم محفوظ", async () => {
+    setRestAccessToken("old-access-token");
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ accessToken: "fresh-access-token" }), { status: 200 }));
+
+    await expect(restoreRestAccessToken({ force: true })).resolves.toBe("fresh-access-token");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/auth/refresh");
+    expect(localStorage.getItem("yemna_access_token")).toBe("fresh-access-token");
   });
 
   it("يرسل تحديث الملف الشخصي إلى مسار المستخدم المحمي", async () => {

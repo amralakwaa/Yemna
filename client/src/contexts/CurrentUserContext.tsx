@@ -25,7 +25,7 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    restoreRestAccessToken().finally(() => {
+    restoreRestAccessToken({ force: true }).finally(() => {
       if (!cancelled) {
         setSessionReady(true);
         setSessionRevision(revision => revision + 1);
