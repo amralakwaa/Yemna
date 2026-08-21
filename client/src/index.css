@@ -199,6 +199,8 @@ body:has(.ai-page),body:has(.admin-shell){direction:ltr}.ai-page,.admin-shell{di
 
 /* رأس سياقي واحد للشاشات الفرعية على الهاتف؛ يمنع تكرار عنوان الصفحة داخل المحتوى. */
 @media (max-width:900px){
+  .mobile-header,.mobile-nav{direction:ltr}
+  .mobile-header .wordmark,.mobile-header .mobile-context-title,.mobile-nav>a,.mobile-nav .menu-trigger{direction:rtl}
   .mobile-header.mobile-header-page{display:grid;grid-template-columns:40px minmax(0,1fr) 76px;align-items:center;gap:4px}
   .mobile-header-page .mobile-context-title{min-width:0;margin:0;overflow:hidden;text-align:center;text-overflow:ellipsis;white-space:nowrap;color:#20232b;font-size:18px;font-weight:800;line-height:1.2}
   .mobile-header-page .mobile-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:0;min-width:0}

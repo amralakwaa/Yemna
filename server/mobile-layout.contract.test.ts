@@ -25,4 +25,9 @@ describe("mobile subpage layout contract", () => {
     expect(stylesheet).toContain(".mobile-header.mobile-header-page{display:grid");
     expect(stylesheet).toContain(".mobile-page-title,.page-stage .social-topbar{display:none}");
   });
+
+  it("keeps the mobile chrome in the reference visual order", () => {
+    expect(stylesheet).toContain(".mobile-header,.mobile-nav{direction:ltr}");
+    expect(stylesheet).toContain(".mobile-header .wordmark,.mobile-header .mobile-context-title,.mobile-nav>a,.mobile-nav .menu-trigger{direction:rtl}");
+  });
 });
