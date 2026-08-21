@@ -44,4 +44,15 @@ describe("RelationshipsService", () => {
     expect(prisma.friendship.deleteMany).toHaveBeenCalledOnce();
     expect(prisma.follow.deleteMany).toHaveBeenCalledOnce();
   });
+
+  it("يعرض كل الحسابات النشطة في الاقتراحات مع استبعاد الذات والمحظورين", async () => {
+    const prisma = makePrisma();
+    const service = new RelationshipsService(prisma as never);
+    await service.suggestions("user-1");
+    expect(prisma.user.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: { notIn: ["user-1"] }, status: "ACTIVE" },
+      orderBy: { createdAt: "desc" },
+    }));
+    expect(prisma.friendship.findMany).not.toHaveBeenCalled();
+  });
 });

@@ -98,13 +98,21 @@ export class RelationshipsService {
   }
 
   async suggestions(userId: string) {
-    const [blocked, friends] = await Promise.all([
-      this.database().block.findMany({ where: { OR: [{ blockerId: userId }, { blockedId: userId }] }, select: { blockerId: true, blockedId: true } }),
-      this.database().friendship.findMany({ where: { status: FriendshipStatus.ACCEPTED, OR: [{ requesterId: userId }, { recipientId: userId }] }, select: { requesterId: true, recipientId: true } }),
-    ]);
+    const blocked = await this.database().block.findMany({
+      where: { OR: [{ blockerId: userId }, { blockedId: userId }] },
+      select: { blockerId: true, blockedId: true },
+    });
     const excluded = new Set<string>([userId]);
     blocked.forEach(item => { excluded.add(item.blockerId); excluded.add(item.blockedId); });
-    friends.forEach(item => { excluded.add(item.requesterId); excluded.add(item.recipientId); });
-    return this.database().user.findMany({ where: { id: { notIn: Array.from(excluded) }, status: "ACTIVE" }, select: person, take: 20, orderBy: { createdAt: "desc" } });
+
+    // The suggestions screen is a people directory, not only a mutual-friends list.
+    // Keep it backed by real active accounts while hiding the current user and both
+    // sides of a block relationship. Pagination can be added later without changing
+    // the response contract used by the existing UI.
+    return this.database().user.findMany({
+      where: { id: { notIn: Array.from(excluded) }, status: "ACTIVE" },
+      select: person,
+      orderBy: { createdAt: "desc" },
+    });
   }
 }
