@@ -41,7 +41,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const notifications = Array.isArray(notificationsQuery.data) ? notificationsQuery.data : [];
   const conversations = Array.isArray(conversationsQuery.data) ? conversationsQuery.data : [];
   const notificationCount = notifications.filter(notification => !notification.readAt).length;
-  const messageCount = conversations.filter(conversation => { const latest = conversation.messages?.[0]; if (!latest || latest.sender.id === currentUser?.id) return false; return !conversation.lastReadAt || Date.parse(latest.createdAt) > Date.parse(conversation.lastReadAt); }).length;
+  const messageCount = conversations.reduce((total, conversation) => total + (conversation.unreadCount ?? 0), 0);
   const badgeFor = (key: string, fallback?: number) => key === "alerts" ? notificationCount : key === "messages" ? messageCount : fallback;
   const handleLogout = async () => {
     try {

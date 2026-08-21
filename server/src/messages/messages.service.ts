@@ -30,7 +30,17 @@ export class MessagesService {
       include: { conversation: { include: { participants: { include: { user: { select: user } } }, messages: { take: 1, orderBy: { createdAt: "desc" }, include: { sender: { select: user }, media: true } } } } },
       orderBy: { conversation: { updatedAt: "desc" } },
     });
-    return memberships.map(membership => ({ ...membership.conversation, lastReadAt: membership.lastReadAt }));
+    return Promise.all(memberships.map(async membership => ({
+      ...membership.conversation,
+      lastReadAt: membership.lastReadAt,
+      unreadCount: await this.database().message.count({
+        where: {
+          conversationId: membership.conversationId,
+          senderId: { not: userId },
+          ...(membership.lastReadAt ? { createdAt: { gt: membership.lastReadAt } } : {}),
+        },
+      }),
+    })));
   }
 
   async create(userId: string, dto: CreateConversationDto) {
