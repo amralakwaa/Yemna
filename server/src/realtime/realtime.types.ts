@@ -1,4 +1,4 @@
-export type RealtimeEventName = "message:new" | "notification:new" | "notification:read";
+export type RealtimeEventName = "message:new" | "message:read" | "typing:start" | "typing:stop" | "notification:new" | "notification:read";
 
 export interface RealtimeEvent<TPayload = unknown> {
   id: string;

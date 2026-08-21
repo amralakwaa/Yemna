@@ -262,6 +262,7 @@ model MediaAsset {
   ownerId         String
   postId          String?
   albumId         String?
+  messageId       String?
   kind            MediaKind
   storageKey      String    @unique
   publicUrl       String?
@@ -273,11 +274,13 @@ model MediaAsset {
   createdAt       DateTime  @default(now())
   owner           User      @relation("mediaOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   post            Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
-  album           Album?    @relation(fields: [albumId], references: [id], onDelete: SetNull)
+  album           Album?     @relation(fields: [albumId], references: [id], onDelete: SetNull)
+  message         Message?   @relation(fields: [messageId], references: [id], onDelete: SetNull)
   story           Story?
 
   @@index([ownerId, createdAt])
   @@index([albumId, createdAt])
+  @@index([messageId, createdAt])
 }
 
 model Story {
@@ -440,6 +443,7 @@ model Message {
   editedAt       DateTime?
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User         @relation("messageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  media          MediaAsset[]
 
   @@index([conversationId, createdAt])
   @@index([senderId, createdAt])

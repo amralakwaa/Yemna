@@ -1,5 +1,5 @@
 import { Transform, Type } from "class-transformer";
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsOptional, IsString, IsUUID, MaxLength, MinLength } from "class-validator";
 
 const trim = ({ value }: { value: unknown }) => (typeof value === "string" ? value.trim() : value);
 
@@ -11,6 +11,8 @@ export class CreateConversationDto {
 }
 
 export class SendMessageDto {
-  @IsString() @MinLength(1) @MaxLength(4000) @Transform(trim)
-  body!: string;
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(4000) @Transform(trim)
+  body?: string;
+  @IsOptional() @IsString() @MaxLength(64)
+  mediaId?: string;
 }

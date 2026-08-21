@@ -27,7 +27,7 @@ export class MessagesService {
   async conversations(userId: string) {
     const memberships = await this.database().conversationParticipant.findMany({
       where: { userId },
-      include: { conversation: { include: { participants: { include: { user: { select: user } } }, messages: { take: 1, orderBy: { createdAt: "desc" }, include: { sender: { select: user } } } } } },
+      include: { conversation: { include: { participants: { include: { user: { select: user } } }, messages: { take: 1, orderBy: { createdAt: "desc" }, include: { sender: { select: user }, media: true } } } } },
       orderBy: { conversation: { updatedAt: "desc" } },
     });
     return memberships.map(membership => ({ ...membership.conversation, lastReadAt: membership.lastReadAt }));
@@ -58,15 +58,31 @@ export class MessagesService {
     if (!participation) throw new ForbiddenException("لا تملك صلاحية الوصول إلى هذه المحادثة");
   }
 
-  async messages(userId: string, conversationId: string) {
+  async messages(userId: string, conversationId: string, cursor?: string, limit = 30) {
     await this.assertParticipant(userId, conversationId);
-    return this.database().message.findMany({ where: { conversationId }, include: { sender: { select: user } }, orderBy: { createdAt: "asc" } });
+    const take = Math.min(Math.max(limit, 1), 50);
+    const rows = await this.database().message.findMany({
+      where: { conversationId },
+      include: { sender: { select: user }, media: true },
+      orderBy: { createdAt: "desc" },
+      take: take + 1,
+      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+    });
+    const hasMore = rows.length > take;
+    const items = rows.slice(0, take).reverse();
+    return { items, nextCursor: hasMore ? items[0]?.id ?? null : null };
   }
 
   async send(userId: string, conversationId: string, dto: SendMessageDto, context?: MessageSendContext) {
     await this.assertParticipant(userId, conversationId);
+    const body = dto.body?.trim() ?? "";
+    if (!body && !dto.mediaId) throw new BadRequestException("أدخل رسالة أو اختر صورة");
+    if (dto.mediaId) {
+      const media = await this.database().mediaAsset.findFirst({ where: { id: dto.mediaId, ownerId: userId, messageId: null, kind: "IMAGE" }, select: { id: true } });
+      if (!media) throw new ForbiddenException("الصورة غير متاحة أو لا تملك صلاحية استخدامها");
+    }
     const [message] = await this.database().$transaction([
-      this.database().message.create({ data: { conversationId, senderId: userId, body: dto.body }, include: { sender: { select: user } } }),
+      this.database().message.create({ data: { conversationId, senderId: userId, body, ...(dto.mediaId ? { media: { connect: { id: dto.mediaId } } } : {}) }, include: { sender: { select: user }, media: true } }),
       this.database().conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } }),
       this.database().conversationParticipant.update({ where: { conversationId_userId: { conversationId, userId } }, data: { lastReadAt: new Date() } }),
     ]);
@@ -87,8 +103,11 @@ export class MessagesService {
 
   async markRead(userId: string, conversationId: string) {
     await this.assertParticipant(userId, conversationId);
-    await this.database().conversationParticipant.update({ where: { conversationId_userId: { conversationId, userId } }, data: { lastReadAt: new Date() } });
-    return { success: true };
+    const lastReadAt = new Date();
+    await this.database().conversationParticipant.update({ where: { conversationId_userId: { conversationId, userId } }, data: { lastReadAt } });
+    const recipients = await this.database().conversationParticipant.findMany({ where: { conversationId, userId: { not: userId } }, select: { userId: true } });
+    await Promise.all(recipients.map(recipient => this.realtime.emit(recipient.userId, "message:read", { conversationId, userId, lastReadAt: lastReadAt.toISOString() })));
+    return { success: true, lastReadAt: lastReadAt.toISOString() };
   }
 }
 

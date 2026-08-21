@@ -158,6 +158,27 @@ describe("عقود REST للحساب والدعم", () => {
     await expect(pending).rejects.toMatchObject({ name: "AbortError" });
   });
 
+  it("يجلب صفحة رسائل مع مؤشر الصفحة التالية", async () => {
+    setRestAccessToken("messages-token");
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ items: [], nextCursor: "cursor-2" }), { status: 200 }));
+
+    const page = await api.getConversationMessagesPage("conversation/1", "cursor 1", 30);
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/messages/conversations/conversation%2F1/page?limit=30&cursor=cursor%201");
+    expect(page.nextCursor).toBe("cursor-2");
+  });
+
+  it("يرسل رسالة مع معرف الصورة المرفقة", async () => {
+    setRestAccessToken("messages-token");
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ id: "message-1", body: "صورة", media: [{ id: "asset-1" }] }), { status: 201 }));
+
+    await api.sendMessage("conversation/1", "صورة", "asset-1");
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/messages/conversations/conversation%2F1/messages");
+    expect(JSON.parse(String(init.body))).toEqual({ body: "صورة", mediaId: "asset-1" });
+  });
+
   it("يجلب إحصاءات الإدارة عبر العقد المحمي الصحيح", async () => {
     setRestAccessToken("admin-token-for-test");
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ users: 12, posts: 20, communities: 3, openTickets: 1, openReports: 2 }), { status: 200 }));

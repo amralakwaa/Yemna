@@ -1,11 +1,12 @@
 import { Inject, Logger, OnModuleDestroy } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
-import { WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
+import { MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import type { Server, Socket } from "socket.io";
 import { DEVELOPMENT_JWT_ACCESS_SECRET } from "../config/env";
 import type { JwtPayload } from "../auth/auth.types";
 import { RealtimeEventsService } from "./realtime-events.service";
+import { PrismaService } from "../prisma/prisma.service";
 
 @WebSocketGateway({ namespace: "/realtime", cors: { origin: true, credentials: true } })
 export class RealtimeGateway implements OnModuleDestroy {
@@ -17,6 +18,7 @@ export class RealtimeGateway implements OnModuleDestroy {
     @Inject(JwtService) private readonly jwt: JwtService,
     @Inject(ConfigService) private readonly config: ConfigService,
     @Inject(RealtimeEventsService) private readonly events: RealtimeEventsService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {}
 
   afterInit(): void {
@@ -38,6 +40,26 @@ export class RealtimeGateway implements OnModuleDestroy {
       client.emit("realtime:error", { code: "UNAUTHORIZED", message: "تعذر توثيق الاتصال اللحظي" });
       client.disconnect(true);
     }
+  }
+
+  @SubscribeMessage("typing:start")
+  typingStart(client: Socket, @MessageBody() body: { conversationId?: string }) {
+    return this.broadcastConversation(client, body?.conversationId, "typing:start");
+  }
+
+  @SubscribeMessage("typing:stop")
+  typingStop(client: Socket, @MessageBody() body: { conversationId?: string }) {
+    return this.broadcastConversation(client, body?.conversationId, "typing:stop");
+  }
+
+  private async broadcastConversation(client: Socket, conversationId: string | undefined, name: "typing:start" | "typing:stop") {
+    const userId = client.data.user?.sub as string | undefined;
+    if (!userId || !conversationId || !this.prisma.isConfigured()) return { success: false };
+    const member = await this.prisma.conversationParticipant.findUnique({ where: { conversationId_userId: { conversationId, userId } }, select: { conversationId: true } }).catch(() => null);
+    if (!member) return { success: false };
+    const recipients = await this.prisma.conversationParticipant.findMany({ where: { conversationId, userId: { not: userId } }, select: { userId: true } });
+    await Promise.all(recipients.map(recipient => this.events.emit(recipient.userId, name, { conversationId, userId })));
+    return { success: true };
   }
 
   onModuleDestroy(): void {

@@ -5,7 +5,7 @@ import { getRestAccessToken } from "./api";
 export type RealtimeEvent<T = unknown> = {
   id: string;
   recipientId: string;
-  name: "message:new" | "notification:new" | "notification:read";
+  name: "message:new" | "message:read" | "typing:start" | "typing:stop" | "notification:new" | "notification:read";
   payload: T;
   occurredAt: string;
 };
@@ -81,6 +81,10 @@ export function useRealtimeConnectionStatus() {
     connectRealtime();
   }, []);
   return status;
+}
+
+export function emitRealtime(name: "typing:start" | "typing:stop", payload: { conversationId: string }) {
+  activeSocket()?.emit(name, payload);
 }
 
 export function useRealtimeSubscription(names: RealtimeEvent["name"][], onEvent: (event: RealtimeEvent) => void) {
