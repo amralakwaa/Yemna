@@ -18,12 +18,16 @@ export class UsersService {
   }
 
   async me(userId: string) {
+    // Keep session restoration independent from optional settings columns. Older
+    // production databases may not have the relationship-privacy migration yet;
+    // selecting UserSettings here would turn a valid authenticated request into a
+    // 500 and make the client appear logged out after a refresh.
     const user = await this.database().user.findUnique({
       where: { id: userId },
-      select: { ...publicProfile, email: true, phone: true, status: true, settings: true },
+      select: { ...publicProfile, email: true, phone: true, status: true },
     });
     if (!user) throw new NotFoundException("المستخدم غير موجود");
-    return user;
+    return { ...user, settings: null };
   }
 
   async byUsername(username: string) {

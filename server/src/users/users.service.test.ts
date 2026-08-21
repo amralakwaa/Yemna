@@ -24,7 +24,8 @@ describe("UsersService", () => {
     const prisma = makePrisma();
     prisma.user.findUnique.mockResolvedValueOnce({ id: "user-1", displayName: "مستخدم", email: "user@yemna.test", settings: null });
     const service = new UsersService(prisma as never);
-    await expect(service.me("user-1")).resolves.toEqual(expect.objectContaining({ email: "user@yemna.test" }));
+    await expect(service.me("user-1")).resolves.toEqual(expect.objectContaining({ email: "user@yemna.test", settings: null }));
+    expect(prisma.user.findUnique).toHaveBeenCalledWith(expect.objectContaining({ select: expect.not.objectContaining({ settings: expect.anything() }) }));
     await expect(service.me("missing")).rejects.toBeInstanceOf(NotFoundException);
   });
 
