@@ -17,7 +17,10 @@ const CurrentUserContext = createContext<CurrentUserContextValue | null>(null);
 export function CurrentUserProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [sessionRevision, setSessionRevision] = useState(0);
-  const [sessionReady, setSessionReady] = useState(() => hasRestSession());
+  // Always gate the first user query behind refresh restoration. On a hard reload,
+  // the refresh cookie may be the only durable credential; starting /users/me
+  // before /auth/refresh settles can expose a false logged-out state.
+  const [sessionReady, setSessionReady] = useState(false);
   const sessionActive = sessionReady && hasRestSession();
 
   useEffect(() => {

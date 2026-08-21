@@ -81,6 +81,30 @@ describe("تدفقات المستخدم الأساسية", () => {
     expect(screen.queryByText("سجّل الدخول لعرض ملفك")).toBeNull();
   });
 
+  it("يستعيد الجلسة من ملف الارتباط قبل طلب المستخدم عند إعادة تحميل الملف الشخصي", async () => {
+    const liveUser = { id: "user-refresh", displayName: "حساب مستعاد", username: "restored-user", bio: "جلسة مستعادة" };
+    const requestOrder: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.endsWith("/auth/refresh")) {
+        requestOrder.push("refresh");
+        return jsonResponse({ accessToken: "restored-access-token", user: liveUser });
+      }
+      if (url.endsWith("/users/me")) {
+        requestOrder.push("me");
+        return jsonResponse(liveUser);
+      }
+      return jsonResponse([]);
+    }));
+    setPath("/profile");
+    renderWithQuery(<ProfileDetailPage />);
+
+    expect((await screen.findAllByText("حساب مستعاد")).length).toBeGreaterThan(0);
+    expect(requestOrder.slice(0, 2)).toEqual(["refresh", "me"]);
+    expect(localStorage.getItem("yemna_access_token")).toBe("restored-access-token");
+    expect(screen.queryByText("سجّل الدخول لعرض ملفك")).toBeNull();
+  });
+
   it("يعرض بيانات الحساب الحية في الغلاف ويحدّث الاسم والصورة بعد إعادة الجلب", async () => {
     sessionStorage.setItem("yemna_access_token", "test-access-token");
     const originalUser = { id: "user-1", displayName: "ريم صنعاء", username: "reem-sanaa", avatarUrl: "https://example.test/reem-before.jpg" };
