@@ -53,7 +53,13 @@ describe("RelationshipsService", () => {
       where: { id: { notIn: ["user-1"] }, status: "ACTIVE" },
       orderBy: { createdAt: "desc" },
     }));
-    expect(prisma.friendship.findMany).not.toHaveBeenCalled();
+    expect(prisma.friendship.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ OR: expect.any(Array) }),
+      select: { requesterId: true, recipientId: true, status: true },
+    }));
+    expect(prisma.follow.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { followerId: "user-1" },
+    }));
   });
 });
 

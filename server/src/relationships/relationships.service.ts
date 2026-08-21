@@ -109,21 +109,54 @@ export class RelationshipsService {
   }
 
   async suggestions(userId: string) {
-    const blocked = await this.database().block.findMany({
-      where: { OR: [{ blockerId: userId }, { blockedId: userId }] },
-      select: { blockerId: true, blockedId: true },
-    });
+    const db = this.database();
+    const [blocked, relations, following] = await Promise.all([
+      db.block.findMany({ where: { OR: [{ blockerId: userId }, { blockedId: userId }] }, select: { blockerId: true, blockedId: true } }),
+      db.friendship.findMany({ where: { OR: [{ requesterId: userId }, { recipientId: userId }] }, select: { requesterId: true, recipientId: true, status: true } }),
+      db.follow.findMany({ where: { followerId: userId }, select: { followedId: true } }),
+    ]);
     const excluded = new Set<string>([userId]);
     blocked.forEach(item => { excluded.add(item.blockerId); excluded.add(item.blockedId); });
-
-    // The suggestions screen is a people directory, not only a mutual-friends list.
-    // Keep it backed by real active accounts while hiding the current user and both
-    // sides of a block relationship. Pagination can be added later without changing
-    // the response contract used by the existing UI.
-    return this.database().user.findMany({
+    const related = new Set<string>();
+    relations.forEach(relation => {
+      const other = relation.requesterId === userId ? relation.recipientId : relation.requesterId;
+      related.add(other);
+      // A declined request can be proposed again; accepted and pending relations cannot.
+      if (relation.status === FriendshipStatus.ACCEPTED || relation.status === FriendshipStatus.PENDING) excluded.add(other);
+    });
+    const candidates = await db.user.findMany({
       where: { id: { notIn: Array.from(excluded) }, status: "ACTIVE" },
       select: person,
       orderBy: { createdAt: "desc" },
+      take: 100,
     });
+    if (!candidates.length) return [];
+
+    const candidateIds = candidates.map(candidate => candidate.id);
+    const accepted = await db.friendship.findMany({
+      where: { status: FriendshipStatus.ACCEPTED, OR: [{ requesterId: userId }, { recipientId: userId }, { requesterId: { in: candidateIds } }, { recipientId: { in: candidateIds } }] },
+      select: { requesterId: true, recipientId: true },
+    });
+    const myFriends = new Set<string>();
+    const friendSets = new Map<string, Set<string>>();
+    accepted.forEach(relation => {
+      const { requesterId, recipientId } = relation;
+      if (requesterId === userId) myFriends.add(recipientId);
+      if (recipientId === userId) myFriends.add(requesterId);
+      if (candidateIds.includes(requesterId)) {
+        if (!friendSets.has(requesterId)) friendSets.set(requesterId, new Set());
+        friendSets.get(requesterId)!.add(recipientId);
+      }
+      if (candidateIds.includes(recipientId)) {
+        if (!friendSets.has(recipientId)) friendSets.set(recipientId, new Set());
+        friendSets.get(recipientId)!.add(requesterId);
+      }
+    });
+    return candidates.map(candidate => ({
+      ...candidate,
+      mutualCount: Array.from(friendSets.get(candidate.id) ?? new Set<string>()).filter(friendId => myFriends.has(friendId)).length,
+      isFollowing: following.some(item => item.followedId === candidate.id),
+      hasPendingFriendRequest: related.has(candidate.id),
+    }));
   }
 }
