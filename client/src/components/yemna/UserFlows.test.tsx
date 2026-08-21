@@ -9,7 +9,7 @@ import { CreatePage, HomePage, LoginPage } from "@/pages/YemnaPages";
 import { LiveSearchPage } from "@/pages/LiveSearchPage";
 import { AccountSuitePage, RelationsCompletionPage } from "@/pages/CompletionSuite";
 import { RealtimeMessagesPage } from "@/pages/RealtimePages";
-import { CreatePostDetailPage, PostDetailPage, ProfileCollectionPage } from "@/pages/ReferenceSuite";
+import { CreatePostDetailPage, PostDetailPage, ProfileCollectionPage, ProfileDetailPage } from "@/pages/ReferenceSuite";
 import { CurrentUserProvider, useCurrentUser } from "@/contexts/CurrentUserContext";
 
 function setPath(path: string) {
@@ -58,6 +58,27 @@ describe("تدفقات المستخدم الأساسية", () => {
     await user.click(within(drawer).getByRole("link", { name: "استكشاف" }));
     expect(window.location.pathname).toBe("/search");
     expect(screen.queryByRole("dialog", { name: "القائمة الرئيسية" })).toBeNull();
+  });
+
+  it("يفتح ملفي الشخصي من الجلسة الحالية دون تسجيل خروج أو طلب تسجيل دخول ثانٍ", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const liveUser = { id: "user-current", displayName: "مستخدم يمنا", username: "yemna-user", bio: "نبذة حقيقية" };
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.endsWith("/notifications") || url.endsWith("/messages/conversations")) return jsonResponse([]);
+      if (url.endsWith("/media?kind=IMAGE")) return jsonResponse([]);
+      return jsonResponse({ items: [], nextCursor: null });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    setPath("/profile");
+    renderWithQuery(<ProfileDetailPage />);
+
+    expect((await screen.findAllByText("مستخدم يمنا")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("نبذة حقيقية").length).toBeGreaterThan(0);
+    expect(window.location.pathname).toBe("/profile");
+    expect(sessionStorage.getItem("yemna_access_token")).toBe("test-access-token");
+    expect(screen.queryByText("سجّل الدخول لعرض ملفك")).toBeNull();
   });
 
   it("يعرض بيانات الحساب الحية في الغلاف ويحدّث الاسم والصورة بعد إعادة الجلب", async () => {
