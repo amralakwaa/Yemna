@@ -1,15 +1,20 @@
 import { Body, Controller, Get, HttpCode, Inject, Post, Req, Res, UseGuards } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import type { Request, Response } from "express";
 import type { JwtPayload } from "./auth.types";
 import { AuthService } from "./auth.service";
 import { LoginDto, RefreshDto, RegisterDto } from "./dto/auth.dto";
 import { JwtAuthGuard } from "./jwt-auth.guard";
+import type { YemnaEnv } from "../config/env";
 
 type AuthenticatedRequest = Request & { user: JwtPayload };
 
 @Controller({ path: "auth", version: "1" })
 export class AuthController {
-  constructor(@Inject(AuthService) private readonly auth: AuthService) {}
+  constructor(
+    @Inject(AuthService) private readonly auth: AuthService,
+    @Inject(ConfigService) private readonly config: ConfigService<YemnaEnv, true>,
+  ) {}
 
   @Post("register")
   async register(@Body() dto: RegisterDto, @Req() request: Request, @Res({ passthrough: true }) response: Response) {
@@ -43,6 +48,7 @@ export class AuthController {
 
   private metadata(request: Request) { return { ipAddress: request.ip, userAgent: request.get("user-agent") }; }
   private setRefreshCookie(response: Response, refreshToken: string) {
-    response.cookie("yemna_refresh_token", refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/api/v1/auth", maxAge: 30 * 86_400_000 });
+    const days = this.config.get("YEMNA_REFRESH_TOKEN_DAYS", { infer: true });
+    response.cookie("yemna_refresh_token", refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/api/v1/auth", maxAge: days * 86_400_000 });
   }
 }

@@ -14,6 +14,11 @@ describe("validateEnv", () => {
     expect(validateEnv({ NODE_ENV: "production", JWT_SECRET: "platform-secret" }).JWT_SECRET).toBe("platform-secret");
   });
 
+  it("uses a long-lived refresh session by default and accepts an explicit duration", () => {
+    expect(validateEnv({}).YEMNA_REFRESH_TOKEN_DAYS).toBe(3650);
+    expect(validateEnv({ YEMNA_REFRESH_TOKEN_DAYS: "45" }).YEMNA_REFRESH_TOKEN_DAYS).toBe(45);
+  });
+
   it("rejects production when neither supported access-token secret is present", () => {
     expect(() => validateEnv({ NODE_ENV: "production" })).toThrow("JWT access secret");
   });
