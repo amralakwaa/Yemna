@@ -74,15 +74,15 @@ describe("تدفقات المستخدم الأساسية", () => {
     const user = userEvent.setup();
     renderWithQuery(<><CurrentUserRefreshControl/><AppShell title="اختبار الحساب"><p>محتوى اختبار</p></AppShell></>);
 
-    expect(await screen.findByText("ريم صنعاء")).toBeTruthy();
+    expect((await screen.findAllByText("ريم صنعاء")).length).toBeGreaterThanOrEqual(2);
     expect(screen.queryByText("عمر الحضرمي")).toBeNull();
-    expect(screen.getByAltText("ريم صنعاء").getAttribute("src")).toBe(originalUser.avatarUrl);
+    expect(screen.getAllByAltText("ريم صنعاء")[0].getAttribute("src")).toBe(originalUser.avatarUrl);
 
     await user.click(screen.getAllByRole("button", { name: "فتح القائمة" })[0]);
     expect(within(screen.getByRole("dialog", { name: "القائمة الرئيسية" })).getByText("ريم صنعاء")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "تحديث بيانات الحساب" }));
 
-    await waitFor(() => expect(screen.getAllByText("ريم اليمن")).toHaveLength(2));
+    await waitFor(() => expect(screen.getAllByText("ريم اليمن")).toHaveLength(3));
     expect(screen.getAllByAltText("ريم اليمن").every(image => image.getAttribute("src") === updatedUser.avatarUrl)).toBe(true);
   });
 
