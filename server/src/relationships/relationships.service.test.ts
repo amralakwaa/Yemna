@@ -36,6 +36,26 @@ describe("RelationshipsService", () => {
     }));
   });
 
+  it("يتعامل مع قاعدة قديمة تفتقد أعمدة صلاحيات العلاقات كافتراض EVERYONE", async () => {
+    const prisma = makePrisma();
+    prisma.user.findUnique
+      .mockResolvedValueOnce({ id: "user-2" })
+      .mockRejectedValueOnce(new Error("The column UserSettings.friendRequestPermission does not exist"));
+    const service = new RelationshipsService(prisma as never);
+    await expect(service.sendFriendRequest("user-1", "user-2")).resolves.toMatchObject({ requesterId: "user-1", recipientId: "user-2" });
+    expect(prisma.friendship.create).toHaveBeenCalled();
+  });
+
+  it("يتعامل مع غياب أعمدة المتابعة الاختيارية دون تعطيل زر المتابعة", async () => {
+    const prisma = makePrisma();
+    prisma.user.findUnique
+      .mockResolvedValueOnce({ id: "user-2" })
+      .mockRejectedValueOnce(new Error("column UserSettings.followPermission is missing"));
+    const service = new RelationshipsService(prisma as never);
+    await expect(service.follow("user-1", "user-2")).resolves.toMatchObject({ followerId: "user-1", followedId: "user-2" });
+    expect(prisma.follow.upsert).toHaveBeenCalled();
+  });
+
   it("يزيل العلاقات المتبادلة عند حظر مستخدم", async () => {
     const prisma = makePrisma();
     const service = new RelationshipsService(prisma as never);

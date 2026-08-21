@@ -93,6 +93,34 @@ describe("عقود REST للحساب والدعم", () => {
     expect(ticket.status).toBe("OPEN");
   });
 
+  it("يرسل طلب الصداقة بمعرف المستلم إلى العقد الصحيح", async () => {
+    setRestAccessToken("relationship-token");
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ id: "request-1" }), { status: 201 }));
+
+    await api.sendFriendRequest("user/2");
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/relationships/requests");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual({ recipientId: "user/2" });
+    expect(new Headers(init.headers).get("Authorization")).toBe("Bearer relationship-token");
+  });
+
+  it("ينفذ المتابعة والإلغاء على معرف المستخدم المرمز", async () => {
+    setRestAccessToken("relationship-token");
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "follow-1" }), { status: 201 }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+
+    await api.followUser("user/2");
+    await api.unfollowUser("user/2");
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/relationships/follow/user%2F2");
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("POST");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/v1/relationships/follow/user%2F2");
+    expect(fetchMock.mock.calls[1]?.[1]?.method).toBe("DELETE");
+  });
+
   it("يلغي حظر المستخدم عبر المسار المحمي الصحيح", async () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
 

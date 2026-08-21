@@ -27,7 +27,18 @@ export class RelationshipsService {
   }
 
   private async assertRelationPermission(actorId: string, targetId: string, kind: "friendRequest" | "follow") {
-    const target = await this.database().user.findUnique({ where: { id: targetId }, select: { id: true, settings: { select: { friendRequestPermission: true, followPermission: true } } } });
+    let target: { id: string; settings?: { friendRequestPermission: RelationPermission; followPermission: RelationPermission } | null } | null;
+    try {
+      target = await this.database().user.findUnique({ where: { id: targetId }, select: { id: true, settings: { select: { friendRequestPermission: true, followPermission: true } } } });
+    } catch (error) {
+      // Older production databases may not yet contain the optional relationship
+      // permission columns. The safe legacy default is EVERYONE; other database
+      // failures must still surface instead of being hidden.
+      const message = error instanceof Error ? error.message : String(error);
+      const isMissingOptionalColumns = message.includes("UserSettings") && (message.includes("friendRequestPermission") || message.includes("followPermission") || message.includes("column"));
+      if (!isMissingOptionalColumns) throw error;
+      return;
+    }
     const permission = kind === "friendRequest" ? target?.settings?.friendRequestPermission : target?.settings?.followPermission;
     if (!permission || permission === RelationPermission.EVERYONE) return;
     if (permission === RelationPermission.NOBODY) throw new ForbiddenException(kind === "friendRequest" ? "لا يستقبل هذا الحساب طلبات صداقة حالياً" : "لا يسمح هذا الحساب بالمتابعة حالياً");
