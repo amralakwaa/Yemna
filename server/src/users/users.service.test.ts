@@ -7,6 +7,7 @@ function makePrisma(configured = true) {
     isConfigured: vi.fn(() => configured),
     user: {
       findUnique: vi.fn(async () => null),
+      findFirst: vi.fn(async () => null),
       update: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({ id: "user-1", ...data })),
     },
     userSettings: { upsert: vi.fn(async ({ create }: { create: Record<string, unknown> }) => create) },
@@ -29,10 +30,18 @@ describe("UsersService", () => {
 
   it("يعيد الملف العام دون تضمين حقول الاتصال الخاصة", async () => {
     const prisma = makePrisma();
-    prisma.user.findUnique.mockResolvedValueOnce({ id: "user-1", username: "test-user", displayName: "مستخدم" });
+    prisma.user.findFirst.mockResolvedValueOnce({ id: "user-1", username: "test-user", displayName: "مستخدم" });
     const service = new UsersService(prisma as never);
     await expect(service.byUsername("test-user")).resolves.toEqual(expect.not.objectContaining({ email: expect.anything(), phone: expect.anything() }));
-    expect(prisma.user.findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { username: "test-user" } }));
+    expect(prisma.user.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ OR: [{ username: "test-user" }, { id: "test-user" }] }) }));
+  });
+
+  it("يفتح الملف العام باستخدام معرّف الحساب عند عدم توفر اسم المستخدم", async () => {
+    const prisma = makePrisma();
+    prisma.user.findFirst.mockResolvedValueOnce({ id: "user-2", username: null, displayName: "حساب بلا اسم مستخدم" });
+    const service = new UsersService(prisma as never);
+    await expect(service.byUsername("user-2")).resolves.toEqual(expect.objectContaining({ id: "user-2" }));
+    expect(prisma.user.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ OR: [{ username: "user-2" }, { id: "user-2" }] }) }));
   });
 
   it("يحدّث الملف والإعدادات بمعرف الحساب المصادق عليه", async () => {

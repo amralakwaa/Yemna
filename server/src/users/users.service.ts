@@ -27,7 +27,14 @@ export class UsersService {
   }
 
   async byUsername(username: string) {
-    const user = await this.database().user.findUnique({ where: { username }, select: publicProfile });
+    const value = username.trim();
+    const user = await this.database().user.findFirst({
+      where: {
+        status: "ACTIVE",
+        OR: [{ username: value.toLowerCase() }, { id: value }],
+      },
+      select: publicProfile,
+    });
     if (!user) throw new NotFoundException("الملف الشخصي غير موجود");
     return user;
   }
