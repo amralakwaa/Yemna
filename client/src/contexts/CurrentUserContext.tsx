@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, ApiUser, hasRestSession } from "@/lib/api";
+import { api, ApiUser, hasRestSession, restoreRestAccessToken } from "@/lib/api";
 
 export const CURRENT_USER_QUERY_KEY = ["rest", "users", "me"] as const;
 
@@ -17,18 +17,32 @@ const CurrentUserContext = createContext<CurrentUserContextValue | null>(null);
 export function CurrentUserProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [sessionRevision, setSessionRevision] = useState(0);
-  const sessionActive = hasRestSession();
+  const [sessionReady, setSessionReady] = useState(() => hasRestSession());
+  const sessionActive = sessionReady && hasRestSession();
 
   useEffect(() => {
-    const onSessionChange = () => setSessionRevision(revision => revision + 1);
+    let cancelled = false;
+    restoreRestAccessToken().finally(() => {
+      if (!cancelled) {
+        setSessionReady(true);
+        setSessionRevision(revision => revision + 1);
+      }
+    });
+    const onSessionChange = () => {
+      setSessionReady(true);
+      setSessionRevision(revision => revision + 1);
+    };
     window.addEventListener("yemna-session-change", onSessionChange);
-    return () => window.removeEventListener("yemna-session-change", onSessionChange);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("yemna-session-change", onSessionChange);
+    };
   }, []);
 
   const query = useQuery({
     queryKey: CURRENT_USER_QUERY_KEY,
     queryFn: api.getMe,
-    enabled: sessionActive,
+    enabled: sessionReady && sessionActive,
     retry: 1,
     staleTime: 60_000,
   });
@@ -49,7 +63,7 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<CurrentUserContextValue>(() => ({
     currentUser: sessionActive ? query.data ?? null : null,
-    isLoading: sessionActive && query.isLoading,
+    isLoading: !sessionReady || (sessionActive && query.isLoading),
     isAuthenticated: sessionActive && Boolean(query.data),
     refreshUser,
     setCurrentUser,
