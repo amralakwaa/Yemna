@@ -46,6 +46,14 @@ export class RelationshipsService {
     return this.database().friendship.findMany({ where: { recipientId: userId, status: FriendshipStatus.PENDING }, include: { requester: { select: person } }, orderBy: { createdAt: "desc" } });
   }
 
+  async removeFriend(actorId: string, targetId: string) {
+    await this.assertTarget(actorId, targetId);
+    await this.database().friendship.deleteMany({
+      where: { status: FriendshipStatus.ACCEPTED, OR: [{ requesterId: actorId, recipientId: targetId }, { requesterId: targetId, recipientId: actorId }] },
+    });
+    return { success: true as const };
+  }
+
   async listFriends(userId: string) {
     const relations = await this.database().friendship.findMany({ where: { status: FriendshipStatus.ACCEPTED, OR: [{ requesterId: userId }, { recipientId: userId }] }, include: { requester: { select: person }, recipient: { select: person } }, orderBy: { updatedAt: "desc" } });
     return relations.map(relation => ({ id: relation.id, since: relation.respondedAt, user: relation.requesterId === userId ? relation.recipient : relation.requester }));

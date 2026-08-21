@@ -16,6 +16,7 @@ export class RelationshipsController {
   constructor(@Inject(RelationshipsService) private readonly relationships: RelationshipsService) {}
 
   @Get("friends") friends(@Req() req: AuthenticatedRequest) { return this.relationships.listFriends(req.user.sub); }
+  @Delete("friends/:userId") removeFriend(@Req() req: AuthenticatedRequest, @Param("userId") userId: string) { return this.relationships.removeFriend(req.user.sub, userId); }
   @Get("requests") requests(@Req() req: AuthenticatedRequest) { return this.relationships.listRequests(req.user.sub); }
   @Post("requests") request(@Req() req: AuthenticatedRequest, @Body() dto: SendFriendRequestDto) { return this.relationships.sendFriendRequest(req.user.sub, dto.recipientId); }
   @Post("requests/:id/respond") respond(@Req() req: AuthenticatedRequest, @Param("id") id: string, @Body() dto: RespondFriendRequestDto) { return this.relationships.respondToFriendRequest(req.user.sub, id, dto.action); }
