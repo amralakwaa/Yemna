@@ -121,6 +121,23 @@ describe("عقود REST للحساب والدعم", () => {
     expect(fetchMock.mock.calls[1]?.[1]?.method).toBe("DELETE");
   });
 
+  it("يبحث عن مستخدمي دليل الرسائل بفلتر users مع ترميز عبارة البحث", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ users: [{ id: "user-2", displayName: "أحمد", username: "ahmad" }], posts: [], communities: [] }), { status: 200 }));
+
+    const result = await api.search("أحمد يمني", "users");
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/search?q=%D8%A3%D8%AD%D9%85%D8%AF%20%D9%8A%D9%85%D9%86%D9%8A&type=users");
+    expect(result.users[0]?.id).toBe("user-2");
+  });
+
+  it("يرسل page وlimit عند تحميل صفحة إضافية من دليل الرسائل", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ users: [], usersNextPage: null, posts: [], communities: [] }), { status: 200 }));
+
+    await api.search("أحمد", "users", 2, 30);
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/search?q=%D8%A3%D8%AD%D9%85%D8%AF&type=users&page=2&limit=30");
+  });
+
   it("يفتح محادثة مباشرة مع المستخدم الآخر عبر العقد الصحيح", async () => {
     setRestAccessToken("message-token");
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ id: "conversation-1", participants: [] }), { status: 201 }));

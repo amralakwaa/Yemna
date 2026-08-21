@@ -9,6 +9,6 @@ export class SearchController {
 
   @Get()
   search(@Query() query: SearchQueryDto) {
-    return this.searchService.search(query.q, query.type);
+    return this.searchService.search(query.q, query.type, query.page ?? 1, query.limit ?? 30);
   }
 }

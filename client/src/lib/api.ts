@@ -22,7 +22,7 @@ export type ApiBlock = { id: string; blocked: ApiUser; createdAt?: string };
 export type ApiSuggestion = ApiUser & { mutualCount?: number; isFollowing?: boolean; hasPendingFriendRequest?: boolean };
 export type ApiCommunity = { id: string; name: string; slug: string; description?: string | null; coverUrl?: string | null; visibility?: "PUBLIC" | "PRIVATE"; owner?: ApiUser; _count?: { members?: number; posts?: number } };
 export type ApiSearchPost = Omit<ApiPost, "_count"> & { _count: { comments: number; reactions: number } };
-export type ApiSearchResponse = { users: ApiUser[]; posts: ApiSearchPost[]; communities: ApiCommunity[] };
+export type ApiSearchResponse = { users: ApiUser[]; usersNextPage?: number | null; posts: ApiSearchPost[]; communities: ApiCommunity[] };
 export type ApiSupportTicket = { id: string; category: "ACCOUNT" | "TECHNICAL" | "SAFETY" | "OTHER"; subject: string; body: string; status: string; createdAt: string; updatedAt?: string };
 export type ApiMediaAsset = { id: string; kind: "IMAGE" | "VIDEO" | "AUDIO" | "DOCUMENT"; publicUrl: string; mimeType: string; byteSize: number; width?: number | null; height?: number | null; durationSeconds?: number | null; createdAt: string; albumId?: string | null; postId?: string | null; messageId?: string | null };
 export type ApiStory = { id: string; caption?: string | null; createdAt: string; expiresAt: string; author: Pick<ApiUser, "id" | "displayName" | "username" | "fullName" | "avatarUrl">; media: ApiMediaAsset };
@@ -216,7 +216,10 @@ export const api = {
   getStoryViews: (storyId: string) => apiRequest<ApiStoryViews>(`/stories/${encodeURIComponent(storyId)}/viewers`),
   replyToStory: (storyId: string, body: string) => apiRequest<ApiMessage>(`/stories/${encodeURIComponent(storyId)}/reply`, { method: "POST", body: JSON.stringify({ body }) }),
   deleteStory: (storyId: string) => apiRequest<{ success: true }>(`/stories/${encodeURIComponent(storyId)}`, { method: "DELETE" }),
-  search: (query: string, type: "all" | "users" | "posts" | "communities" = "all") => apiRequest<ApiSearchResponse>(`/search?q=${encodeURIComponent(query)}&type=${type}`),
+  search: (query: string, type: "all" | "users" | "posts" | "communities" = "all", page?: number, limit?: number) => {
+    const paging = page ? `&page=${page}&limit=${limit ?? 30}` : "";
+    return apiRequest<ApiSearchResponse>(`/search?q=${encodeURIComponent(query)}&type=${type}${paging}`);
+  },
   getAdminStats: () => apiRequest<ApiAdminStats>("/admin/stats"),
   getAdminUsers: () => apiRequest<ApiAdminUser[]>("/admin/users"),
   updateAdminUserStatus: (userId: string, status: NonNullable<ApiAdminUser["status"]>) => apiRequest<{ success: true }>(`/admin/users/${encodeURIComponent(userId)}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),

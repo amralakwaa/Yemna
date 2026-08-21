@@ -21,12 +21,21 @@ describe("SearchService", () => {
   });
 
   it.each([
-    ["users", { users: ["user"], posts: [], communities: [] }],
+    ["users", { users: ["user"], usersNextPage: null, posts: [], communities: [] }],
     ["posts", { users: [], posts: ["post"], communities: [] }],
     ["communities", { users: [], posts: [], communities: ["community"] }],
   ] as const)("يعيد عقداً كاملاً عند فلتر %s", async (type, expected) => {
     const service = new SearchService(makePrisma() as never);
 
     await expect(service.search("صنعاء", type)).resolves.toEqual(expected);
+  });
+
+  it("يدعم صفحات دليل المستخدمين بحد أقصى آمن", async () => {
+    const prisma = makePrisma() as ReturnType<typeof makePrisma>;
+    prisma.user.findMany = vi.fn(async () => Array.from({ length: 4 }, (_, index) => `user-${index}`));
+    const service = new SearchService(prisma as never);
+
+    await expect(service.search("صنعاء", "users", 2, 3)).resolves.toMatchObject({ users: ["user-0", "user-1", "user-2"], usersNextPage: 3 });
+    expect(prisma.user.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 4, skip: 3 }));
   });
 });

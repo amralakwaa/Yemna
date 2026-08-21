@@ -8,6 +8,6 @@ describe("SearchController", () => {
     const controller = new SearchController(searchService as never);
 
     await expect(controller.search({ q: "يمنا", type: "all" })).resolves.toEqual(result);
-    expect(searchService.search).toHaveBeenCalledWith("يمنا", "all");
+    expect(searchService.search).toHaveBeenCalledWith("يمنا", "all", 1, 30);
   });
 });
