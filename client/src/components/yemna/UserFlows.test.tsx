@@ -406,6 +406,36 @@ describe("تدفقات المستخدم الأساسية", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/messages/conversations/conversation-live/messages", expect.objectContaining({ method: "POST", body: JSON.stringify({ body: "رسالة اختبار" }) })));
   });
 
+  it("ينفذ المتابعة ثم يفتح محادثة مباشرة من الملف العام عبر REST", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const me = { id: "user-me", displayName: "سارة صنعاء", username: "sara-sanaa" };
+    const target = { id: "user-target", displayName: "خالد تعز", username: "khaled-taiz", bio: "نبذة الحساب" };
+    const conversation = { id: "conversation-direct", kind: "DIRECT", participants: [{ user: me }, { user: target }], messages: [] };
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(me);
+      if (url.endsWith("/users/khaled-taiz")) return jsonResponse(target);
+      if (url.endsWith("/relationships/following")) return jsonResponse([]);
+      if (url.includes("/posts?")) return jsonResponse({ items: [], nextCursor: null });
+      if (url.endsWith("/relationships/follow/user-target") && init?.method === "POST") return jsonResponse({ id: "follow-1" });
+      if (url.endsWith("/messages/conversations/direct") && init?.method === "POST") return jsonResponse(conversation);
+      return jsonResponse([]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    setPath("/profile/khaled-taiz");
+    renderWithQuery(<ProfileDetailPage />);
+
+    await user.click(await screen.findByRole("button", { name: "متابعة" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "تتابعه" })).toBeTruthy());
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/relationships/follow/user-target", expect.objectContaining({ method: "POST" }));
+
+    await user.click(screen.getByRole("button", { name: "رسالة" }));
+    await waitFor(() => expect(window.location.pathname).toBe("/messages"));
+    expect(window.location.search).toBe("?conversation=conversation-direct");
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/messages/conversations/direct", expect.objectContaining({ method: "POST", body: JSON.stringify({ userId: "user-target" }) }));
+  });
+
   it("ينشر تعليقاً عبر REST ويعرض وسائط الحساب الحقيقية ويُنهي الجلسة من القائمة", async () => {
     sessionStorage.setItem("yemna_access_token", "test-access-token");
     const liveUser = { id: "user-10", displayName: "ليان عدن", username: "layan-aden", avatarUrl: "https://example.test/layan.jpg" };
