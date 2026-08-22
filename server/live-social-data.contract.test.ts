@@ -135,6 +135,19 @@ describe("live social data contract", () => {
     expect(referenceSuiteStyles).toContain('.app-shell--guest .collection-page .collection-intro a[href="/create/media"]{display:none}');
   });
 
+  it("does not publish placeholder profile or media editing flows without persistence contracts", () => {
+    expect(app).toContain('<Route path="/profile/edit" component={LiveDataUnavailablePage}/>');
+    expect(app).toContain('<Route path="/create/media" component={LiveDataUnavailablePage}/>');
+    expect(app).toContain('<Route path="/media/editor" component={LiveDataUnavailablePage}/>');
+    expect(app).toContain('<Route path="/create/video" component={LiveDataUnavailablePage}/>');
+    expect(app).not.toContain('component={EditProfilePage}');
+    expect(app).not.toContain('component={CreateMediaPage}');
+    expect(app).not.toContain('component={ImageEditorPage}');
+    expect(app).not.toContain('component={UploadVideoPage}');
+    expect(liveDataUnavailable).toContain('"/profile/edit": "تعديل الملف الشخصي"');
+    expect(liveDataUnavailable).toContain('"/create/video": "رفع فيديو"');
+  });
+
   it("does not expose account settings controls to guests", () => {
     expect(appShell).toContain('const isSettingsAuthPending = isSettingsPage && isCurrentUserLoading;');
     expect(appShell).toContain('const isGuestSettingsPage = isSettingsPage && !isCurrentUserLoading && !currentUser;');
