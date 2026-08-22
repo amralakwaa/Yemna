@@ -33,6 +33,9 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  app.get("/healthz", (_req, res) => {
+    res.status(200).json({ ok: true, service: "yemna" });
+  });
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   // tRPC API
