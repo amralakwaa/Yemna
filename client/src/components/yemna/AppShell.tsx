@@ -15,13 +15,8 @@ import { YemnaLogo } from "./YemnaLogo";
 
 const sideItems = [
   ...navItems.slice(0, 4),
-  { key: "pages", label: "الصفحات", path: "/pages", icon: "Flag" },
-  { key: "events", label: "الفعاليات", path: "/events", icon: "CalendarDays" },
-  { key: "friend-suggestions", label: "اقتراحات الأصدقاء والمتابعة", path: "/people/suggestions", icon: "UserPlus" },
   navItems[5],
-  { key: "saved", label: "المحفوظات", path: "/saved", icon: "Bookmark" },
   navItems[4],
-  { key: "discover", label: "استكشاف", path: "/search", icon: "Compass" },
   { key: "settings", label: "الإعدادات والخصوصية", path: "/settings", icon: "Settings" },
 ];
 
@@ -46,10 +41,8 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const notificationCount = notifications.filter(notification => !notification.readAt).length;
   const messageCount = conversations.reduce((total, conversation) => total + (conversation.unreadCount ?? 0), 0);
   const badgeFor = (key: string, fallback?: number) => key === "alerts" ? notificationCount : key === "messages" ? messageCount : fallback;
-  const isGroupsDirectory = location === "/groups" || location === "/pages";
+  const isGroupsDirectory = location === "/groups";
   const isMessagesPage = location === "/messages";
-  const isSavedPage = location === "/saved";
-  const isActivityPage = location === "/activity";
   const isSettingsPage = location === "/settings";
   const isGuestMediaCreatePage = location === "/create/media" && !isCurrentUserLoading && !currentUser;
   const isSettingsAuthPending = isSettingsPage && isCurrentUserLoading;
@@ -64,8 +57,6 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     ? <div className="detail-narrow collection-page"><section className="content-placeholder"><Icons.Settings size={28}/><h3>سجّل الدخول لإدارة الإعدادات</h3><p>تحتاج إلى حسابك في يمنا لتعديل الخصوصية والأمان وتفضيلات الحساب.</p><Link className="button" href="/login">تسجيل الدخول</Link></section></div>
     : isGuestRelationPage
     ? <div className="detail-narrow collection-page"><section className="content-placeholder"><Icons.Users size={28}/><h3>سجّل الدخول لعرض {title || "علاقاتك"}</h3><p>تحتاج قوائم العلاقات والطلبات إلى حسابك في يمنا.</p><Link className="button" href="/login">تسجيل الدخول</Link></section></div>
-    : (isSavedPage || isActivityPage) && !isCurrentUserLoading
-    ? <div className="detail-narrow collection-page"><section className="content-placeholder">{isSavedPage ? <Icons.Bookmark size={28}/> : <Icons.Heart size={28}/>} {!currentUser ? <><h3>سجّل الدخول لعرض {isSavedPage ? "المحفوظات" : "تفاعلاتك"}</h3><p>{isSavedPage ? "ستظهر المنشورات والوسائط التي تحفظها هنا." : "ستظهر إعجاباتك وتعليقاتك ومشاركاتك هنا."}</p><Link className="button" href="/login">تسجيل الدخول</Link></> : <><h3>{isSavedPage ? "لا توجد عناصر محفوظة حقيقية بعد" : "لا توجد تفاعلات حقيقية بعد"}</h3><p>{isSavedPage ? "ستظهر هنا العناصر التي تحفظها من منشورات مجتمع يمنا." : "ستظهر هنا تفاعلات حسابك من مجتمع يمنا."}</p></>}</section></div>
     : children;
   const mobileProtectedAction = (href: string, label: string, icon: ReactNode, available = true) => {
     if (isCurrentUserLoading) return <button className="icon-button" type="button" disabled aria-label="جارٍ التحقق من جلسة الحساب">{icon}</button>;
@@ -74,7 +65,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     return <Link href={href} className="icon-button" aria-label={label}>{icon}</Link>;
   };
   const mobilePageAction = isGroupsDirectory
-    ? mobileProtectedAction(location === "/pages" ? "/pages/create" : "/groups/create", location === "/pages" ? "إنشاء صفحة" : "إنشاء مجموعة", <Plus/>, false)
+    ? mobileProtectedAction("/groups/create", "إنشاء مجموعة", <Plus/>, false)
     : isMessagesPage
       ? mobileProtectedAction("/messages/new", "رسالة جديدة", <SquarePen/>)
       : <><Link href="/search" className="icon-button" aria-label="البحث"><Search/></Link><Link href="/notifications" className="icon-button" aria-label="الإشعارات"><span className="relative"><Bell/>{notificationCount > 0 && <i className="nav-badge">{notificationCount}</i>}</span></Link></>;

@@ -91,7 +91,7 @@ describe("live social data contract", () => {
     expect(app).toContain('<Route path="/groups/create" component={LiveDataUnavailablePage}/>');
     expect(app).toContain('<Route path="/community/create" component={LiveDataUnavailablePage}/>');
     expect(app).toContain('<Route path="/community/members" component={LiveDataUnavailablePage}/>');
-    expect(app).toContain('profileCollectionsWithoutLiveData = profileCollections');
+    expect(app).toContain('profileCollections.map(path=><Route key={path} path={path} component={LiveDataUnavailablePage}/>)');
     expect(liveDataUnavailable).toContain('"/account/delete": "حذف الحساب"');
   });
 
@@ -103,30 +103,27 @@ describe("live social data contract", () => {
     expect(app.indexOf('<Route path="/messages/new" component={NewMessagePage}/>')).toBeLessThan(app.indexOf('<Route path="/messages" component={RealtimeMessagesPage}/>'));
   });
 
-  it("does not expose a fabricated group or page creation action", () => {
+  it("does not expose a fabricated group creation action", () => {
     expect(appShell).toContain("const mobileProtectedAction =");
-    expect(appShell).toContain('mobileProtectedAction(location === "/pages" ? "/pages/create" : "/groups/create", location === "/pages" ? "إنشاء صفحة" : "إنشاء مجموعة", <Plus/>, false)');
+    expect(appShell).toContain('mobileProtectedAction("/groups/create", "إنشاء مجموعة", <Plus/>, false)');
     expect(appShell).toContain('aria-label={`${label} غير متاح حتى اكتمال ربط مصدر البيانات`}');
   });
 
-  it("never renders the fabricated saved-media grid for guests", () => {
-    expect(appShell).toContain('const isSavedPage = location === "/saved"');
-    expect(appShell).toContain('isSavedPage ? "المحفوظات" : "تفاعلاتك"');
-    expect(appShell).toContain("لا توجد عناصر محفوظة حقيقية بعد");
-    expect(appShell).toContain("{pageContent}");
+  it("hides incomplete saved-media collections instead of rendering a guest placeholder grid", () => {
+    expect(app).toContain("profileCollections.map(path=><Route key={path} path={path} component={LiveDataUnavailablePage}/>)");
+    expect(appShell).not.toContain('const isSavedPage = location === "/saved"');
+    expect(appShell).not.toContain("لا توجد عناصر محفوظة حقيقية بعد");
   });
 
-  it("never renders fabricated activity history before a session exists", () => {
-    expect(appShell).toContain('const isActivityPage = location === "/activity"');
-    expect(appShell).toContain("سجّل الدخول لعرض {isSavedPage ? \"المحفوظات\" : \"تفاعلاتك\"}");
-    expect(appShell).toContain("لا توجد تفاعلات حقيقية بعد");
+  it("hides incomplete activity history instead of exposing a guest interaction state", () => {
+    expect(app).toContain('const profileCollections = ["/my-posts","/saved","/albums","/photos","/videos","/activity","/memories"];');
+    expect(appShell).not.toContain('const isActivityPage = location === "/activity"');
+    expect(appShell).not.toContain("لا توجد تفاعلات حقيقية بعد");
   });
 
-  it("gives guest visitors an explicit authentication state on personal relationship lists", () => {
-    expect(appShell).toContain('const isRelationAccountPage = ["/friend-requests", "/followers", "/following", "/blocked"].includes(location);');
-    expect(appShell).toContain("const isGuestRelationPage = isRelationAccountPage && !isCurrentUserLoading && !currentUser;");
-    expect(appShell).toContain('سجّل الدخول لعرض {title || "علاقاتك"}');
-    expect(appShell).toContain("تحتاج قوائم العلاقات والطلبات إلى حسابك في يمنا.");
+  it("hides incomplete advanced relationship lists behind the temporary data state", () => {
+    expect(app).toContain("relationRoutes.map(path=><Route key={path} path={path} component={LiveDataUnavailablePage}/>)");
+    expect(app).not.toContain("component={RelationsCompletionPage}");
   });
 
   it("protects the personal media creation route and does not leave it usable for guests", () => {
@@ -169,10 +166,9 @@ describe("live social data contract", () => {
     expect(appShell).toContain("لتعديل الخصوصية والأمان وتفضيلات الحساب");
   });
 
-  it("does not present fabricated posts, saves, activity, or memories as account data", () => {
-    expect(app).toContain("profileCollectionsWithoutLiveData.includes(path) ? PrivateProfileCollectionsPage : ProfileCollectionPage");
-    expect(privateProfileCollections).toContain("سجّل الدخول لعرض {details.title}");
-    expect(privateProfileCollections).toContain("لن نعرض عناصر تجريبية مكان بيانات حسابك");
+  it("hides incomplete account collections instead of presenting fabricated account data", () => {
+    expect(app).toContain("profileCollections.map(path=><Route key={path} path={path} component={LiveDataUnavailablePage}/>)");
+    expect(app).not.toContain("PrivateProfileCollectionsPage");
     expect(privateProfileCollections).not.toContain("أعجبت بمنشور عن صنعاء القديمة");
     expect(privateProfileCollections).not.toContain("gallery.concat");
   });

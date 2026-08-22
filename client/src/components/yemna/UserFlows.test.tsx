@@ -43,7 +43,7 @@ describe("تدفقات المستخدم الأساسية", () => {
     vi.unstubAllGlobals();
   });
 
-  it("ينتقل بالتنقل المشترك من العلاقات إلى الإشعارات ويفتح قائمة الهاتف إلى البحث", async () => {
+  it("ينتقل بالتنقل المشترك من العلاقات إلى الإشعارات ويفتح قائمة الهاتف إلى المجموعات", async () => {
     const user = userEvent.setup();
     renderWithQuery(<AppShell title="اختبار التدفق"><p>محتوى اختبار</p></AppShell>);
 
@@ -55,8 +55,8 @@ describe("تدفقات المستخدم الأساسية", () => {
 
     await user.click(screen.getAllByRole("button", { name: "فتح القائمة" })[0]);
     const drawer = screen.getByRole("dialog", { name: "القائمة الرئيسية" });
-    await user.click(within(drawer).getByRole("link", { name: "استكشاف" }));
-    expect(window.location.pathname).toBe("/search");
+    await user.click(within(drawer).getByRole("link", { name: "المجموعات" }));
+    expect(window.location.pathname).toBe("/communities");
     expect(screen.queryByRole("dialog", { name: "القائمة الرئيسية" })).toBeNull();
   });
 
