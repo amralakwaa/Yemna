@@ -50,7 +50,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const isMessagesPage = location === "/messages";
   const isSavedPage = location === "/saved";
   const isActivityPage = location === "/activity";
-  const pageContent = (isSavedPage || isActivityPage) && !isCurrentUserLoading
+  const isGuestMediaCreatePage = location === "/create/media" && !isCurrentUserLoading && !currentUser;
+  const isRelationAccountPage = ["/friend-requests", "/followers", "/following", "/blocked"].includes(location);
+  const isGuestRelationPage = isRelationAccountPage && !isCurrentUserLoading && !currentUser;
+  const pageContent = isGuestMediaCreatePage
+    ? <div className="detail-narrow collection-page"><section className="content-placeholder"><Icons.Upload size={28}/><h3>سجّل الدخول لرفع الوسائط</h3><p>تحتاج إلى حسابك في يمنا لرفع الصور والفيديوهات إلى ألبوماتك.</p><Link className="button" href="/login">تسجيل الدخول</Link></section></div>
+    : isGuestRelationPage
+    ? <div className="detail-narrow collection-page"><section className="content-placeholder"><Icons.Users size={28}/><h3>سجّل الدخول لعرض {title || "علاقاتك"}</h3><p>تحتاج قوائم العلاقات والطلبات إلى حسابك في يمنا.</p><Link className="button" href="/login">تسجيل الدخول</Link></section></div>
+    : (isSavedPage || isActivityPage) && !isCurrentUserLoading
     ? <div className="detail-narrow collection-page"><section className="content-placeholder">{isSavedPage ? <Icons.Bookmark size={28}/> : <Icons.Heart size={28}/>} {!currentUser ? <><h3>سجّل الدخول لعرض {isSavedPage ? "المحفوظات" : "تفاعلاتك"}</h3><p>{isSavedPage ? "ستظهر المنشورات والوسائط التي تحفظها هنا." : "ستظهر إعجاباتك وتعليقاتك ومشاركاتك هنا."}</p><Link className="button" href="/login">تسجيل الدخول</Link></> : <><h3>{isSavedPage ? "لا توجد عناصر محفوظة حقيقية بعد" : "لا توجد تفاعلات حقيقية بعد"}</h3><p>{isSavedPage ? "ستظهر هنا العناصر التي تحفظها من منشورات مجتمع يمنا." : "ستظهر هنا تفاعلات حسابك من مجتمع يمنا."}</p></>}</section></div>
     : children;
   const mobilePageAction = isGroupsDirectory
@@ -69,7 +76,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       toast.error("تعذر إنهاء الجلسة من الخادم. تحقق من اتصالك ثم أعد المحاولة.");
     }
   };
-  return <div className="app-shell">
+  return <div className={currentUser ? "app-shell" : "app-shell app-shell--guest"}>
     <header className="desktop-header">
       <YemnaLogo compact/>
       <SearchBox />

@@ -7,6 +7,8 @@ const socialSuite = readFileSync(resolve(import.meta.dirname, "../client/src/pag
 const liveCommunities = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveCommunitiesPage.tsx"), "utf8");
 const app = readFileSync(resolve(import.meta.dirname, "../client/src/App.tsx"), "utf8");
 const appShell = readFileSync(resolve(import.meta.dirname, "../client/src/components/yemna/AppShell.tsx"), "utf8");
+const referenceSuite = readFileSync(resolve(import.meta.dirname, "../client/src/pages/ReferenceSuite.tsx"), "utf8");
+const referenceSuiteStyles = readFileSync(resolve(import.meta.dirname, "../client/src/reference-suite.css"), "utf8");
 
 describe("live social data contract", () => {
   it("loads the home rail from REST communities and friends instead of fabricated trends", () => {
@@ -63,5 +65,19 @@ describe("live social data contract", () => {
     expect(appShell).toContain('const isActivityPage = location === "/activity"');
     expect(appShell).toContain("سجّل الدخول لعرض {isSavedPage ? \"المحفوظات\" : \"تفاعلاتك\"}");
     expect(appShell).toContain("لا توجد تفاعلات حقيقية بعد");
+  });
+
+  it("gives guest visitors an explicit authentication state on personal relationship lists", () => {
+    expect(appShell).toContain('const isRelationAccountPage = ["/friend-requests", "/followers", "/following", "/blocked"].includes(location);');
+    expect(appShell).toContain("const isGuestRelationPage = isRelationAccountPage && !isCurrentUserLoading && !currentUser;");
+    expect(appShell).toContain('سجّل الدخول لعرض {title || "علاقاتك"}');
+    expect(appShell).toContain("تحتاج قوائم العلاقات والطلبات إلى حسابك في يمنا.");
+  });
+
+  it("protects the personal media creation route and does not leave it usable for guests", () => {
+    expect(appShell).toContain('const isGuestMediaCreatePage = location === "/create/media" && !isCurrentUserLoading && !currentUser;');
+    expect(appShell).toContain("سجّل الدخول لرفع الوسائط");
+    expect(referenceSuite).toContain('path === "/albums" && <Link href="/create/media"');
+    expect(referenceSuiteStyles).toContain('.app-shell--guest .collection-page .collection-intro a[href="/create/media"]{display:none}');
   });
 });
