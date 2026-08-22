@@ -73,13 +73,28 @@ describe("live social data contract", () => {
     expect(liveDataUnavailable).not.toContain("1.3K");
   });
 
-  it("does not route reference-only account, support, messaging, or community details to fabricated screens", () => {
+  it("routes only message creation to its live contract and keeps reference-only account and community creation screens honest", () => {
     expect(app).toContain('<Route path="/help" component={LiveDataUnavailablePage}/>');
     expect(app).toContain('<Route path="/account" component={LiveDataUnavailablePage}/>');
-    expect(app).toContain('<Route path="/messages/new" component={LiveDataUnavailablePage}/>');
+    expect(app).toContain('<Route path="/messages/new" component={NewMessagePage}/>');
+    expect(app).toContain('<Route path="/groups/create" component={LiveDataUnavailablePage}/>');
+    expect(app).toContain('<Route path="/community/create" component={LiveDataUnavailablePage}/>');
     expect(app).toContain('<Route path="/community/members" component={LiveDataUnavailablePage}/>');
     expect(app).toContain('profileCollectionsWithoutLiveData = profileCollections');
     expect(liveDataUnavailable).toContain('"/account/delete": "حذف الحساب"');
+  });
+
+  it("keeps authenticated message creation real and sends guests to a clear login state", () => {
+    expect(socialSuite).toContain('queryFn:()=>api.search(term,"users")');
+    expect(socialSuite).toContain('mutationFn:()=>api.createConversation(chosen.map(user=>user.id))');
+    expect(socialSuite).toContain('if(!signedIn)return <AppShell title="رسالة جديدة">');
+    expect(socialSuite).toContain("سجّل الدخول لبدء رسالة جديدة");
+  });
+
+  it("does not expose a fabricated group or page creation action", () => {
+    expect(appShell).toContain("const mobileProtectedAction =");
+    expect(appShell).toContain('mobileProtectedAction(location === "/pages" ? "/pages/create" : "/groups/create", location === "/pages" ? "إنشاء صفحة" : "إنشاء مجموعة", <Plus/>, false)');
+    expect(appShell).toContain('aria-label={`${label} غير متاح حتى اكتمال ربط مصدر البيانات`}');
   });
 
   it("never renders the fabricated saved-media grid for guests", () => {

@@ -67,10 +67,16 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     : (isSavedPage || isActivityPage) && !isCurrentUserLoading
     ? <div className="detail-narrow collection-page"><section className="content-placeholder">{isSavedPage ? <Icons.Bookmark size={28}/> : <Icons.Heart size={28}/>} {!currentUser ? <><h3>سجّل الدخول لعرض {isSavedPage ? "المحفوظات" : "تفاعلاتك"}</h3><p>{isSavedPage ? "ستظهر المنشورات والوسائط التي تحفظها هنا." : "ستظهر إعجاباتك وتعليقاتك ومشاركاتك هنا."}</p><Link className="button" href="/login">تسجيل الدخول</Link></> : <><h3>{isSavedPage ? "لا توجد عناصر محفوظة حقيقية بعد" : "لا توجد تفاعلات حقيقية بعد"}</h3><p>{isSavedPage ? "ستظهر هنا العناصر التي تحفظها من منشورات مجتمع يمنا." : "ستظهر هنا تفاعلات حسابك من مجتمع يمنا."}</p></>}</section></div>
     : children;
+  const mobileProtectedAction = (href: string, label: string, icon: ReactNode, available = true) => {
+    if (isCurrentUserLoading) return <button className="icon-button" type="button" disabled aria-label="جارٍ التحقق من جلسة الحساب">{icon}</button>;
+    if (!currentUser) return <Link href="/login" className="icon-button" aria-label={`سجّل الدخول لـ${label}`}>{icon}</Link>;
+    if (!available) return <button className="icon-button" type="button" disabled aria-label={`${label} غير متاح حتى اكتمال ربط مصدر البيانات`}>{icon}</button>;
+    return <Link href={href} className="icon-button" aria-label={label}>{icon}</Link>;
+  };
   const mobilePageAction = isGroupsDirectory
-    ? <Link href={location === "/pages" ? "/pages/create" : "/groups/create"} className="icon-button" aria-label={location === "/pages" ? "إنشاء صفحة" : "إنشاء مجموعة"}><Plus/></Link>
+    ? mobileProtectedAction(location === "/pages" ? "/pages/create" : "/groups/create", location === "/pages" ? "إنشاء صفحة" : "إنشاء مجموعة", <Plus/>, false)
     : isMessagesPage
-      ? <Link href="/messages/new" className="icon-button" aria-label="رسالة جديدة"><SquarePen/></Link>
+      ? mobileProtectedAction("/messages/new", "رسالة جديدة", <SquarePen/>)
       : <><Link href="/search" className="icon-button" aria-label="البحث"><Search/></Link><Link href="/notifications" className="icon-button" aria-label="الإشعارات"><span className="relative"><Bell/>{notificationCount > 0 && <i className="nav-badge">{notificationCount}</i>}</span></Link></>;
   const handleLogout = async () => {
     try {
