@@ -42,6 +42,14 @@ describe("mobile subpage layout contract", () => {
     expect(appShell).toContain('href="/notifications" className={is("/notifications") ? "active" : ""} aria-current={is("/notifications") ? "page" : undefined}');
   });
 
+  it("keeps the mobile drawer operable from both menu triggers and closes after a destination is chosen", () => {
+    expect(appShell).toContain('const [mobileMenuOpen, setMobileMenuOpen] = useState(false)');
+    expect(appShell).toContain('aria-label="فتح القائمة" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen(true)}');
+    expect(appShell).toContain('className="mobile-menu-backdrop" type="button" aria-label="إغلاق القائمة" onClick={() => setMobileMenuOpen(false)}');
+    expect(appShell).toContain('href={item.path} onClick={() => setMobileMenuOpen(false)} className={is(item.path) ? "mobile-menu-link active" : "mobile-menu-link"}');
+    expect(appShell).toContain('className="menu-trigger" aria-label="فتح القائمة" onClick={() => setMobileMenuOpen(true)}');
+  });
+
   it("keeps the post composer actions readable rather than hiding their labels", () => {
     expect(stylesheet).toContain(".composer-actions{display:grid;grid-template-columns:minmax(92px,1.3fr)");
     expect(stylesheet).toContain(".composer-actions button,.composer-actions button:not(.button){min-width:0;width:100%;min-height:38px;flex:1;font-size:9px;white-space:nowrap");
