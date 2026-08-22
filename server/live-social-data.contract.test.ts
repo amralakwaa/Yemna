@@ -10,6 +10,7 @@ const appShell = readFileSync(resolve(import.meta.dirname, "../client/src/compon
 const referenceSuite = readFileSync(resolve(import.meta.dirname, "../client/src/pages/ReferenceSuite.tsx"), "utf8");
 const referenceSuiteStyles = readFileSync(resolve(import.meta.dirname, "../client/src/reference-suite.css"), "utf8");
 const privateProfileCollections = readFileSync(resolve(import.meta.dirname, "../client/src/pages/PrivateProfileCollectionsPage.tsx"), "utf8");
+const liveDataUnavailable = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveDataUnavailablePage.tsx"), "utf8");
 const styles = readFileSync(resolve(import.meta.dirname, "../client/src/index.css"), "utf8");
 
 describe("live social data contract", () => {
@@ -62,6 +63,14 @@ describe("live social data contract", () => {
     expect(composer).toContain('disabled aria-label="المشاعر والنشاط غير متاحين بعد"');
     expect(composer).toContain('disabled aria-label="مشاركة الموقع غير متاحة بعد"');
     expect(styles).toContain('.composer-actions button:disabled:not(.button)');
+  });
+
+  it("does not present reference-only discovery, Reels, or live routes as live data", () => {
+    expect(app).toContain("const liveDataUnavailableRoutes =");
+    expect(app).toContain('component={LiveDataUnavailablePage}');
+    expect(liveDataUnavailable).toContain("قيد الربط بمصدر بيانات حقيقي");
+    expect(liveDataUnavailable).not.toContain("12.4K");
+    expect(liveDataUnavailable).not.toContain("1.3K");
   });
 
   it("never renders the fabricated saved-media grid for guests", () => {
