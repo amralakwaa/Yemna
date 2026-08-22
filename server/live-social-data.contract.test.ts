@@ -24,4 +24,15 @@ describe("live social data contract", () => {
     expect(directory).not.toContain("ملتقى اليمن للتقنية");
     expect(directory).not.toContain("مؤسسة روّاد التعليم");
   });
+
+  it("gates the feed and stories behind a real session and gives guests an honest state", () => {
+    const stories = yemnaPages.split("function Stories() {")[1].split("const MAX_VIDEO_BYTES")[0];
+    const home = yemnaPages.split("export function HomePage() {")[1].split("export function LoginPage")[0];
+
+    expect(stories).toContain("enabled: isAuthenticated");
+    expect(stories).toContain("سجّل الدخول لمشاهدة قصص المجتمع");
+    expect(home).toContain("enabled: isAuthenticated");
+    expect(home).toContain("سجّل الدخول لمتابعة مجتمع يمنا");
+    expect(home).toContain("!isSessionLoading && !isAuthenticated");
+  });
 });

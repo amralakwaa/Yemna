@@ -2,6 +2,7 @@ import type { Person, Post } from "./yemnaData";
 
 const API_BASE = "/api/v1";
 const ACCESS_TOKEN_KEY = "yemna_access_token";
+const REFRESH_TIMEOUT_MS = 6_000;
 
 export class ApiError extends Error {
   constructor(public readonly status: number, message: string) { super(message); }
@@ -63,16 +64,27 @@ let pendingRefresh: Promise<string | null> | null = null;
 export async function restoreRestAccessToken(options: { force?: boolean } = {}) {
   const storedToken = readAccessToken();
   if (storedToken && !options.force) return storedToken;
-  if (!pendingRefresh) pendingRefresh = fetch(`${API_BASE}/auth/refresh`, { method: "POST", credentials: "include" })
-    .then(async response => {
-      if (!response.ok) return null;
-      const payload = await response.json().catch(() => ({})) as Partial<AuthResponse>;
-      if (!payload.accessToken) return null;
-      setRestAccessToken(payload.accessToken);
-      return payload.accessToken;
+  if (!pendingRefresh) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REFRESH_TIMEOUT_MS);
+    pendingRefresh = fetch(`${API_BASE}/auth/refresh`, {
+      method: "POST",
+      credentials: "include",
+      signal: controller.signal,
     })
-    .catch(() => null)
-    .finally(() => { pendingRefresh = null; });
+      .then(async response => {
+        if (!response.ok) return null;
+        const payload = await response.json().catch(() => ({})) as Partial<AuthResponse>;
+        if (!payload.accessToken) return null;
+        setRestAccessToken(payload.accessToken);
+        return payload.accessToken;
+      })
+      .catch(() => null)
+      .finally(() => {
+        clearTimeout(timeoutId);
+        pendingRefresh = null;
+      });
+  }
   return pendingRefresh;
 }
 
