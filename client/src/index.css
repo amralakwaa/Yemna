@@ -222,3 +222,6 @@ body:has(.ai-page),body:has(.admin-shell){direction:ltr}.ai-page,.admin-shell{di
 /* حالات صادقة للزائر: لا تعرض خلاصة أو قصصاً بديلة عندما لا توجد جلسة. */
 .stories-guest{align-self:center;max-inline-size:128px;color:var(--muted);font-size:11px;line-height:1.5;text-align:center}
 .guest-feed-state{display:flex;flex-direction:column;align-items:center;gap:10px}.guest-feed-state svg{color:var(--yemna)}.guest-feed-state .button{min-inline-size:132px}
+
+/* لا تقدّم خصائص غير مربوطة بخدمة حية كأنها إجراءات قابلة للتنفيذ. */
+.composer-actions button:disabled:not(.button){color:#98a0aa;cursor:not-allowed;filter:grayscale(1);opacity:.58}

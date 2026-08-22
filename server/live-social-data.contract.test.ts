@@ -10,6 +10,7 @@ const appShell = readFileSync(resolve(import.meta.dirname, "../client/src/compon
 const referenceSuite = readFileSync(resolve(import.meta.dirname, "../client/src/pages/ReferenceSuite.tsx"), "utf8");
 const referenceSuiteStyles = readFileSync(resolve(import.meta.dirname, "../client/src/reference-suite.css"), "utf8");
 const privateProfileCollections = readFileSync(resolve(import.meta.dirname, "../client/src/pages/PrivateProfileCollectionsPage.tsx"), "utf8");
+const styles = readFileSync(resolve(import.meta.dirname, "../client/src/index.css"), "utf8");
 
 describe("live social data contract", () => {
   it("loads the home rail from REST communities and friends instead of fabricated trends", () => {
@@ -53,6 +54,14 @@ describe("live social data contract", () => {
     expect(home).toContain("enabled: isAuthenticated");
     expect(home).toContain("سجّل الدخول لمتابعة مجتمع يمنا");
     expect(home).toContain("!isSessionLoading && !isAuthenticated");
+  });
+
+  it("does not present unimplemented composer actions as active features", () => {
+    const composer = yemnaPages.split("function Composer(")[1].split("function TrendRail")[0];
+
+    expect(composer).toContain('disabled aria-label="المشاعر والنشاط غير متاحين بعد"');
+    expect(composer).toContain('disabled aria-label="مشاركة الموقع غير متاحة بعد"');
+    expect(styles).toContain('.composer-actions button:disabled:not(.button)');
   });
 
   it("never renders the fabricated saved-media grid for guests", () => {
