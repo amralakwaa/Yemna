@@ -159,6 +159,8 @@ body:has(.ai-page),body:has(.admin-shell){direction:ltr}.ai-page,.admin-shell{di
 /* حارس العرض الأخير: لا يجوز لأي صفحة اجتماعية أن تتجاوز شاشة الهاتف. */
 @media (max-width:900px){
   html,body,#root{max-width:100%;overflow-x:hidden!important}
+  html,body,#root,.app-shell{scrollbar-width:none;-ms-overflow-style:none}
+  html::-webkit-scrollbar,body::-webkit-scrollbar,#root::-webkit-scrollbar,.app-shell::-webkit-scrollbar{display:none}
   .app-shell,.desktop-layout,.page-stage{inline-size:100%;max-inline-size:100%;min-inline-size:0;overflow-x:hidden}
   .page-stage>*{inline-size:100%;max-inline-size:100%;min-inline-size:0}
   .page-stage :is(.surface,.content-placeholder,.post-card,.composer,.stories,.groups-page,.notifications-page,.friends-page,.search-page,.profile-page,.media-page,.settings-page,.messages-page){max-inline-size:100%;min-inline-size:0}

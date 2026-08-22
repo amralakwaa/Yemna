@@ -11,6 +11,11 @@ describe("mobile subpage layout contract", () => {
     expect(stylesheet).toContain("inline-size:100%;max-inline-size:100%;min-inline-size:0;overflow-x:clip");
   });
 
+  it("hides the browser scrollbar on the phone without disabling scrolling", () => {
+    expect(stylesheet).toContain("html,body,#root,.app-shell{scrollbar-width:none;-ms-overflow-style:none}");
+    expect(stylesheet).toContain("html::-webkit-scrollbar,body::-webkit-scrollbar,#root::-webkit-scrollbar,.app-shell::-webkit-scrollbar{display:none}");
+  });
+
   it("collapses the messages view to one safe mobile column", () => {
     expect(stylesheet).toContain("grid-template-columns:minmax(0,1fr)!important");
     expect(stylesheet).toContain(".messages-page>.conversations,.messages-page>.chat-window{position:relative!important;inset:auto!important");
