@@ -36,4 +36,4 @@ function Router() { return <Switch>
   <Route path="/ai" component={AIHubPage}/>{aiTools.map(path=><Route key={path} path={path} component={AIToolDetailPage}/>)}{aiExtras.map(path=><Route key={path} path={path} component={ExtraAIPage}/>)}
   <Route path="/admin/ai-analytics" component={AdminAccessGuard}/>{adminDetails.map(path=><Route key={path} path={path} component={AdminAccessGuard}/>)}{adminExtras.map(path=><Route key={path} path={path} component={AdminAccessGuard}/>)}{states.map(path=><Route key={path} path={path} component={StatesDetailPage}/>)}<Route component={NotFoundPage}/>
 </Switch>; }
-export default function App() { return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><CurrentUserProvider><Toaster richColors position="top-center"/><Router/></CurrentUserProvider></TooltipProvider></ThemeProvider></ErrorBoundary>; }
+export default function App() { return <ErrorBoundary><ThemeProvider defaultTheme="light" switchable><TooltipProvider><CurrentUserProvider><Toaster richColors position="top-center"/><Router/></CurrentUserProvider></TooltipProvider></ThemeProvider></ErrorBoundary>; }
