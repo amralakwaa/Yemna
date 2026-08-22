@@ -13,6 +13,7 @@ type AuthenticatedRequest = Request & { user: JwtPayload };
 export class CommunitiesController {
   constructor(@Inject(CommunitiesService) private readonly communities: CommunitiesService) {}
   @Get() list() { return this.communities.list(); }
+  @ApiBearerAuth() @UseGuards(JwtAuthGuard) @Get("mine") mine(@Req() req: AuthenticatedRequest) { return this.communities.listForUser(req.user.sub); }
   @Get(":id") get(@Param("id") id: string) { return this.communities.get(id); }
   @ApiBearerAuth() @UseGuards(JwtAuthGuard) @Post() create(@Req() req: AuthenticatedRequest, @Body() dto: CreateCommunityDto) { return this.communities.create(req.user.sub, dto); }
   @ApiBearerAuth() @UseGuards(JwtAuthGuard) @Post(":id/join") join(@Req() req: AuthenticatedRequest, @Param("id") id: string) { return this.communities.join(req.user.sub, id); }

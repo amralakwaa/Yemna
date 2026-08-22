@@ -19,6 +19,15 @@ export class CommunitiesService {
     return this.database().community.findMany({ include: communityInclude, orderBy: { createdAt: "desc" } });
   }
 
+  async listForUser(userId: string) {
+    const memberships = await this.database().communityMember.findMany({
+      where: { userId },
+      include: { community: { include: communityInclude } },
+      orderBy: { joinedAt: "desc" },
+    });
+    return memberships.map(({ community }) => community);
+  }
+
   async get(communityId: string) {
     const community = await this.database().community.findUnique({ where: { id: communityId }, include: communityInclude });
     if (!community) throw new NotFoundException("المجتمع غير موجود");

@@ -21,8 +21,11 @@ describe("live social data contract", () => {
     const directory = socialSuite.split("export function DirectoryPage(){")[1].split("export function CreatePageEntity")[0];
 
     expect(directory).toContain("queryFn:api.getCommunities");
+    expect(directory).toContain("queryFn:api.getMyCommunities");
+    expect(directory).toContain("سجّل الدخول لعرض مجموعاتك");
+    expect(directory).toContain("لم تنضم إلى أي مجتمع بعد");
     expect(directory).toContain("لا توجد مجموعات مطابقة");
-    expect(directory).toContain("تعذر تحميل المجموعات");
+    expect(directory).toContain('تعذر تحميل {tab==="joined"?"مجموعاتك":"المجموعات"}');
     expect(directory).not.toContain("ملتقى اليمن للتقنية");
     expect(directory).not.toContain("مؤسسة روّاد التعليم");
   });

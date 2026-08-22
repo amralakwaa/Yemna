@@ -211,6 +211,7 @@ export const api = {
   followUser: (userId: string) => apiRequest<unknown>(`/relationships/follow/${encodeURIComponent(userId)}`, { method: "POST" }),
   unfollowUser: (userId: string) => apiRequest<void>(`/relationships/follow/${encodeURIComponent(userId)}`, { method: "DELETE" }),
   getCommunities: () => apiRequest<ApiCommunity[]>("/communities"),
+  getMyCommunities: () => apiRequest<ApiCommunity[]>("/communities/mine"),
   joinCommunity: (communityId: string) => apiRequest<unknown>(`/communities/${encodeURIComponent(communityId)}/join`, { method: "POST" }),
   leaveCommunity: (communityId: string) => apiRequest<void>(`/communities/${encodeURIComponent(communityId)}/leave`, { method: "DELETE" }),
   getSupportTickets: () => apiRequest<ApiSupportTicket[]>("/support/tickets"),

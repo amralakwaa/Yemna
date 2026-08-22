@@ -30,4 +30,9 @@ describe("mobile subpage layout contract", () => {
     expect(stylesheet).toContain(".mobile-header,.mobile-nav{direction:ltr}");
     expect(stylesheet).toContain(".mobile-header .wordmark,.mobile-header .mobile-context-title,.mobile-nav>a,.mobile-nav .menu-trigger{direction:rtl}");
   });
+
+  it("keeps the post composer actions readable rather than hiding their labels", () => {
+    expect(stylesheet).toContain(".composer-actions{display:grid;grid-template-columns:minmax(92px,1.3fr)");
+    expect(stylesheet).toContain(".composer-actions button,.composer-actions button:not(.button){min-width:0;width:100%;min-height:38px;flex:1;font-size:9px;white-space:nowrap");
+  });
 });
