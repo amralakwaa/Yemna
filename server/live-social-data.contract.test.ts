@@ -9,6 +9,7 @@ const app = readFileSync(resolve(import.meta.dirname, "../client/src/App.tsx"), 
 const appShell = readFileSync(resolve(import.meta.dirname, "../client/src/components/yemna/AppShell.tsx"), "utf8");
 const referenceSuite = readFileSync(resolve(import.meta.dirname, "../client/src/pages/ReferenceSuite.tsx"), "utf8");
 const referenceSuiteStyles = readFileSync(resolve(import.meta.dirname, "../client/src/reference-suite.css"), "utf8");
+const privateProfileCollections = readFileSync(resolve(import.meta.dirname, "../client/src/pages/PrivateProfileCollectionsPage.tsx"), "utf8");
 
 describe("live social data contract", () => {
   it("loads the home rail from REST communities and friends instead of fabricated trends", () => {
@@ -87,5 +88,13 @@ describe("live social data contract", () => {
     expect(appShell).toContain("لن تظهر إعدادات الحساب قبل التحقق من تسجيل الدخول.");
     expect(appShell).toContain("سجّل الدخول لإدارة الإعدادات");
     expect(appShell).toContain("لتعديل الخصوصية والأمان وتفضيلات الحساب");
+  });
+
+  it("does not present fabricated posts, saves, activity, or memories as account data", () => {
+    expect(app).toContain("profileCollectionsWithoutLiveData.includes(path) ? PrivateProfileCollectionsPage : ProfileCollectionPage");
+    expect(privateProfileCollections).toContain("سجّل الدخول لعرض {details.title}");
+    expect(privateProfileCollections).toContain("لن نعرض عناصر تجريبية مكان بيانات حسابك");
+    expect(privateProfileCollections).not.toContain("أعجبت بمنشور عن صنعاء القديمة");
+    expect(privateProfileCollections).not.toContain("gallery.concat");
   });
 });
