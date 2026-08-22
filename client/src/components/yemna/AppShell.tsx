@@ -50,11 +50,15 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const isMessagesPage = location === "/messages";
   const isSavedPage = location === "/saved";
   const isActivityPage = location === "/activity";
+  const isSettingsPage = location === "/settings";
   const isGuestMediaCreatePage = location === "/create/media" && !isCurrentUserLoading && !currentUser;
+  const isGuestSettingsPage = isSettingsPage && !isCurrentUserLoading && !currentUser;
   const isRelationAccountPage = ["/friend-requests", "/followers", "/following", "/blocked"].includes(location);
   const isGuestRelationPage = isRelationAccountPage && !isCurrentUserLoading && !currentUser;
   const pageContent = isGuestMediaCreatePage
     ? <div className="detail-narrow collection-page"><section className="content-placeholder"><Icons.Upload size={28}/><h3>سجّل الدخول لرفع الوسائط</h3><p>تحتاج إلى حسابك في يمنا لرفع الصور والفيديوهات إلى ألبوماتك.</p><Link className="button" href="/login">تسجيل الدخول</Link></section></div>
+    : isGuestSettingsPage
+    ? <div className="detail-narrow collection-page"><section className="content-placeholder"><Icons.Settings size={28}/><h3>سجّل الدخول لإدارة الإعدادات</h3><p>تحتاج إلى حسابك في يمنا لتعديل الخصوصية والأمان وتفضيلات الحساب.</p><Link className="button" href="/login">تسجيل الدخول</Link></section></div>
     : isGuestRelationPage
     ? <div className="detail-narrow collection-page"><section className="content-placeholder"><Icons.Users size={28}/><h3>سجّل الدخول لعرض {title || "علاقاتك"}</h3><p>تحتاج قوائم العلاقات والطلبات إلى حسابك في يمنا.</p><Link className="button" href="/login">تسجيل الدخول</Link></section></div>
     : (isSavedPage || isActivityPage) && !isCurrentUserLoading

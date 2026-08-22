@@ -80,4 +80,10 @@ describe("live social data contract", () => {
     expect(referenceSuite).toContain('path === "/albums" && <Link href="/create/media"');
     expect(referenceSuiteStyles).toContain('.app-shell--guest .collection-page .collection-intro a[href="/create/media"]{display:none}');
   });
+
+  it("does not expose account settings controls to guests", () => {
+    expect(appShell).toContain('const isGuestSettingsPage = isSettingsPage && !isCurrentUserLoading && !currentUser;');
+    expect(appShell).toContain("سجّل الدخول لإدارة الإعدادات");
+    expect(appShell).toContain("لتعديل الخصوصية والأمان وتفضيلات الحساب");
+  });
 });
