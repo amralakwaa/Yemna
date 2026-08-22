@@ -48,6 +48,11 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const badgeFor = (key: string, fallback?: number) => key === "alerts" ? notificationCount : key === "messages" ? messageCount : fallback;
   const isGroupsDirectory = location === "/groups" || location === "/pages";
   const isMessagesPage = location === "/messages";
+  const isSavedPage = location === "/saved";
+  const isActivityPage = location === "/activity";
+  const pageContent = (isSavedPage || isActivityPage) && !isCurrentUserLoading
+    ? <div className="detail-narrow collection-page"><section className="content-placeholder">{isSavedPage ? <Icons.Bookmark size={28}/> : <Icons.Heart size={28}/>} {!currentUser ? <><h3>سجّل الدخول لعرض {isSavedPage ? "المحفوظات" : "تفاعلاتك"}</h3><p>{isSavedPage ? "ستظهر المنشورات والوسائط التي تحفظها هنا." : "ستظهر إعجاباتك وتعليقاتك ومشاركاتك هنا."}</p><Link className="button" href="/login">تسجيل الدخول</Link></> : <><h3>{isSavedPage ? "لا توجد عناصر محفوظة حقيقية بعد" : "لا توجد تفاعلات حقيقية بعد"}</h3><p>{isSavedPage ? "ستظهر هنا العناصر التي تحفظها من منشورات مجتمع يمنا." : "ستظهر هنا تفاعلات حسابك من مجتمع يمنا."}</p></>}</section></div>
+    : children;
   const mobilePageAction = isGroupsDirectory
     ? <Link href={location === "/pages" ? "/pages/create" : "/groups/create"} className="icon-button" aria-label={location === "/pages" ? "إنشاء صفحة" : "إنشاء مجموعة"}><Plus/></Link>
     : isMessagesPage
@@ -82,7 +87,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
     </div>}
     <main className="desktop-layout">
       <aside className="sidebar-right"><div className="sidebar-account">{isCurrentUserLoading ? <div className="sidebar-account-loading"><span className="avatar avatar-md"/><span>جارٍ تحميل الحساب…</span></div> : currentPerson ? <Link href="/profile" className="sidebar-account-link" aria-label={`عرض الملف الشخصي لـ ${currentUserName}`}><Avatar person={currentPerson}/><span><strong>{currentUserName}</strong><small>@{currentUser?.username}</small></span></Link> : <Link href="/login" className="sidebar-account-link sidebar-account-login"><Icons.LogIn size={19}/><span><strong>تسجيل الدخول</strong><small>ادخل إلى حسابك</small></span></Link>}</div><nav>{sideItems.map((item) => { const badge = badgeFor(item.key, item.badge); return <Link key={item.key} href={item.path} className={is(item.path) ? "side-link active" : "side-link"}><span className="relative"><NavIcon icon={item.icon}/>{Boolean(badge) && <i className="nav-badge">{badge}</i>}</span><span>{item.label}</span></Link>; })}</nav><div className="sidebar-bottom">{currentPerson && <button className="theme-row" type="button" onClick={handleLogout}><Icons.LogOut size={18}/> تسجيل الخروج</button>}{themeControl}<small>© 2025 يمنا<br/>جميع الحقوق محفوظة</small></div></aside>
-      <section className="page-stage">{title && <div className="mobile-page-title"><h1>{title}</h1></div>}{children}</section>
+      <section className="page-stage">{title && <div className="mobile-page-title"><h1>{title}</h1></div>}{pageContent}</section>
     </main>
     <nav className="mobile-nav" aria-label="التنقل السفلي"><Link href="/" className={is("/") ? "active" : ""} aria-current={is("/") ? "page" : undefined}><Icons.House size={20}/><span>الرئيسية</span></Link><Link href="/friends" className={is("/friends") ? "active" : ""} aria-current={is("/friends") ? "page" : undefined}><Icons.Users size={20}/><span>الأصدقاء</span></Link><Link href="/create" className={is("/create") ? "create-nav active" : "create-nav"} aria-current={is("/create") ? "page" : undefined}><Plus size={25}/></Link><Link href="/notifications" className={is("/notifications") ? "active" : ""} aria-current={is("/notifications") ? "page" : undefined}><span className="relative"><Icons.Bell size={20}/>{notificationCount > 0 && <i className="nav-badge">{notificationCount}</i>}</span><span>الإشعارات</span></Link><button type="button" className="menu-trigger" aria-label="فتح القائمة" onClick={() => setMobileMenuOpen(true)}><Icons.Menu size={20}/><span>القائمة</span></button></nav>
   </div>;

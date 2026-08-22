@@ -6,6 +6,7 @@ const yemnaPages = readFileSync(resolve(import.meta.dirname, "../client/src/page
 const socialSuite = readFileSync(resolve(import.meta.dirname, "../client/src/pages/SocialSuite.tsx"), "utf8");
 const liveCommunities = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveCommunitiesPage.tsx"), "utf8");
 const app = readFileSync(resolve(import.meta.dirname, "../client/src/App.tsx"), "utf8");
+const appShell = readFileSync(resolve(import.meta.dirname, "../client/src/components/yemna/AppShell.tsx"), "utf8");
 
 describe("live social data contract", () => {
   it("loads the home rail from REST communities and friends instead of fabricated trends", () => {
@@ -49,5 +50,18 @@ describe("live social data contract", () => {
     expect(home).toContain("enabled: isAuthenticated");
     expect(home).toContain("سجّل الدخول لمتابعة مجتمع يمنا");
     expect(home).toContain("!isSessionLoading && !isAuthenticated");
+  });
+
+  it("never renders the fabricated saved-media grid for guests", () => {
+    expect(appShell).toContain('const isSavedPage = location === "/saved"');
+    expect(appShell).toContain('isSavedPage ? "المحفوظات" : "تفاعلاتك"');
+    expect(appShell).toContain("لا توجد عناصر محفوظة حقيقية بعد");
+    expect(appShell).toContain("{pageContent}");
+  });
+
+  it("never renders fabricated activity history before a session exists", () => {
+    expect(appShell).toContain('const isActivityPage = location === "/activity"');
+    expect(appShell).toContain("سجّل الدخول لعرض {isSavedPage ? \"المحفوظات\" : \"تفاعلاتك\"}");
+    expect(appShell).toContain("لا توجد تفاعلات حقيقية بعد");
   });
 });
