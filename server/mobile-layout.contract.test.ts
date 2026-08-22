@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const stylesheet = readFileSync(resolve(import.meta.dirname, "../client/src/index.css"), "utf8");
+const appShell = readFileSync(resolve(import.meta.dirname, "../client/src/components/yemna/AppShell.tsx"), "utf8");
 
 describe("mobile subpage layout contract", () => {
   it("keeps every affected subpage within the phone viewport", () => {
@@ -29,6 +30,11 @@ describe("mobile subpage layout contract", () => {
   it("keeps the mobile chrome in the reference visual order", () => {
     expect(stylesheet).toContain(".mobile-header,.mobile-nav{direction:ltr}");
     expect(stylesheet).toContain(".mobile-header .wordmark,.mobile-header .mobile-context-title,.mobile-nav>a,.mobile-nav .menu-trigger{direction:rtl}");
+  });
+
+  it("marks the active bottom destination rather than leaving friends and notifications visually inactive", () => {
+    expect(appShell).toContain('href="/friends" className={is("/friends") ? "active" : ""} aria-current={is("/friends") ? "page" : undefined}');
+    expect(appShell).toContain('href="/notifications" className={is("/notifications") ? "active" : ""} aria-current={is("/notifications") ? "page" : undefined}');
   });
 
   it("keeps the post composer actions readable rather than hiding their labels", () => {
