@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 
 const yemnaPages = readFileSync(resolve(import.meta.dirname, "../client/src/pages/YemnaPages.tsx"), "utf8");
 const socialSuite = readFileSync(resolve(import.meta.dirname, "../client/src/pages/SocialSuite.tsx"), "utf8");
+const liveCommunities = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveCommunitiesPage.tsx"), "utf8");
+const app = readFileSync(resolve(import.meta.dirname, "../client/src/App.tsx"), "utf8");
 
 describe("live social data contract", () => {
   it("loads the home rail from REST communities and friends instead of fabricated trends", () => {
@@ -23,6 +25,16 @@ describe("live social data contract", () => {
     expect(directory).toContain("تعذر تحميل المجموعات");
     expect(directory).not.toContain("ملتقى اليمن للتقنية");
     expect(directory).not.toContain("مؤسسة روّاد التعليم");
+  });
+
+  it("keeps the production communities route REST-backed without fabricated location cards", () => {
+    expect(app).toContain('<Route path="/communities" component={LiveCommunitiesPage}/>');
+    expect(liveCommunities).toContain("queryFn: api.getCommunities");
+    expect(liveCommunities).toContain("api.joinCommunity");
+    expect(liveCommunities).toContain("community._count?.members ?? 0");
+    expect(liveCommunities).toContain("لا توجد مجتمعات بعد");
+    expect(liveCommunities).not.toContain("صنعاء الجميلة");
+    expect(liveCommunities).not.toContain("اكتشف مجتمعاً قريباً منك");
   });
 
   it("gates the feed and stories behind a real session and gives guests an honest state", () => {
