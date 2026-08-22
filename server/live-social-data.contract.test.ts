@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const yemnaPages = readFileSync(resolve(import.meta.dirname, "../client/src/pages/YemnaPages.tsx"), "utf8");
 const socialSuite = readFileSync(resolve(import.meta.dirname, "../client/src/pages/SocialSuite.tsx"), "utf8");
 const liveCommunities = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveCommunitiesPage.tsx"), "utf8");
+const liveMedia = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveMediaPage.tsx"), "utf8");
 const app = readFileSync(resolve(import.meta.dirname, "../client/src/App.tsx"), "utf8");
 const appShell = readFileSync(resolve(import.meta.dirname, "../client/src/components/yemna/AppShell.tsx"), "utf8");
 const referenceSuite = readFileSync(resolve(import.meta.dirname, "../client/src/pages/ReferenceSuite.tsx"), "utf8");
@@ -146,6 +147,18 @@ describe("live social data contract", () => {
     expect(app).not.toContain('component={UploadVideoPage}');
     expect(liveDataUnavailable).toContain('"/profile/edit": "تعديل الملف الشخصي"');
     expect(liveDataUnavailable).toContain('"/create/video": "رفع فيديو"');
+  });
+
+  it("keeps the published media library REST-backed and excludes stories, Reels, broadcasts, and sample posts", () => {
+    expect(app).toContain('<Route path="/media" component={LiveMediaPage}/>');
+    expect(liveMedia).toContain("queryFn: () => api.getMedia(kind)");
+    expect(liveMedia).toContain("queryFn: api.getMediaAlbums");
+    expect(liveMedia).toContain("api.uploadMedia(file)");
+    expect(liveMedia).toContain("mutationFn: api.deleteMedia");
+    expect(liveMedia).not.toContain(">Reels<");
+    expect(liveMedia).not.toContain("بث مباشر");
+    expect(liveMedia).not.toContain("PostCard");
+    expect(liveMedia).not.toContain("posts[");
   });
 
   it("does not expose account settings controls to guests", () => {
