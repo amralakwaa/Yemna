@@ -73,6 +73,15 @@ describe("live social data contract", () => {
     expect(liveDataUnavailable).not.toContain("1.3K");
   });
 
+  it("does not route reference-only account, support, messaging, or community details to fabricated screens", () => {
+    expect(app).toContain('<Route path="/help" component={LiveDataUnavailablePage}/>');
+    expect(app).toContain('<Route path="/account" component={LiveDataUnavailablePage}/>');
+    expect(app).toContain('<Route path="/messages/new" component={LiveDataUnavailablePage}/>');
+    expect(app).toContain('<Route path="/community/members" component={LiveDataUnavailablePage}/>');
+    expect(app).toContain('profileCollectionsWithoutLiveData = profileCollections');
+    expect(liveDataUnavailable).toContain('"/account/delete": "حذف الحساب"');
+  });
+
   it("never renders the fabricated saved-media grid for guests", () => {
     expect(appShell).toContain('const isSavedPage = location === "/saved"');
     expect(appShell).toContain('isSavedPage ? "المحفوظات" : "تفاعلاتك"');

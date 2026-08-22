@@ -2,9 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Surface } from "@/components/yemna/UI";
 import { api, ApiError, hasRestSession } from "@/lib/api";
-import { AdminDetailPage } from "./AdminAISuite";
-import { AIUsageAnalyticsPage } from "./CompletionSuite";
-import { AdminExtraPage } from "./GapClosureSuite";
 
 const adminExtraPaths = new Set([
   "/admin/login", "/admin/messages", "/admin/announcement", "/admin/updates", "/admin/backup",
@@ -30,7 +27,5 @@ export function AdminAccessGuard() {
     return <AdminAccessState title="لا يمكن فتح لوحة الإدارة" detail={detail} />;
   }
 
-  if (path === "/admin/ai-analytics") return <AIUsageAnalyticsPage />;
-  if (adminExtraPaths.has(path)) return <AdminExtraPage />;
-  return <AdminDetailPage />;
+  return <AdminAccessState title="لوحة الإدارة قيد الربط" detail="تم التحقق من صلاحية الإدارة، لكن بيانات التشغيل والقوائم وإجراءات الإدارة لم تُربط بعد بعقود إنتاجية. لن نعرض سجلات أو مؤشرات تجريبية مكان بيانات المنصة." />;
 }
