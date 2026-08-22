@@ -89,6 +89,7 @@ describe("live social data contract", () => {
     expect(socialSuite).toContain('mutationFn:()=>api.createConversation(chosen.map(user=>user.id))');
     expect(socialSuite).toContain('if(!signedIn)return <AppShell title="رسالة جديدة">');
     expect(socialSuite).toContain("سجّل الدخول لبدء رسالة جديدة");
+    expect(app.indexOf('<Route path="/messages/new" component={NewMessagePage}/>')).toBeLessThan(app.indexOf('<Route path="/messages" component={RealtimeMessagesPage}/>'));
   });
 
   it("does not expose a fabricated group or page creation action", () => {
