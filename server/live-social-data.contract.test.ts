@@ -73,6 +73,16 @@ describe("live social data contract", () => {
     expect(liveDataUnavailable).not.toContain("1.3K");
   });
 
+  it("does not expose experimental AI inputs or generated examples before a real AI contract exists", () => {
+    expect(app).toContain('<Route path="/ai" component={LiveDataUnavailablePage}/>');
+    expect(app).toContain('{aiTools.map(path=><Route key={path} path={path} component={LiveDataUnavailablePage}/>)}');
+    expect(app).toContain('{aiExtras.map(path=><Route key={path} path={path} component={LiveDataUnavailablePage}/>)}');
+    expect(app).not.toContain('component={AIHubPage}');
+    expect(app).not.toContain('component={AIToolDetailPage}');
+    expect(liveDataUnavailable).toContain('"/ai": "ذكاء يمنا"');
+    expect(liveDataUnavailable).toContain('location.startsWith("/ai/") ? "ذكاء يمنا"');
+  });
+
   it("routes only message creation to its live contract and keeps reference-only account and community creation screens honest", () => {
     expect(app).toContain('<Route path="/help" component={LiveDataUnavailablePage}/>');
     expect(app).toContain('<Route path="/account" component={LiveDataUnavailablePage}/>');

@@ -73,11 +73,12 @@ const routeTitles: Record<string, string> = {
   "/settings/sessions": "الجلسات",
   "/settings/notifications": "إعدادات الإشعارات",
   "/settings/data": "بياناتك",
+  "/ai": "ذكاء يمنا",
 };
 
 export function LiveDataUnavailablePage() {
   const [location] = useLocation();
-  const title = routeTitles[location] ?? "هذه الميزة";
+  const title = routeTitles[location] ?? (location.startsWith("/ai/") ? "ذكاء يمنا" : "هذه الميزة");
 
   return (
     <AppShell title={title}>
