@@ -52,11 +52,14 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const isActivityPage = location === "/activity";
   const isSettingsPage = location === "/settings";
   const isGuestMediaCreatePage = location === "/create/media" && !isCurrentUserLoading && !currentUser;
+  const isSettingsAuthPending = isSettingsPage && isCurrentUserLoading;
   const isGuestSettingsPage = isSettingsPage && !isCurrentUserLoading && !currentUser;
   const isRelationAccountPage = ["/friend-requests", "/followers", "/following", "/blocked"].includes(location);
   const isGuestRelationPage = isRelationAccountPage && !isCurrentUserLoading && !currentUser;
   const pageContent = isGuestMediaCreatePage
     ? <div className="detail-narrow collection-page"><section className="content-placeholder"><Icons.Upload size={28}/><h3>سجّل الدخول لرفع الوسائط</h3><p>تحتاج إلى حسابك في يمنا لرفع الصور والفيديوهات إلى ألبوماتك.</p><Link className="button" href="/login">تسجيل الدخول</Link></section></div>
+    : isSettingsAuthPending
+    ? <div className="detail-narrow collection-page"><section className="content-placeholder"><Icons.LoaderCircle className="animate-spin" size={28}/><h3>جارٍ التحقق من جلسة الحساب</h3><p>لن تظهر إعدادات الحساب قبل التحقق من تسجيل الدخول.</p></section></div>
     : isGuestSettingsPage
     ? <div className="detail-narrow collection-page"><section className="content-placeholder"><Icons.Settings size={28}/><h3>سجّل الدخول لإدارة الإعدادات</h3><p>تحتاج إلى حسابك في يمنا لتعديل الخصوصية والأمان وتفضيلات الحساب.</p><Link className="button" href="/login">تسجيل الدخول</Link></section></div>
     : isGuestRelationPage

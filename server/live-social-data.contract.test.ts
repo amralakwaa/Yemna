@@ -82,7 +82,9 @@ describe("live social data contract", () => {
   });
 
   it("does not expose account settings controls to guests", () => {
+    expect(appShell).toContain('const isSettingsAuthPending = isSettingsPage && isCurrentUserLoading;');
     expect(appShell).toContain('const isGuestSettingsPage = isSettingsPage && !isCurrentUserLoading && !currentUser;');
+    expect(appShell).toContain("لن تظهر إعدادات الحساب قبل التحقق من تسجيل الدخول.");
     expect(appShell).toContain("سجّل الدخول لإدارة الإعدادات");
     expect(appShell).toContain("لتعديل الخصوصية والأمان وتفضيلات الحساب");
   });
