@@ -15,7 +15,8 @@ import { LiveAdminPage } from "@/pages/LiveAdminPage";
 import { LiveAssistantPage } from "@/pages/LiveAssistantPage";
 import { LiveCommunityDetailPage } from "@/pages/LiveCommunityDetailPage";
 import { LiveStoryCreatePage } from "@/pages/LiveStoryCreatePage";
-import { AccountSuitePage, RelationsCompletionPage } from "@/pages/CompletionSuite";
+import { RelationsCompletionPage } from "@/pages/CompletionSuite";
+import { LiveAccountPage } from "@/pages/LiveAccountPage";
 import { RealtimeMessagesPage } from "@/pages/RealtimePages";
 import { CreatePostDetailPage, PostDetailPage, ProfileCollectionPage, ProfileDetailPage } from "@/pages/ReferenceSuite";
 import { CurrentUserProvider, useCurrentUser } from "@/contexts/CurrentUserContext";
@@ -236,7 +237,7 @@ describe("تدفقات المستخدم الأساسية", () => {
     })));
     setPath("/account/info");
     const user = userEvent.setup();
-    renderWithQuery(<AccountSuitePage />);
+    renderWithQuery(<LiveAccountPage />);
 
     const editLink = await screen.findByRole("link", { name: "تعديل الملف الشخصي" });
     expect(editLink.getAttribute("href")).toBe("/account/edit");

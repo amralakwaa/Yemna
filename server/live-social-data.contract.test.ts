@@ -9,6 +9,7 @@ const liveCommunityDetail = readFileSync(resolve(import.meta.dirname, "../client
 const liveExplore = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveExplorePage.tsx"), "utf8");
 const liveRelationships = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveRelationshipsPage.tsx"), "utf8");
 const liveProfileEdit = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveProfileEditPage.tsx"), "utf8");
+const liveAccount = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveAccountPage.tsx"), "utf8");
 const liveSupport = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveSupportPage.tsx"), "utf8");
 const liveAdmin = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveAdminPage.tsx"), "utf8");
 const liveAssistant = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveAssistantPage.tsx"), "utf8");
@@ -182,8 +183,20 @@ describe("live social data contract", () => {
     expect(app).toContain('<Route path="/admin/ai-analytics" component={AdminAccessGuard}/>');
   });
 
-  it("routes only message creation to its live contract and keeps reference-only account and community creation screens honest", () => {
-    expect(app).toContain('<Route path="/account" component={LiveDataUnavailablePage}/>');
+  it("routes only REST-backed account details and profile editing while keeping unsupported account actions honest", () => {
+    expect(app).toContain('import { LiveAccountPage } from "./pages/LiveAccountPage";');
+    expect(app).toContain('<Route path="/account" component={LiveAccountPage}/>');
+    expect(app).toContain('<Route path="/account/info" component={LiveAccountPage}/>');
+    expect(app).toContain('<Route path="/account/edit" component={LiveProfileEditPage}/>');
+    expect(liveAccount).toContain('queryFn: api.getMe');
+    expect(liveAccount).toContain('سجّل الدخول لعرض معلومات حسابك');
+    expect(liveAccount).toContain('href="/account/edit"');
+    expect(liveAccount).toContain('لا تظهر هنا إجراءات تغيير وسائل الاتصال');
+    expect(app).toContain('<Route path="/account/contact/email" component={LiveDataUnavailablePage}/>');
+    expect(app).toContain('<Route path="/account/contact/phone" component={LiveDataUnavailablePage}/>');
+    expect(app).toContain('<Route path="/account/recovery" component={LiveDataUnavailablePage}/>');
+    expect(app).toContain('<Route path="/account/disable" component={LiveDataUnavailablePage}/>');
+    expect(app).toContain('<Route path="/account/delete" component={LiveDataUnavailablePage}/>');
     expect(app).toContain('<Route path="/messages/new" component={NewMessagePage}/>');
     expect(app).toContain('<Route path="/groups/create" component={LiveDataUnavailablePage}/>');
     expect(app).toContain('<Route path="/community/create" component={LiveDataUnavailablePage}/>');

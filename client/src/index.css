@@ -216,9 +216,9 @@ body:has(.ai-page),body:has(.admin-shell){direction:ltr}.ai-page,.admin-shell{di
 
 /* حارس موضعي أخير: المسارات الفرعية تستخدم حاويات متنوعة ولا يجوز أن ترث عرضاً أو إزاحة لسطح المكتب. */
 @media (max-width:900px){
-  .desktop-layout{display:block!important;inline-size:100vw!important;max-inline-size:100vw!important;margin:0!important;padding:0!important;transform:none!important}
-  .page-stage{display:block!important;inline-size:100vw!important;max-inline-size:100vw!important;min-inline-size:0!important;margin:0!important;padding:0!important;transform:none!important}
-  .page-stage>*,.social-narrow,.explore-narrow,.communities-page,.groups-page,.notifications-page,.profile-page,.messages-page,.friends-page,.media-page,.settings-page{position:relative!important;inset:auto!important;inline-size:100vw!important;max-inline-size:100vw!important;min-inline-size:0!important;margin-inline:0!important;transform:none!important}
+  .desktop-layout{display:block!important;inline-size:100%!important;max-inline-size:100%!important;margin:0!important;padding:0!important;transform:none!important}
+  .page-stage{display:block!important;inline-size:100%!important;max-inline-size:100%!important;min-inline-size:0!important;margin:0!important;padding:0!important;transform:none!important}
+  .page-stage>*,.social-narrow,.explore-narrow,.communities-page,.groups-page,.notifications-page,.profile-page,.messages-page,.friends-page,.media-page,.settings-page{position:relative!important;inset:auto!important;inline-size:100%!important;max-inline-size:100%!important;min-inline-size:0!important;margin-inline:0!important;transform:none!important}
   .social-narrow,.explore-narrow{padding-inline:0!important}
 }
 
