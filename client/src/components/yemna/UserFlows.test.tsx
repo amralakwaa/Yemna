@@ -12,6 +12,7 @@ import { LiveProfileEditPage } from "@/pages/LiveProfileEditPage";
 import { LiveSupportPage } from "@/pages/LiveSupportPage";
 import { LiveAdminPage } from "@/pages/LiveAdminPage";
 import { LiveAssistantPage } from "@/pages/LiveAssistantPage";
+import { LiveStoryCreatePage } from "@/pages/LiveStoryCreatePage";
 import { AccountSuitePage, RelationsCompletionPage } from "@/pages/CompletionSuite";
 import { RealtimeMessagesPage } from "@/pages/RealtimePages";
 import { CreatePostDetailPage, PostDetailPage, ProfileCollectionPage, ProfileDetailPage } from "@/pages/ReferenceSuite";
@@ -614,5 +615,19 @@ describe("تدفقات المستخدم الأساسية", () => {
     await waitFor(() => expect(window.location.pathname).toBe("/login"));
     expect(sessionStorage.getItem("yemna_access_token")).toBeNull();
     expect(fetchMock).toHaveBeenCalledWith("/api/v1/auth/logout", expect.objectContaining({ method: "POST" }));
+  });
+
+  it("يحمي إنشاء القصة للضيف بدعوة دخول صادقة قبل اختيار أي ملف", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: false,
+      status: 401,
+      json: async () => ({ message: "Unauthorized" }),
+    }) as Response));
+    setPath("/story/create");
+    renderWithQuery(<LiveStoryCreatePage />);
+
+    expect(await screen.findByRole("heading", { name: "سجّل الدخول لإنشاء قصة" })).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: "تسجيل الدخول" }).some(link => link.getAttribute("href") === "/login")).toBe(true);
+    expect(screen.queryByText("اختيار من الجهاز")).toBeNull();
   });
 });

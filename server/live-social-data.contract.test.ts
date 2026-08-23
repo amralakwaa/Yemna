@@ -80,6 +80,21 @@ describe("live social data contract", () => {
     expect(home).toContain("!isSessionLoading && !isAuthenticated");
   });
 
+  it("reopens only REST-backed story routes with an explicit guest gate for creation", () => {
+    expect(app).toContain('import { LiveStoryCreatePage } from "./pages/LiveStoryCreatePage";');
+    expect(app).toContain('<Route path="/story/create" component={LiveStoryCreatePage}/>');
+    expect(app).toContain('<Route path="/story/archive" component={StoryArchivePage}/>');
+    expect(app).toContain('<Route path="/story/:id" component={StoryPage}/>');
+    expect(app).toContain('<Route path="/story" component={StoryPage}/>');
+    expect(referenceSuite).toContain('queryFn:api.getStories');
+    expect(referenceSuite).toContain('mutationFn:(storyId:string)=>api.recordStoryView(storyId)');
+    expect(referenceSuite).toContain('api.replyToStory');
+    expect(referenceSuite).toContain('queryFn:api.getStoryArchive');
+    expect(referenceSuite).toContain('api.createStory(asset.id,caption.trim() || undefined)');
+    expect(restApi).toContain('getStories: () => apiRequest<ApiStory[]>("/stories")');
+    expect(restApi).toContain('createStory: (mediaId: string, caption?: string)');
+  });
+
   it("does not present unimplemented composer actions as active features", () => {
     const composer = yemnaPages.split("function Composer(")[1].split("function TrendRail")[0];
 
