@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Route } from "wouter";
 import { AppShell } from "./AppShell";
 import { CreatePage, HomePage, LoginPage } from "@/pages/YemnaPages";
 import { LiveSearchPage } from "@/pages/LiveSearchPage";
@@ -12,6 +13,7 @@ import { LiveProfileEditPage } from "@/pages/LiveProfileEditPage";
 import { LiveSupportPage } from "@/pages/LiveSupportPage";
 import { LiveAdminPage } from "@/pages/LiveAdminPage";
 import { LiveAssistantPage } from "@/pages/LiveAssistantPage";
+import { LiveCommunityDetailPage } from "@/pages/LiveCommunityDetailPage";
 import { LiveStoryCreatePage } from "@/pages/LiveStoryCreatePage";
 import { AccountSuitePage, RelationsCompletionPage } from "@/pages/CompletionSuite";
 import { RealtimeMessagesPage } from "@/pages/RealtimePages";
@@ -629,5 +631,34 @@ describe("تدفقات المستخدم الأساسية", () => {
     expect(await screen.findByRole("heading", { name: "سجّل الدخول لإنشاء قصة" })).toBeTruthy();
     expect(screen.getAllByRole("link", { name: "تسجيل الدخول" }).some(link => link.getAttribute("href") === "/login")).toBe(true);
     expect(screen.queryByText("اختيار من الجهاز")).toBeNull();
+  });
+
+  it("يعرض تفاصيل المجتمع وأعضاءه الحقيقيين وينفذ الانضمام عبر REST", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const me = { id: "user-current", displayName: "مستخدم حالي", username: "current-user" };
+    const community = {
+      id: "community-1", name: "مجتمع عدن الحي", description: "مساحة محلية", visibility: "PUBLIC",
+      owner: { id: "owner-1", displayName: "مالك المجتمع", username: "community-owner" },
+      _count: { members: 2, posts: 3 },
+    };
+    const members = [{ id: "membership-1", role: "MEMBER", user: { id: "member-1", displayName: "صديقة حية", username: "live-member", bio: "عضو فعلي" } }];
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(me);
+      if (url.endsWith("/communities/community-1/members")) return jsonResponse(members);
+      if (url.endsWith("/communities/community-1")) return jsonResponse(community);
+      if (url.endsWith("/communities/mine")) return jsonResponse([]);
+      if (url.endsWith("/communities/community-1/join") && init?.method === "POST") return jsonResponse({ id: "membership-joined" });
+      return jsonResponse([]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    setPath("/community/community-1");
+    const user = userEvent.setup();
+    renderWithQuery(<Route path="/community/:id"><LiveCommunityDetailPage /></Route>);
+
+    expect(await screen.findByRole("heading", { name: "مجتمع عدن الحي" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "صديقة حية" }).getAttribute("href")).toBe("/profile/live-member");
+    await user.click(screen.getByRole("button", { name: "انضمام" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/communities/community-1/join", expect.objectContaining({ method: "POST" })));
   });
 });

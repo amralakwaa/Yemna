@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LoaderCircle, Users, WifiOff } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "wouter";
 
 import { AppShell } from "@/components/yemna/AppShell";
 import { SectionHeading, Surface } from "@/components/yemna/UI";
@@ -119,7 +120,7 @@ export function LiveCommunitiesPage() {
                     )}
                     <div className="community-card-body">
                       <span>{community.visibility === "PRIVATE" ? "مجتمع خاص" : "مجتمع عام"}</span>
-                      <h2>{community.name}</h2>
+                      <h2><Link href={`/community/${encodeURIComponent(community.id)}`}>{community.name}</Link></h2>
                       {community.description ? <p>{community.description}</p> : null}
                       <small>{memberCount} عضو</small>
                       <button

@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const yemnaPages = readFileSync(resolve(import.meta.dirname, "../client/src/pages/YemnaPages.tsx"), "utf8");
 const socialSuite = readFileSync(resolve(import.meta.dirname, "../client/src/pages/SocialSuite.tsx"), "utf8");
 const liveCommunities = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveCommunitiesPage.tsx"), "utf8");
+const liveCommunityDetail = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveCommunityDetailPage.tsx"), "utf8");
 const liveExplore = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveExplorePage.tsx"), "utf8");
 const liveRelationships = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveRelationshipsPage.tsx"), "utf8");
 const liveProfileEdit = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveProfileEditPage.tsx"), "utf8");
@@ -52,6 +53,22 @@ describe("live social data contract", () => {
     expect(liveCommunities).toContain("لا توجد مجتمعات بعد");
     expect(liveCommunities).not.toContain("صنعاء الجميلة");
     expect(liveCommunities).not.toContain("اكتشف مجتمعاً قريباً منك");
+  });
+
+  it("reopens only REST-backed post and community detail routes", () => {
+    expect(app).toContain('<Route path="/post/:id" component={PostDetailPage}/>');
+    expect(referenceSuite).toContain('api.getPost(postId || "")');
+    expect(referenceSuite).toContain('api.getPostComments(postId || "")');
+    expect(referenceSuite).toContain('api.createPostComment(postId || "", body)');
+    expect(app).toContain('<Route path="/community/:id/members" component={LiveCommunityMembersPage}/>');
+    expect(app).toContain('<Route path="/community/:id" component={LiveCommunityDetailPage}/>');
+    expect(restApi).toContain('getCommunity: (communityId: string)');
+    expect(restApi).toContain('getCommunityMembers: (communityId: string)');
+    expect(liveCommunityDetail).toContain("api.getCommunity(id)");
+    expect(liveCommunityDetail).toContain("api.getCommunityMembers(id)");
+    expect(liveCommunityDetail).toContain("api.joinCommunity(id)");
+    expect(liveCommunityDetail).toContain("api.leaveCommunity(id)");
+    expect(liveCommunityDetail).not.toContain("communityMap");
   });
 
   it("reopens explore only with REST-backed posts and communities while discovery subroutes remain gated", () => {
