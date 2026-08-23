@@ -167,9 +167,10 @@ describe("live social data contract", () => {
     expect(app).toContain('<Route path="/help/report/status" component={LiveSupportPage}/>');
     expect(app).toContain('<Route path="/support/reports" component={LiveSupportPage}/>');
     expect(app).toContain('<Route path="/help/faq" component={LiveDataUnavailablePage}/>');
-    expect(app).toContain('<Route path="/help/contact" component={LiveDataUnavailablePage}/>');
+    expect(app).toContain('<Route path="/help/contact" component={LiveSupportPage}/>');
     expect(liveSupport).toContain("api.getSupportTickets");
     expect(liveSupport).toContain("api.createSupportTicket");
+    expect(liveSupport).toContain('location === "/help/report" || location === "/help/contact"');
     expect(liveSupport).toContain("api.getSupportReports");
     expect(liveSupport).toContain("api.createSupportReport");
     expect(liveSupport).toContain("سجّل الدخول للوصول إلى الدعم");

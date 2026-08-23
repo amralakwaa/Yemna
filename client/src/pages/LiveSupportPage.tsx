@@ -29,7 +29,7 @@ const reportTargets: Array<{ value: ReportTarget; label: string }> = [
 ];
 
 function viewFor(location: string): SupportView {
-  if (location === "/help/report") return "ticket";
+  if (location === "/help/report" || location === "/help/contact") return "ticket";
   if (location === "/help/report/status") return "tickets";
   if (location === "/support/reports") return "reports";
   return "home";
