@@ -676,7 +676,10 @@ describe("تدفقات المستخدم الأساسية", () => {
       owner: { id: "owner-1", displayName: "مالك المجتمع", username: "community-owner" },
       _count: { members: 2, posts: 3 },
     };
-    const members = [{ id: "membership-1", role: "MEMBER", user: { id: "member-1", displayName: "صديقة حية", username: "live-member", bio: "عضو فعلي" } }];
+    const members = [
+      { id: "membership-1", role: "MEMBER", user: { id: "member-1", displayName: "صديقة حية", username: "live-member", bio: "عضو فعلي" } },
+      { id: "membership-2", userId: "owner-without-username", role: "ADMIN", user: { id: "owner-without-username", displayName: "عضو بلا اسم مستخدم", username: null } },
+    ];
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = String(input);
       if (url.endsWith("/users/me")) return jsonResponse(me);
@@ -693,6 +696,7 @@ describe("تدفقات المستخدم الأساسية", () => {
 
     expect(await screen.findByRole("heading", { name: "مجتمع عدن الحي" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "صديقة حية" }).getAttribute("href")).toBe("/profile/live-member");
+    expect(screen.getByRole("link", { name: "عضو بلا اسم مستخدم" }).getAttribute("href")).toBe("/profile/owner-without-username");
     await user.click(screen.getByRole("button", { name: "انضمام" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/communities/community-1/join", expect.objectContaining({ method: "POST" })));
   });

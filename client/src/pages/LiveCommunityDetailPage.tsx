@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/yemna/AppShell";
 import { SectionHeading, Surface } from "@/components/yemna/UI";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
-import { api, hasRestSession } from "@/lib/api";
+import { api } from "@/lib/api";
 import "./live-community-detail.css";
 
 function CommunityState({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
@@ -53,10 +53,15 @@ function CommunityDetailContent({ membersOnly = false }: { membersOnly?: boolean
     </Surface> : <SectionHeading title={`أعضاء ${community.name}`} action={<Link href={`/community/${encodeURIComponent(id)}`}>عن المجتمع</Link>}/>} 
     <section className="live-community-members" aria-live="polite">
       <SectionHeading title={membersOnly ? "قائمة الأعضاء" : "الأعضاء"} action={!membersOnly ? <Link href={`/community/${encodeURIComponent(id)}/members`}>عرض الكل</Link> : undefined}/>
-      {membersQuery.isLoading ? <CommunityState icon={<LoaderCircle className="animate-spin" size={24}/>} title="يجري تحميل الأعضاء" text=""/> : membersQuery.isError ? <CommunityState icon={<WifiOff size={24}/>} title="تعذر تحميل الأعضاء" text="تحقق من اتصالك ثم أعد المحاولة."/> : members.length === 0 ? <CommunityState icon={<Users size={24}/>} title="لا توجد عضويات معروضة" text="ستظهر قائمة الأعضاء عند وجود بيانات متاحة."/> : <div className="community-member-list">{members.slice(0, membersOnly ? undefined : 5).map(({ id: membershipId, user, role }) => {
-        const username = typeof user.username === "string" ? user.username.trim() : "";
-        const profileIdentifier = username || user.id;
-        return <Surface key={membershipId} className="community-member-row"><div className="member-avatar">{user.avatarUrl ? <img src={user.avatarUrl} alt=""/> : user.displayName.slice(0, 1)}</div><div><Link href={`/profile/${encodeURIComponent(profileIdentifier)}`}>{user.displayName}</Link><small>{username ? `@${username}` : "عضو بلا اسم مستخدم"}{role ? ` · ${role}` : ""}</small>{user.bio ? <p>{user.bio}</p> : null}</div></Surface>;
+      {membersQuery.isLoading ? <CommunityState icon={<LoaderCircle className="animate-spin" size={24}/>} title="يجري تحميل الأعضاء" text=""/> : membersQuery.isError ? <CommunityState icon={<WifiOff size={24}/>} title="تعذر تحميل الأعضاء" text="تحقق من اتصالك ثم أعد المحاولة."/> : members.length === 0 ? <CommunityState icon={<Users size={24}/>} title="لا توجد عضويات معروضة" text="ستظهر قائمة الأعضاء عند وجود بيانات متاحة."/> : <div className="community-member-list">{members.slice(0, membersOnly ? undefined : 5).map(({ id: membershipId, userId, user, role }) => {
+        const normalizeIdentifier = (value: unknown) => {
+          if (typeof value !== "string") return "";
+          const normalized = value.trim();
+          return normalized === "null" || normalized === "undefined" ? "" : normalized;
+        };
+        const username = normalizeIdentifier(user.username);
+        const profileIdentifier = username || normalizeIdentifier(user.id) || normalizeIdentifier(userId);
+        return <Surface key={membershipId} className="community-member-row"><div className="member-avatar">{user.avatarUrl ? <img src={user.avatarUrl} alt=""/> : user.displayName.slice(0, 1)}</div><div>{profileIdentifier ? <Link href={`/profile/${encodeURIComponent(profileIdentifier)}`}>{user.displayName}</Link> : <span className="member-profile-unavailable">{user.displayName}</span>}<small>{username ? `@${username}` : "عضو بلا اسم مستخدم"}{role ? ` · ${role}` : ""}</small>{user.bio ? <p>{user.bio}</p> : null}</div></Surface>;
       })}</div>}
     </section>
     {community.visibility === "PRIVATE" ? <p className="community-privacy-note"><LockKeyhole size={15}/> قد تخضع بعض معلومات المجتمع الخاص لضوابط العضوية التي يحددها الخادم.</p> : null}

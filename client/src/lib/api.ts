@@ -23,7 +23,19 @@ export type ApiBlock = { id: string; blocked: ApiUser; createdAt?: string };
 export type ApiSuggestion = ApiUser & { mutualCount?: number; isFollowing?: boolean; hasPendingFriendRequest?: boolean };
 export type ApiCommunity = { id: string; name: string; slug: string; description?: string | null; coverUrl?: string | null; visibility?: "PUBLIC" | "PRIVATE"; owner?: ApiUser; _count?: { members?: number; posts?: number } };
 export type CreateCommunityPayload = { name: string; slug: string; description?: string; coverUrl?: string; visibility?: "PUBLIC" | "PRIVATE" };
-export type ApiCommunityMember = { id: string; user: Pick<ApiUser, "id" | "displayName" | "username" | "avatarUrl" | "bio">; createdAt?: string; role?: string };
+export type ApiCommunityMember = {
+  id: string;
+  userId?: string | null;
+  user: {
+    id?: string | null;
+    displayName: string;
+    username?: string | null;
+    avatarUrl?: string | null;
+    bio?: string | null;
+  };
+  createdAt?: string;
+  role?: string;
+};
 export type ApiSearchPost = Omit<ApiPost, "_count"> & { _count: { comments: number; reactions: number } };
 export type ApiSearchResponse = { users: ApiUser[]; usersNextPage?: number | null; posts: ApiSearchPost[]; communities: ApiCommunity[] };
 export type ApiSupportTicket = { id: string; category: "ACCOUNT" | "TECHNICAL" | "SAFETY" | "OTHER"; subject: string; body: string; status: string; createdAt: string; updatedAt?: string };
