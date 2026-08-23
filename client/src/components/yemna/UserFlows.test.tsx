@@ -208,10 +208,10 @@ describe("تدفقات المستخدم الأساسية", () => {
     expect(localStorage.getItem("yemna_access_token")).toBe("test-access-token");
   });
 
-  it("يعرض نتائج البحث الحي ويوصلها إلى الملف العام وإلى استكشاف المجتمع", async () => {
+  it("يعرض نتائج البحث الحي ويوصلها إلى تفاصيل الملف والمنشور والمجتمع", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({
       users: [{ id: "user-2", displayName: "أمل صنعاء", username: "amal-sanaa", city: "صنعاء" }],
-      posts: [],
+      posts: [{ id: "post-search-1", body: "منشور حي من صنعاء", author: { displayName: "أمل صنعاء" }, media: [], _count: { reactions: 2, comments: 1 } }],
       communities: [{ id: "community-1", name: "مجتمع صنعاء", slug: "sanaa", description: "مجتمع محلي", _count: { members: 10 } }],
     })));
     const user = userEvent.setup();
@@ -223,11 +223,16 @@ describe("تدفقات المستخدم الأساسية", () => {
     expect(window.location.pathname).toBe("/profile/amal-sanaa");
 
     setPath("/search");
-    const communityLink = screen.getAllByRole("link", { name: "استكشاف" }).find(link => link.getAttribute("href")?.startsWith("/communities?"));
-    expect(communityLink).toBeDefined();
-    await user.click(communityLink!);
-    expect(window.location.pathname).toBe("/communities");
-    expect(window.location.search).toBe("?community=sanaa");
+    const postLink = screen.getByRole("link", { name: "فتح المنشور post-search-1" });
+    expect(postLink.getAttribute("href")).toBe("/post/post-search-1");
+    await user.click(postLink);
+    expect(window.location.pathname).toBe("/post/post-search-1");
+
+    setPath("/search");
+    const communityLink = screen.getByRole("link", { name: "فتح المجتمع مجتمع صنعاء" });
+    expect(communityLink.getAttribute("href")).toBe("/community/community-1");
+    await user.click(communityLink);
+    expect(window.location.pathname).toBe("/community/community-1");
   });
 
   it("يعرض زر تعديل الملف الشخصي في الحساب الحالي وينقل إلى نموذج التعديل", async () => {

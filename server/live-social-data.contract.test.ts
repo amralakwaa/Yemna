@@ -7,6 +7,7 @@ const socialSuite = readFileSync(resolve(import.meta.dirname, "../client/src/pag
 const liveCommunities = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveCommunitiesPage.tsx"), "utf8");
 const liveCommunityDetail = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveCommunityDetailPage.tsx"), "utf8");
 const liveExplore = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveExplorePage.tsx"), "utf8");
+const liveSearch = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveSearchPage.tsx"), "utf8");
 const liveRelationships = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveRelationshipsPage.tsx"), "utf8");
 const liveProfileEdit = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveProfileEditPage.tsx"), "utf8");
 const liveAccount = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveAccountPage.tsx"), "utf8");
@@ -85,6 +86,15 @@ describe("live social data contract", () => {
     expect(liveExplore).not.toContain("12.4K");
     expect(app).toContain('"/discover", "/discover/map", "/discover/interests"');
     expect(appShell).toContain("navItems[6]");
+  });
+
+  it("connects live search results directly to the REST-backed post and community detail routes", () => {
+    expect(liveSearch).toContain("queryFn: () => api.search(normalized, type)");
+    expect(liveSearch).toContain('href={`/post/${encodeURIComponent(post.id)}`}');
+    expect(liveSearch).toContain('href={`/community/${encodeURIComponent(community.id)}`}');
+    expect(liveSearch).not.toContain('href={`/communities?community=${community.slug}`}');
+    expect(app).toContain('<Route path="/post/:id" component={PostDetailPage}/>');
+    expect(app).toContain('<Route path="/community/:id" component={LiveCommunityDetailPage}/>');
   });
 
   it("gates the feed and stories behind a real session and gives guests an honest state", () => {
