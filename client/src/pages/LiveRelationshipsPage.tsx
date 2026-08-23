@@ -41,7 +41,7 @@ function requestFor(view: RelationshipView): () => Promise<unknown> {
 
 export function LiveRelationshipsPage() {
   const [location, navigate] = useLocation();
-  const active = relationshipViews.find(item => item.path === location) ?? relationshipViews[0];
+  const active = relationshipViews.find(item => item.path === location) ?? (location === "/blocked/unblock" ? relationshipViews.find(item => item.view === "blocked")! : relationshipViews[0]);
   const { isAuthenticated, isLoading: isSessionLoading } = useCurrentUser();
   const [term, setTerm] = useState("");
   const [followedBack, setFollowedBack] = useState<Record<string, boolean>>({});

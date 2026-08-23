@@ -270,16 +270,19 @@ describe("live social data contract", () => {
 
   it("reopens only REST-backed relationship lists and keeps mutual and generic management routes gated", () => {
     expect(app).toContain('import { LiveRelationshipsPage } from "./pages/LiveRelationshipsPage";');
-    expect(app).toContain('const liveRelationshipRoutes = ["/friends", "/friend-requests", "/followers", "/following", "/people/discover", "/blocked", "/friend-suggestions", "/people/suggestions"];');
+    expect(app).toContain('const liveRelationshipRoutes = ["/friends", "/friend-requests", "/followers", "/following", "/people/discover", "/blocked", "/blocked/unblock", "/friend-suggestions", "/people/suggestions"];');
     expect(app).toContain('{liveRelationshipRoutes.map(path=><Route key={path} path={path} component={LiveRelationshipsPage}/>)}');
     expect(app).toContain('<Route path="/friends/mutual" component={LiveDataUnavailablePage}/>');
     expect(app).toContain('<Route path="/friendship/manage" component={LiveDataUnavailablePage}/>');
+    expect(app).not.toContain('<Route path="/blocked/unblock" component={LiveDataUnavailablePage}/>');
     expect(liveRelationships).toContain("api.getFriends");
     expect(liveRelationships).toContain("api.getFriendRequests");
     expect(liveRelationships).toContain("api.getFriendSuggestions");
     expect(liveRelationships).toContain("api.getFollowers");
     expect(liveRelationships).toContain("api.getFollowing");
     expect(liveRelationships).toContain("api.getBlocked");
+    expect(liveRelationships).toContain('location === "/blocked/unblock"');
+    expect(liveRelationships).toContain('api.unblockUser(userId)');
     expect(liveRelationships).toContain("api.findOrCreateDirectConversation");
     expect(liveRelationships).toContain("api.respondToFriendRequest");
     expect(liveRelationships).not.toContain("const suggestedUsers");
