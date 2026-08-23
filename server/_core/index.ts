@@ -74,7 +74,9 @@ async function startServer() {
     console.error(`Unable to listen on required port ${port}`, error);
     process.exitCode = 1;
   });
-  server.listen(port, () => {
+  // Bind explicitly to the public container interface. This avoids relying on
+  // platform-specific IPv6 dual-stack behavior for the deployment TCP probe.
+  server.listen(port, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${port}/`);
   });
 }
