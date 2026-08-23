@@ -9,6 +9,7 @@ import { CreatePage, HomePage, LoginPage } from "@/pages/YemnaPages";
 import { LiveSearchPage } from "@/pages/LiveSearchPage";
 import { LiveRelationshipsPage } from "@/pages/LiveRelationshipsPage";
 import { LiveProfileEditPage } from "@/pages/LiveProfileEditPage";
+import { LiveSupportPage } from "@/pages/LiveSupportPage";
 import { AccountSuitePage, RelationsCompletionPage } from "@/pages/CompletionSuite";
 import { RealtimeMessagesPage } from "@/pages/RealtimePages";
 import { CreatePostDetailPage, PostDetailPage, ProfileCollectionPage, ProfileDetailPage } from "@/pages/ReferenceSuite";
@@ -264,6 +265,33 @@ describe("تدفقات المستخدم الأساسية", () => {
     const update = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith("/users/me") && (init as RequestInit | undefined)?.method === "PATCH");
     expect(JSON.parse(String((update?.[1] as RequestInit).body))).toMatchObject({ displayName: "ليان اليمن", bio: "نبذة أولى" });
     await waitFor(() => expect(screen.getByRole("status", { name: "اسم الحساب الحالي" }).textContent).toContain("ليان اليمن"));
+  });
+
+  it("يرسل طلب دعم عبر REST ثم ينتقل إلى سجل طلبات الحساب", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const liveUser = { id: "support-user", username: "support_user", displayName: "هند صنعاء" };
+    const createdTicket = { id: "ticket-1", category: "TECHNICAL", subject: "تعذر تحميل الصفحة", body: "تتوقف صفحة المحتوى عند الفتح منذ الصباح.", status: "OPEN", createdAt: new Date().toISOString() };
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.endsWith("/support/tickets") && init?.method === "POST") return jsonResponse(createdTicket);
+      if (url.endsWith("/support/tickets")) return jsonResponse([]);
+      if (url.endsWith("/notifications") || url.endsWith("/messages/conversations")) return jsonResponse([]);
+      return jsonResponse([]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    setPath("/help/report");
+    renderWithQuery(<LiveSupportPage />);
+
+    await user.type(await screen.findByLabelText("عنوان مختصر"), createdTicket.subject);
+    await user.type(screen.getByLabelText("وصف المشكلة"), createdTicket.body);
+    await user.click(screen.getByRole("button", { name: "إرسال الطلب" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/support/tickets", expect.objectContaining({ method: "POST" })));
+    const request = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith("/support/tickets") && (init as RequestInit | undefined)?.method === "POST");
+    expect(JSON.parse(String((request?.[1] as RequestInit).body))).toMatchObject({ category: "TECHNICAL", subject: createdTicket.subject, body: createdTicket.body });
+    await waitFor(() => expect(window.location.pathname).toBe("/help/report/status"));
   });
 
   it("ينشئ منشوراً عبر REST ثم ينتقل إلى معرف المنشور الذي أعاده الخادم", async () => {

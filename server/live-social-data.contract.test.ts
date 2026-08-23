@@ -8,6 +8,7 @@ const liveCommunities = readFileSync(resolve(import.meta.dirname, "../client/src
 const liveExplore = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveExplorePage.tsx"), "utf8");
 const liveRelationships = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveRelationshipsPage.tsx"), "utf8");
 const liveProfileEdit = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveProfileEditPage.tsx"), "utf8");
+const liveSupport = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveSupportPage.tsx"), "utf8");
 const liveMedia = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveMediaPage.tsx"), "utf8");
 const app = readFileSync(resolve(import.meta.dirname, "../client/src/App.tsx"), "utf8");
 const appShell = readFileSync(resolve(import.meta.dirname, "../client/src/components/yemna/AppShell.tsx"), "utf8");
@@ -102,8 +103,24 @@ describe("live social data contract", () => {
     expect(liveDataUnavailable).toContain('location.startsWith("/ai/") ? "ذكاء يمنا"');
   });
 
+  it("publishes support tickets and content reports only through their live REST contracts", () => {
+    expect(app).toContain('import { LiveSupportPage } from "./pages/LiveSupportPage";');
+    expect(app).toContain('<Route path="/help" component={LiveSupportPage}/>');
+    expect(app).toContain('<Route path="/help/report" component={LiveSupportPage}/>');
+    expect(app).toContain('<Route path="/help/report/status" component={LiveSupportPage}/>');
+    expect(app).toContain('<Route path="/support/reports" component={LiveSupportPage}/>');
+    expect(app).toContain('<Route path="/help/faq" component={LiveDataUnavailablePage}/>');
+    expect(app).toContain('<Route path="/help/contact" component={LiveDataUnavailablePage}/>');
+    expect(liveSupport).toContain("api.getSupportTickets");
+    expect(liveSupport).toContain("api.createSupportTicket");
+    expect(liveSupport).toContain("api.getSupportReports");
+    expect(liveSupport).toContain("api.createSupportReport");
+    expect(liveSupport).toContain("سجّل الدخول للوصول إلى الدعم");
+    expect(liveSupport).not.toContain("دردشة مباشرة");
+    expect(appShell).toContain('label: "المساعدة والدعم", path: "/help"');
+  });
+
   it("routes only message creation to its live contract and keeps reference-only account and community creation screens honest", () => {
-    expect(app).toContain('<Route path="/help" component={LiveDataUnavailablePage}/>');
     expect(app).toContain('<Route path="/account" component={LiveDataUnavailablePage}/>');
     expect(app).toContain('<Route path="/messages/new" component={NewMessagePage}/>');
     expect(app).toContain('<Route path="/groups/create" component={LiveDataUnavailablePage}/>');

@@ -25,6 +25,7 @@ export type ApiCommunity = { id: string; name: string; slug: string; description
 export type ApiSearchPost = Omit<ApiPost, "_count"> & { _count: { comments: number; reactions: number } };
 export type ApiSearchResponse = { users: ApiUser[]; usersNextPage?: number | null; posts: ApiSearchPost[]; communities: ApiCommunity[] };
 export type ApiSupportTicket = { id: string; category: "ACCOUNT" | "TECHNICAL" | "SAFETY" | "OTHER"; subject: string; body: string; status: string; createdAt: string; updatedAt?: string };
+export type ApiContentReport = { id: string; targetType: "POST" | "COMMENT" | "USER" | "COMMUNITY" | "MESSAGE"; targetId: string; reason: string; details?: string | null; status: "OPEN" | "REVIEWING" | "RESOLVED" | "DISMISSED"; createdAt: string; updatedAt?: string };
 export type ApiMediaAsset = { id: string; kind: "IMAGE" | "VIDEO" | "AUDIO" | "DOCUMENT"; publicUrl: string; mimeType: string; byteSize: number; width?: number | null; height?: number | null; durationSeconds?: number | null; createdAt: string; albumId?: string | null; postId?: string | null; messageId?: string | null };
 export type ApiStory = { id: string; caption?: string | null; createdAt: string; expiresAt: string; author: Pick<ApiUser, "id" | "displayName" | "username" | "fullName" | "avatarUrl">; media: ApiMediaAsset };
 export type ApiStoryViews = { count: number; viewers: Array<{ viewedAt: string; viewer: Pick<ApiUser, "id" | "displayName" | "username" | "fullName" | "avatarUrl"> }> };
@@ -216,6 +217,8 @@ export const api = {
   leaveCommunity: (communityId: string) => apiRequest<void>(`/communities/${encodeURIComponent(communityId)}/leave`, { method: "DELETE" }),
   getSupportTickets: () => apiRequest<ApiSupportTicket[]>("/support/tickets"),
   createSupportTicket: (payload: Pick<ApiSupportTicket, "category" | "subject" | "body">) => apiRequest<ApiSupportTicket>("/support/tickets", { method: "POST", body: JSON.stringify(payload) }),
+  getSupportReports: () => apiRequest<ApiContentReport[]>("/support/reports"),
+  createSupportReport: (payload: Pick<ApiContentReport, "targetType" | "targetId" | "reason" | "details">) => apiRequest<ApiContentReport>("/support/reports", { method: "POST", body: JSON.stringify(payload) }),
   getMedia: (kind?: ApiMediaAsset["kind"]) => apiRequest<ApiMediaAsset[]>(`/media${kind ? `?kind=${encodeURIComponent(kind)}` : ""}`),
   getMediaAlbums: () => apiRequest<ApiAlbum[]>("/media/albums"),
   createMediaAlbum: (payload: Pick<ApiAlbum, "title" | "description" | "coverUrl">) => apiRequest<ApiAlbum>("/media/albums", { method: "POST", body: JSON.stringify(payload) }),

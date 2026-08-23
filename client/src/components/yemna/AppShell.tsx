@@ -18,6 +18,7 @@ const sideItems = [
   navItems[5],
   navItems[4],
   navItems[6],
+  { key: "support", label: "المساعدة والدعم", path: "/help", icon: "CircleHelp" },
   { key: "settings", label: "الإعدادات والخصوصية", path: "/settings", icon: "Settings" },
 ];
 
