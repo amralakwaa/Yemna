@@ -8,6 +8,7 @@ import { AppShell } from "./AppShell";
 import { CreatePage, HomePage, LoginPage } from "@/pages/YemnaPages";
 import { LiveSearchPage } from "@/pages/LiveSearchPage";
 import { LiveRelationshipsPage } from "@/pages/LiveRelationshipsPage";
+import { LiveProfileEditPage } from "@/pages/LiveProfileEditPage";
 import { AccountSuitePage, RelationsCompletionPage } from "@/pages/CompletionSuite";
 import { RealtimeMessagesPage } from "@/pages/RealtimePages";
 import { CreatePostDetailPage, PostDetailPage, ProfileCollectionPage, ProfileDetailPage } from "@/pages/ReferenceSuite";
@@ -26,6 +27,11 @@ function renderWithQuery(ui: React.ReactElement) {
 function CurrentUserRefreshControl() {
   const { refreshUser } = useCurrentUser();
   return <button type="button" onClick={() => { void refreshUser(); }}>تحديث بيانات الحساب</button>;
+}
+
+function CurrentUserName() {
+  const { currentUser } = useCurrentUser();
+  return <output aria-label="اسم الحساب الحالي">{currentUser?.displayName || "ضيف"}</output>;
 }
 
 function jsonResponse(payload: unknown) {
@@ -230,6 +236,34 @@ describe("تدفقات المستخدم الأساسية", () => {
     expect(editLink.getAttribute("href")).toBe("/account/edit");
     await user.click(editLink);
     expect(window.location.pathname).toBe("/account/edit");
+  });
+
+  it("يحفظ محرر الملف الشخصي عبر REST ويحدّث بيانات الحساب الحية", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const originalUser = { id: "profile-editor", username: "profile_editor", displayName: "ليان صنعاء", bio: "نبذة أولى", avatarUrl: null };
+    const savedUser = { ...originalUser, displayName: "ليان اليمن", bio: "نبذة محدثة" };
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/users/me") && init?.method === "PATCH") return jsonResponse(savedUser);
+      if (url.endsWith("/users/me")) return jsonResponse(originalUser);
+      if (url.endsWith("/notifications") || url.endsWith("/messages/conversations")) return jsonResponse([]);
+      return jsonResponse([]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    setPath("/profile/edit");
+    renderWithQuery(<><LiveProfileEditPage /><CurrentUserName /></>);
+
+    const name = await screen.findByLabelText("الاسم الظاهر");
+    expect(screen.getByRole("status", { name: "اسم الحساب الحالي" }).textContent).toContain("ليان صنعاء");
+    await user.clear(name);
+    await user.type(name, "ليان اليمن");
+    await user.click(screen.getByRole("button", { name: "حفظ التغييرات" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/users/me", expect.objectContaining({ method: "PATCH" })));
+    const update = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith("/users/me") && (init as RequestInit | undefined)?.method === "PATCH");
+    expect(JSON.parse(String((update?.[1] as RequestInit).body))).toMatchObject({ displayName: "ليان اليمن", bio: "نبذة أولى" });
+    await waitFor(() => expect(screen.getByRole("status", { name: "اسم الحساب الحالي" }).textContent).toContain("ليان اليمن"));
   });
 
   it("ينشئ منشوراً عبر REST ثم ينتقل إلى معرف المنشور الذي أعاده الخادم", async () => {

@@ -7,6 +7,7 @@ const socialSuite = readFileSync(resolve(import.meta.dirname, "../client/src/pag
 const liveCommunities = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveCommunitiesPage.tsx"), "utf8");
 const liveExplore = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveExplorePage.tsx"), "utf8");
 const liveRelationships = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveRelationshipsPage.tsx"), "utf8");
+const liveProfileEdit = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveProfileEditPage.tsx"), "utf8");
 const liveMedia = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveMediaPage.tsx"), "utf8");
 const app = readFileSync(resolve(import.meta.dirname, "../client/src/App.tsx"), "utf8");
 const appShell = readFileSync(resolve(import.meta.dirname, "../client/src/components/yemna/AppShell.tsx"), "utf8");
@@ -164,8 +165,9 @@ describe("live social data contract", () => {
     expect(referenceSuiteStyles).toContain('.app-shell--guest .collection-page .collection-intro a[href="/create/media"]{display:none}');
   });
 
-  it("does not publish placeholder profile or media editing flows without persistence contracts", () => {
-    expect(app).toContain('<Route path="/profile/edit" component={LiveDataUnavailablePage}/>');
+  it("publishes only the REST-backed profile editor and keeps unsupported media editing flows unavailable", () => {
+    expect(app).toContain('import { LiveProfileEditPage } from "./pages/LiveProfileEditPage";');
+    expect(app).toContain('<Route path="/profile/edit" component={LiveProfileEditPage}/>');
     expect(app).toContain('<Route path="/create/media" component={LiveDataUnavailablePage}/>');
     expect(app).toContain('<Route path="/media/editor" component={LiveDataUnavailablePage}/>');
     expect(app).toContain('<Route path="/create/video" component={LiveDataUnavailablePage}/>');
@@ -173,7 +175,11 @@ describe("live social data contract", () => {
     expect(app).not.toContain('component={CreateMediaPage}');
     expect(app).not.toContain('component={ImageEditorPage}');
     expect(app).not.toContain('component={UploadVideoPage}');
-    expect(liveDataUnavailable).toContain('"/profile/edit": "تعديل الملف الشخصي"');
+    expect(liveProfileEdit).toContain("api.getMe");
+    expect(liveProfileEdit).toContain("api.updateMe");
+    expect(liveProfileEdit).toContain("api.uploadMedia");
+    expect(liveProfileEdit).toContain("setCurrentUser");
+    expect(liveProfileEdit).not.toContain("عمر الحضرمي");
     expect(liveDataUnavailable).toContain('"/create/video": "رفع فيديو"');
   });
 
