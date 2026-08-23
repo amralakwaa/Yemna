@@ -6,6 +6,12 @@ export class HealthService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   status() {
-    return { status: "ok", service: "yemna-api", timestamp: new Date().toISOString(), database: this.prisma.isConfigured() ? "configured" : "not-configured" };
+    const database = !this.prisma.hasDatabaseConfiguration()
+      ? "not-configured"
+      : this.prisma.isConfigured()
+        ? "ready"
+        : "unavailable";
+
+    return { status: "ok", service: "yemna-api", timestamp: new Date().toISOString(), database };
   }
 }

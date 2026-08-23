@@ -24,25 +24,49 @@ export function withPrismaPoolSettings(databaseUrl: string): string {
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
+  private databaseConnected = false;
 
   constructor(@Inject(ConfigService) private readonly config: ConfigService<YemnaEnv, true>) {
     const databaseUrl = config.get("YEMNA_DATABASE_URL", { infer: true });
     super(databaseUrl ? { datasources: { db: { url: withPrismaPoolSettings(databaseUrl) } } } : {});
   }
 
-  isConfigured(): boolean {
+  hasDatabaseConfiguration(): boolean {
     return Boolean(this.config.get("YEMNA_DATABASE_URL", { infer: true }));
   }
 
+  isConnected(): boolean {
+    return this.databaseConnected;
+  }
+
+  /**
+   * Existing database-backed services use this guard before issuing queries.
+   * A configured-but-unreachable database is deliberately treated as unavailable
+   * so those endpoints can return their established 503 response instead of
+   * surfacing an unhandled Prisma connection error.
+   */
+  isConfigured(): boolean {
+    return this.hasDatabaseConfiguration() && this.isConnected();
+  }
+
   async onModuleInit(): Promise<void> {
-    if (!this.isConfigured()) {
+    if (!this.hasDatabaseConfiguration()) {
       this.logger.warn("PostgreSQL is not configured; database-backed endpoints will return 503.");
       return;
     }
-    await this.$connect();
+
+    try {
+      await this.$connect();
+      this.databaseConnected = true;
+    } catch (error) {
+      this.databaseConnected = false;
+      const detail = error instanceof Error ? error.message : "unknown connection error";
+      this.logger.error(`PostgreSQL connection is unavailable; database-backed endpoints will return 503. ${detail}`);
+    }
   }
 
   async onModuleDestroy(): Promise<void> {
-    if (this.isConfigured()) await this.$disconnect();
+    if (this.isConnected()) await this.$disconnect();
+    this.databaseConnected = false;
   }
 }
