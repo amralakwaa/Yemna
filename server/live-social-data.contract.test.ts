@@ -9,6 +9,7 @@ const liveExplore = readFileSync(resolve(import.meta.dirname, "../client/src/pag
 const liveRelationships = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveRelationshipsPage.tsx"), "utf8");
 const liveProfileEdit = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveProfileEditPage.tsx"), "utf8");
 const liveSupport = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveSupportPage.tsx"), "utf8");
+const liveAdmin = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveAdminPage.tsx"), "utf8");
 const liveMedia = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveMediaPage.tsx"), "utf8");
 const app = readFileSync(resolve(import.meta.dirname, "../client/src/App.tsx"), "utf8");
 const appShell = readFileSync(resolve(import.meta.dirname, "../client/src/components/yemna/AppShell.tsx"), "utf8");
@@ -118,6 +119,24 @@ describe("live social data contract", () => {
     expect(liveSupport).toContain("سجّل الدخول للوصول إلى الدعم");
     expect(liveSupport).not.toContain("دردشة مباشرة");
     expect(appShell).toContain('label: "المساعدة والدعم", path: "/help"');
+  });
+
+  it("reopens only REST-backed administrative lists behind the server authorization gate", () => {
+    expect(app).toContain('import { LiveAdminPage } from "./pages/LiveAdminPage";');
+    expect(app).toContain('<Route path="/admin" component={LiveAdminPage}/>');
+    expect(app).toContain('<Route path="/admin/users" component={LiveAdminPage}/>');
+    expect(app).toContain('<Route path="/admin/tickets" component={LiveAdminPage}/>');
+    expect(app).toContain('<Route path="/admin/reports" component={LiveAdminPage}/>');
+    expect(liveAdmin).toContain("api.getAdminStats");
+    expect(liveAdmin).toContain("api.getAdminUsers");
+    expect(liveAdmin).toContain("api.getAdminTickets");
+    expect(liveAdmin).toContain("api.getAdminReports");
+    expect(liveAdmin).toContain("api.updateAdminUserStatus");
+    expect(liveAdmin).toContain("api.updateAdminTicketStatus");
+    expect(liveAdmin).toContain("api.updateAdminReportStatus");
+    expect(liveAdmin).toContain("لا تملك صلاحية الإدارة");
+    expect(liveAdmin).not.toContain("إجمالي الزيارات");
+    expect(app).toContain('<Route path="/admin/ai-analytics" component={AdminAccessGuard}/>');
   });
 
   it("routes only message creation to its live contract and keeps reference-only account and community creation screens honest", () => {

@@ -10,6 +10,7 @@ import { LiveSearchPage } from "@/pages/LiveSearchPage";
 import { LiveRelationshipsPage } from "@/pages/LiveRelationshipsPage";
 import { LiveProfileEditPage } from "@/pages/LiveProfileEditPage";
 import { LiveSupportPage } from "@/pages/LiveSupportPage";
+import { LiveAdminPage } from "@/pages/LiveAdminPage";
 import { AccountSuitePage, RelationsCompletionPage } from "@/pages/CompletionSuite";
 import { RealtimeMessagesPage } from "@/pages/RealtimePages";
 import { CreatePostDetailPage, PostDetailPage, ProfileCollectionPage, ProfileDetailPage } from "@/pages/ReferenceSuite";
@@ -292,6 +293,31 @@ describe("تدفقات المستخدم الأساسية", () => {
     const request = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith("/support/tickets") && (init as RequestInit | undefined)?.method === "POST");
     expect(JSON.parse(String((request?.[1] as RequestInit).body))).toMatchObject({ category: "TECHNICAL", subject: createdTicket.subject, body: createdTicket.body });
     await waitFor(() => expect(window.location.pathname).toBe("/help/report/status"));
+  });
+
+  it("يحمل لوحة الإدارة من REST ويحدّث حالة مستخدم عبر عقد الخادم", async () => {
+    sessionStorage.setItem("yemna_access_token", "admin-access-token");
+    const administrator = { id: "admin-current", displayName: "مدير يمنا", username: "yemna-admin" };
+    const managedUser = { id: "account-22", displayName: "مدير حي", username: "live-manager", email: "manager@yemna.ye", status: "ACTIVE" };
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(administrator);
+      if (url.endsWith("/admin/stats")) return jsonResponse({ users: 4, posts: 8, communities: 2, openTickets: 1, openReports: 0 });
+      if (url.endsWith("/admin/users") && init?.method === "PATCH") return jsonResponse({ success: true });
+      if (url.endsWith("/admin/users")) return jsonResponse([managedUser]);
+      if (url.endsWith("/notifications") || url.endsWith("/messages/conversations")) return jsonResponse([]);
+      return jsonResponse([]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    setPath("/admin/users");
+    renderWithQuery(<LiveAdminPage />);
+
+    expect((await screen.findAllByText("مدير حي")).length).toBeGreaterThan(0);
+    await user.selectOptions(screen.getByLabelText("حالة مدير حي"), "DISABLED");
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/admin/users/account-22/status", expect.objectContaining({ method: "PATCH" })));
+    const update = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith("/admin/users/account-22/status") && (init as RequestInit | undefined)?.method === "PATCH");
+    expect(JSON.parse(String((update?.[1] as RequestInit).body))).toEqual({ status: "DISABLED" });
   });
 
   it("ينشئ منشوراً عبر REST ثم ينتقل إلى معرف المنشور الذي أعاده الخادم", async () => {
