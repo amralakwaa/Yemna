@@ -38,6 +38,7 @@ export const navItems = [
   { key: "content", label: "المحتوى", path: "/media", icon: "PlaySquare" },
   { key: "alerts", label: "الإشعارات", path: "/notifications", icon: "Bell", badge: 3 },
   { key: "messages", label: "الرسائل", path: "/messages", icon: "MessageCircle", badge: 2 },
+  { key: "explore", label: "استكشاف", path: "/explore", icon: "Compass" },
 ];
 
 export const settingsGroups = [

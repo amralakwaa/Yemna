@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const yemnaPages = readFileSync(resolve(import.meta.dirname, "../client/src/pages/YemnaPages.tsx"), "utf8");
 const socialSuite = readFileSync(resolve(import.meta.dirname, "../client/src/pages/SocialSuite.tsx"), "utf8");
 const liveCommunities = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveCommunitiesPage.tsx"), "utf8");
+const liveExplore = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveExplorePage.tsx"), "utf8");
 const liveMedia = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveMediaPage.tsx"), "utf8");
 const app = readFileSync(resolve(import.meta.dirname, "../client/src/App.tsx"), "utf8");
 const appShell = readFileSync(resolve(import.meta.dirname, "../client/src/components/yemna/AppShell.tsx"), "utf8");
@@ -45,6 +46,21 @@ describe("live social data contract", () => {
     expect(liveCommunities).toContain("لا توجد مجتمعات بعد");
     expect(liveCommunities).not.toContain("صنعاء الجميلة");
     expect(liveCommunities).not.toContain("اكتشف مجتمعاً قريباً منك");
+  });
+
+  it("reopens explore only with REST-backed posts and communities while discovery subroutes remain gated", () => {
+    expect(app).toContain('import { LiveExplorePage } from "./pages/LiveExplorePage";');
+    expect(app).toContain('<Route path="/explore" component={LiveExplorePage}/>');
+    expect(liveExplore).toContain("queryFn: api.getFeed");
+    expect(liveExplore).toContain("queryFn: api.getCommunities");
+    expect(liveExplore).toContain('href="/search"');
+    expect(liveExplore).toContain("تعذر تحميل المنشورات");
+    expect(liveExplore).toContain("لا توجد مجتمعات بعد");
+    expect(liveExplore).not.toContain("const trending");
+    expect(liveExplore).not.toContain("#صنعاء");
+    expect(liveExplore).not.toContain("12.4K");
+    expect(app).toContain('"/discover", "/discover/map", "/discover/interests"');
+    expect(appShell).toContain("navItems[6]");
   });
 
   it("gates the feed and stories behind a real session and gives guests an honest state", () => {

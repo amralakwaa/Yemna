@@ -17,6 +17,7 @@ const sideItems = [
   ...navItems.slice(0, 4),
   navItems[5],
   navItems[4],
+  navItems[6],
   { key: "settings", label: "الإعدادات والخصوصية", path: "/settings", icon: "Settings" },
 ];
 

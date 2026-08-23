@@ -58,6 +58,12 @@ describe("تدفقات المستخدم الأساسية", () => {
     await user.click(within(drawer).getByRole("link", { name: "المجموعات" }));
     expect(window.location.pathname).toBe("/communities");
     expect(screen.queryByRole("dialog", { name: "القائمة الرئيسية" })).toBeNull();
+
+    await user.click(screen.getAllByRole("button", { name: "فتح القائمة" })[0]);
+    const reopenedDrawer = screen.getByRole("dialog", { name: "القائمة الرئيسية" });
+    await user.click(within(reopenedDrawer).getByRole("link", { name: "استكشاف" }));
+    expect(window.location.pathname).toBe("/explore");
+    expect(screen.queryByRole("dialog", { name: "القائمة الرئيسية" })).toBeNull();
   });
 
   it("يفتح ملفي الشخصي من الجلسة الحالية دون تسجيل خروج أو طلب تسجيل دخول ثانٍ", async () => {
