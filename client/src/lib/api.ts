@@ -34,6 +34,7 @@ export type ApiAdminStats = { users: number; posts: number; communities: number;
 export type ApiAdminUser = ApiUser & { role?: string; status?: "ACTIVE" | "DISABLED" | "PENDING_VERIFICATION" | "DELETED" | null; lastLoginAt?: string | null; reason?: never; reporter?: never };
 export type ApiAdminTicket = ApiSupportTicket & { user?: Pick<ApiUser, "id" | "displayName" | "username" | "avatarUrl"> | null };
 export type ApiAdminReport = { id: string; reason: string; details?: string | null; status: "OPEN" | "REVIEWING" | "RESOLVED" | "DISMISSED"; createdAt: string; reporter?: Pick<ApiUser, "id" | "displayName" | "username" | "avatarUrl"> | null; displayName: never };
+export type ApiAssistantChatResponse = { reply: string };
 type AuthResponse = { accessToken: string; user: ApiUser };
 
 function readAccessToken() {
@@ -219,6 +220,7 @@ export const api = {
   createSupportTicket: (payload: Pick<ApiSupportTicket, "category" | "subject" | "body">) => apiRequest<ApiSupportTicket>("/support/tickets", { method: "POST", body: JSON.stringify(payload) }),
   getSupportReports: () => apiRequest<ApiContentReport[]>("/support/reports"),
   createSupportReport: (payload: Pick<ApiContentReport, "targetType" | "targetId" | "reason" | "details">) => apiRequest<ApiContentReport>("/support/reports", { method: "POST", body: JSON.stringify(payload) }),
+  chatWithAssistant: (message: string) => apiRequest<ApiAssistantChatResponse>("/assistant/chat", { method: "POST", body: JSON.stringify({ message }) }),
   getMedia: (kind?: ApiMediaAsset["kind"]) => apiRequest<ApiMediaAsset[]>(`/media${kind ? `?kind=${encodeURIComponent(kind)}` : ""}`),
   getMediaAlbums: () => apiRequest<ApiAlbum[]>("/media/albums"),
   createMediaAlbum: (payload: Pick<ApiAlbum, "title" | "description" | "coverUrl">) => apiRequest<ApiAlbum>("/media/albums", { method: "POST", body: JSON.stringify(payload) }),

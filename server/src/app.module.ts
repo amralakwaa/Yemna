@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { AdminModule } from "./admin/admin.module";
+import { AssistantModule } from "./assistant/assistant.module";
 import { AuthModule } from "./auth/auth.module";
 import { CommunitiesModule } from "./communities/communities.module";
 import { validateEnv } from "./config/env";
@@ -25,6 +26,7 @@ import { UsersModule } from "./users/users.module";
     PrismaModule,
     HealthModule,
     AuthModule,
+    AssistantModule,
     RealtimeModule,
     UsersModule,
     PostsModule,

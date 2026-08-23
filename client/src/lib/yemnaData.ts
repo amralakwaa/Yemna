@@ -39,6 +39,7 @@ export const navItems = [
   { key: "alerts", label: "الإشعارات", path: "/notifications", icon: "Bell", badge: 3 },
   { key: "messages", label: "الرسائل", path: "/messages", icon: "MessageCircle", badge: 2 },
   { key: "explore", label: "استكشاف", path: "/explore", icon: "Compass" },
+  { key: "assistant", label: "مساعد يمنا", path: "/ai/assistant", icon: "Sparkles" },
 ];
 
 export const settingsGroups = [

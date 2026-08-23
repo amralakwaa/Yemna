@@ -10,7 +10,9 @@ const liveRelationships = readFileSync(resolve(import.meta.dirname, "../client/s
 const liveProfileEdit = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveProfileEditPage.tsx"), "utf8");
 const liveSupport = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveSupportPage.tsx"), "utf8");
 const liveAdmin = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveAdminPage.tsx"), "utf8");
+const liveAssistant = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveAssistantPage.tsx"), "utf8");
 const liveMedia = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveMediaPage.tsx"), "utf8");
+const restApi = readFileSync(resolve(import.meta.dirname, "../client/src/lib/api.ts"), "utf8");
 const app = readFileSync(resolve(import.meta.dirname, "../client/src/App.tsx"), "utf8");
 const appShell = readFileSync(resolve(import.meta.dirname, "../client/src/components/yemna/AppShell.tsx"), "utf8");
 const referenceSuite = readFileSync(resolve(import.meta.dirname, "../client/src/pages/ReferenceSuite.tsx"), "utf8");
@@ -94,12 +96,21 @@ describe("live social data contract", () => {
     expect(liveDataUnavailable).not.toContain("1.3K");
   });
 
-  it("does not expose experimental AI inputs or generated examples before a real AI contract exists", () => {
+  it("opens only the REST-backed assistant while keeping experimental AI tools gated", () => {
     expect(app).toContain('<Route path="/ai" component={LiveDataUnavailablePage}/>');
+    expect(app).toContain('import { LiveAssistantPage } from "./pages/LiveAssistantPage";');
+    expect(app).toContain('<Route path="/ai/assistant" component={LiveAssistantPage}/>');
+    expect(app).toContain('const aiTools = ["/ai/post"');
     expect(app).toContain('{aiTools.map(path=><Route key={path} path={path} component={LiveDataUnavailablePage}/>)}');
     expect(app).toContain('{aiExtras.map(path=><Route key={path} path={path} component={LiveDataUnavailablePage}/>)}');
     expect(app).not.toContain('component={AIHubPage}');
     expect(app).not.toContain('component={AIToolDetailPage}');
+    expect(restApi).toContain('chatWithAssistant: (message: string) => apiRequest<ApiAssistantChatResponse>("/assistant/chat"');
+    expect(liveAssistant).toContain("api.chatWithAssistant");
+    expect(liveAssistant).toContain("سجّل الدخول لاستخدام مساعد يمنا");
+    expect(liveAssistant).toContain("لا يملك وصولاً إلى حسابك أو رسائلك أو بياناتك الخاصة");
+    expect(liveAssistant).not.toContain("suggestedPrompts");
+    expect(appShell).toContain("navItems[7]");
     expect(liveDataUnavailable).toContain('"/ai": "ذكاء يمنا"');
     expect(liveDataUnavailable).toContain('location.startsWith("/ai/") ? "ذكاء يمنا"');
   });

@@ -11,6 +11,7 @@ import { LiveRelationshipsPage } from "@/pages/LiveRelationshipsPage";
 import { LiveProfileEditPage } from "@/pages/LiveProfileEditPage";
 import { LiveSupportPage } from "@/pages/LiveSupportPage";
 import { LiveAdminPage } from "@/pages/LiveAdminPage";
+import { LiveAssistantPage } from "@/pages/LiveAssistantPage";
 import { AccountSuitePage, RelationsCompletionPage } from "@/pages/CompletionSuite";
 import { RealtimeMessagesPage } from "@/pages/RealtimePages";
 import { CreatePostDetailPage, PostDetailPage, ProfileCollectionPage, ProfileDetailPage } from "@/pages/ReferenceSuite";
@@ -293,6 +294,31 @@ describe("تدفقات المستخدم الأساسية", () => {
     const request = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith("/support/tickets") && (init as RequestInit | undefined)?.method === "POST");
     expect(JSON.parse(String((request?.[1] as RequestInit).body))).toMatchObject({ category: "TECHNICAL", subject: createdTicket.subject, body: createdTicket.body });
     await waitFor(() => expect(window.location.pathname).toBe("/help/report/status"));
+  });
+
+  it("يرسل رسالة إلى مساعد يمنا عبر REST ويعرض الرد القادم من الخادم", async () => {
+    sessionStorage.setItem("yemna_access_token", "assistant-access-token");
+    const liveUser = { id: "assistant-user", username: "assistant_user", displayName: "مستخدم المساعد" };
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.endsWith("/assistant/chat") && init?.method === "POST") return jsonResponse({ reply: "هذا رد وصل من الخدمة الحية." });
+      if (url.endsWith("/notifications") || url.endsWith("/messages/conversations")) return jsonResponse([]);
+      return jsonResponse([]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    setPath("/ai/assistant");
+    renderWithQuery(<LiveAssistantPage />);
+
+    const composer = await screen.findByPlaceholderText("اكتب رسالتك إلى مساعد يمنا…");
+    await user.type(composer, "كيف أكتب منشوراً واضحاً؟");
+    await user.click(screen.getByRole("button", { name: "إرسال الرسالة" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/assistant/chat", expect.objectContaining({ method: "POST" })));
+    const request = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith("/assistant/chat") && (init as RequestInit | undefined)?.method === "POST");
+    expect(JSON.parse(String((request?.[1] as RequestInit).body))).toEqual({ message: "كيف أكتب منشوراً واضحاً؟" });
+    expect(await screen.findByText("هذا رد وصل من الخدمة الحية.")).toBeTruthy();
   });
 
   it("يحمل لوحة الإدارة من REST ويحدّث حالة مستخدم عبر عقد الخادم", async () => {
