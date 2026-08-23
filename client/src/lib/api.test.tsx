@@ -138,6 +138,19 @@ describe("عقود REST للحساب والدعم", () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/search?q=%D8%A3%D8%AD%D9%85%D8%AF&type=users&page=2&limit=30");
   });
 
+  it("ينشئ مجتمعاً عبر عقد REST المحمي ويرسل بياناته كما أُدخلت", async () => {
+    setRestAccessToken("community-token-for-test");
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ id: "community-1", name: "قراءة يمنية", slug: "yemen-reading", visibility: "PUBLIC" }), { status: 200 }));
+
+    await api.createCommunity({ name: "قراءة يمنية", slug: "yemen-reading", description: "مجتمع قراءة", visibility: "PUBLIC" });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/communities");
+    expect(init.method).toBe("POST");
+    expect(new Headers(init.headers).get("Authorization")).toBe("Bearer community-token-for-test");
+    expect(JSON.parse(String(init.body))).toEqual({ name: "قراءة يمنية", slug: "yemen-reading", description: "مجتمع قراءة", visibility: "PUBLIC" });
+  });
+
   it("يفتح محادثة مباشرة مع المستخدم الآخر عبر العقد الصحيح", async () => {
     setRestAccessToken("message-token");
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ id: "conversation-1", participants: [] }), { status: 201 }));

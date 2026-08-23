@@ -14,6 +14,7 @@ import { LiveSupportPage } from "@/pages/LiveSupportPage";
 import { LiveAdminPage } from "@/pages/LiveAdminPage";
 import { LiveAssistantPage } from "@/pages/LiveAssistantPage";
 import { LiveCommunityDetailPage } from "@/pages/LiveCommunityDetailPage";
+import { LiveCommunityCreatePage } from "@/pages/LiveCommunityCreatePage";
 import { LiveStoryCreatePage } from "@/pages/LiveStoryCreatePage";
 import { RelationsCompletionPage } from "@/pages/CompletionSuite";
 import { LiveAccountPage } from "@/pages/LiveAccountPage";
@@ -233,6 +234,34 @@ describe("تدفقات المستخدم الأساسية", () => {
     expect(communityLink.getAttribute("href")).toBe("/community/community-1");
     await user.click(communityLink);
     expect(window.location.pathname).toBe("/community/community-1");
+  });
+
+  it("ينشئ مجتمعاً بعقد REST ثم ينتقل فقط إلى معرّف المجتمع الذي أعاده الخادم", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const currentUser = { id: "owner-1", displayName: "منشئ المجتمع", username: "community-owner" };
+    const created = { id: "community-created-1", name: "قراءة يمنية", slug: "yemen-reading", visibility: "PUBLIC", _count: { members: 1, posts: 0 } };
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/auth/refresh")) return jsonResponse({ accessToken: "restored-token", user: currentUser });
+      if (url.endsWith("/users/me")) return jsonResponse(currentUser);
+      if (url.endsWith("/communities") && init?.method === "POST") return jsonResponse(created);
+      if (url.endsWith("/notifications") || url.endsWith("/messages/conversations")) return jsonResponse([]);
+      return jsonResponse([]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    setPath("/communities/create");
+    const user = userEvent.setup();
+    renderWithQuery(<LiveCommunityCreatePage />);
+
+    await user.type(await screen.findByLabelText(/اسم المجتمع/), "قراءة يمنية");
+    await user.type(screen.getByLabelText(/الرابط القصير/), "yemen-reading");
+    await user.type(screen.getByLabelText("وصف مختصر اختياري"), "مساحة لقراءة الكتب ومناقشتها.");
+    await user.click(screen.getByRole("button", { name: "إنشاء المجتمع" }));
+
+    await waitFor(() => expect(window.location.pathname).toBe("/community/community-created-1"));
+    const request = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith("/communities") && (init as RequestInit | undefined)?.method === "POST");
+    expect(request).toBeTruthy();
+    expect(JSON.parse(String((request?.[1] as RequestInit).body))).toMatchObject({ name: "قراءة يمنية", slug: "yemen-reading", visibility: "PUBLIC" });
   });
 
   it("يعرض زر تعديل الملف الشخصي في الحساب الحالي وينقل إلى نموذج التعديل", async () => {

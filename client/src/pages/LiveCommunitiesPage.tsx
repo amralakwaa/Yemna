@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LoaderCircle, Users, WifiOff } from "lucide-react";
+import { LoaderCircle, Plus, Users, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "wouter";
 
@@ -70,7 +70,7 @@ export function LiveCommunitiesPage() {
             <h1>اكتشف مجتمعات حقيقية تناسب اهتماماتك.</h1>
             <p>تُعرض هنا المجتمعات المنشأة في يمنا وعدد أعضائها الفعلي.</p>
           </div>
-          <Users aria-hidden="true" size={42} strokeWidth={1.5} />
+          <div className="live-communities-hero-actions"><Link className="button" href="/communities/create"><Plus size={17}/>إنشاء مجتمع</Link><Users aria-hidden="true" size={42} strokeWidth={1.5} /></div>
         </Surface>
 
         <Surface className="live-communities-search" aria-label="البحث في المجتمعات">
