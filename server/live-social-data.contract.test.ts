@@ -243,9 +243,18 @@ describe("live social data contract", () => {
   });
 
   it("hides incomplete activity history instead of exposing a guest interaction state", () => {
-    expect(app).toContain('const profileCollections = ["/my-posts","/saved","/albums","/photos","/videos","/activity","/memories"];');
+    expect(app).toContain('const profileCollections = ["/my-posts","/saved","/activity","/memories"];');
     expect(appShell).not.toContain('const isActivityPage = location === "/activity"');
     expect(appShell).not.toContain("لا توجد تفاعلات حقيقية بعد");
+  });
+
+  it("reopens only the REST-backed personal photos, videos, and albums", () => {
+    expect(app).toContain('ProfileCollectionPage');
+    expect(app).toContain('const liveProfileMediaCollections = ["/albums","/photos","/videos"];');
+    expect(app).toContain('{liveProfileMediaCollections.map(path=><Route key={path} path={path} component={ProfileCollectionPage}/>)}');
+    expect(referenceSuite).toContain('queryFn: () => api.getMedia(mediaKind)');
+    expect(referenceSuite).toContain('queryFn: api.getMediaAlbums');
+    expect(referenceSuite).toContain('سجّل الدخول لعرض وسائطك');
   });
 
   it("reopens only REST-backed relationship lists and keeps mutual and generic management routes gated", () => {
