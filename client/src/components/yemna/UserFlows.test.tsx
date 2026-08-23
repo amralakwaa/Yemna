@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppShell } from "./AppShell";
 import { CreatePage, HomePage, LoginPage } from "@/pages/YemnaPages";
 import { LiveSearchPage } from "@/pages/LiveSearchPage";
+import { LiveRelationshipsPage } from "@/pages/LiveRelationshipsPage";
 import { AccountSuitePage, RelationsCompletionPage } from "@/pages/CompletionSuite";
 import { RealtimeMessagesPage } from "@/pages/RealtimePages";
 import { CreatePostDetailPage, PostDetailPage, ProfileCollectionPage, ProfileDetailPage } from "@/pages/ReferenceSuite";
@@ -64,6 +65,27 @@ describe("تدفقات المستخدم الأساسية", () => {
     await user.click(within(reopenedDrawer).getByRole("link", { name: "استكشاف" }));
     expect(window.location.pathname).toBe("/explore");
     expect(screen.queryByRole("dialog", { name: "القائمة الرئيسية" })).toBeNull();
+  });
+
+  it("يعرض قائمة الأصدقاء من REST ويربط إجراءات العلاقة بالبيانات الحية", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const liveUser = { id: "user-current", displayName: "حساب حالي", username: "current-account" };
+    const friend = { id: "friend-user", displayName: "صديق حي", username: "live-friend", city: "عدن" };
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.endsWith("/relationships/friends")) return jsonResponse([{ id: "friendship-1", user: friend }]);
+      if (url.endsWith("/notifications") || url.endsWith("/messages/conversations")) return jsonResponse([]);
+      return jsonResponse([]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    setPath("/friends");
+    renderWithQuery(<LiveRelationshipsPage />);
+
+    expect((await screen.findAllByText("صديق حي")).length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: /صديق حي/ }).getAttribute("href")).toBe("/profile/live-friend");
+    expect(screen.getByRole("button", { name: "مراسلة" })).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/relationships/friends", expect.anything());
   });
 
   it("يفتح ملفي الشخصي من الجلسة الحالية دون تسجيل خروج أو طلب تسجيل دخول ثانٍ", async () => {

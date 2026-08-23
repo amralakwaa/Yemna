@@ -6,6 +6,7 @@ const yemnaPages = readFileSync(resolve(import.meta.dirname, "../client/src/page
 const socialSuite = readFileSync(resolve(import.meta.dirname, "../client/src/pages/SocialSuite.tsx"), "utf8");
 const liveCommunities = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveCommunitiesPage.tsx"), "utf8");
 const liveExplore = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveExplorePage.tsx"), "utf8");
+const liveRelationships = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveRelationshipsPage.tsx"), "utf8");
 const liveMedia = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveMediaPage.tsx"), "utf8");
 const app = readFileSync(resolve(import.meta.dirname, "../client/src/App.tsx"), "utf8");
 const appShell = readFileSync(resolve(import.meta.dirname, "../client/src/components/yemna/AppShell.tsx"), "utf8");
@@ -137,9 +138,23 @@ describe("live social data contract", () => {
     expect(appShell).not.toContain("لا توجد تفاعلات حقيقية بعد");
   });
 
-  it("hides incomplete advanced relationship lists behind the temporary data state", () => {
-    expect(app).toContain("relationRoutes.map(path=><Route key={path} path={path} component={LiveDataUnavailablePage}/>)");
-    expect(app).not.toContain("component={RelationsCompletionPage}");
+  it("reopens only REST-backed relationship lists and keeps mutual and generic management routes gated", () => {
+    expect(app).toContain('import { LiveRelationshipsPage } from "./pages/LiveRelationshipsPage";');
+    expect(app).toContain('const liveRelationshipRoutes = ["/friends", "/friend-requests", "/followers", "/following", "/people/discover", "/blocked", "/friend-suggestions", "/people/suggestions"];');
+    expect(app).toContain('{liveRelationshipRoutes.map(path=><Route key={path} path={path} component={LiveRelationshipsPage}/>)}');
+    expect(app).toContain('<Route path="/friends/mutual" component={LiveDataUnavailablePage}/>');
+    expect(app).toContain('<Route path="/friendship/manage" component={LiveDataUnavailablePage}/>');
+    expect(liveRelationships).toContain("api.getFriends");
+    expect(liveRelationships).toContain("api.getFriendRequests");
+    expect(liveRelationships).toContain("api.getFriendSuggestions");
+    expect(liveRelationships).toContain("api.getFollowers");
+    expect(liveRelationships).toContain("api.getFollowing");
+    expect(liveRelationships).toContain("api.getBlocked");
+    expect(liveRelationships).toContain("api.findOrCreateDirectConversation");
+    expect(liveRelationships).toContain("api.respondToFriendRequest");
+    expect(liveRelationships).not.toContain("const suggestedUsers");
+    expect(liveRelationships).not.toContain("عمر الحضرمي");
+    expect(appShell).toContain('"/people/discover"');
   });
 
   it("protects the personal media creation route and does not leave it usable for guests", () => {

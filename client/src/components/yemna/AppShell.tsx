@@ -48,7 +48,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const isGuestMediaCreatePage = location === "/create/media" && !isCurrentUserLoading && !currentUser;
   const isSettingsAuthPending = isSettingsPage && isCurrentUserLoading;
   const isGuestSettingsPage = isSettingsPage && !isCurrentUserLoading && !currentUser;
-  const isRelationAccountPage = ["/friend-requests", "/followers", "/following", "/blocked"].includes(location);
+  const isRelationAccountPage = ["/friends", "/friend-requests", "/followers", "/following", "/people/discover", "/blocked", "/friend-suggestions", "/people/suggestions"].includes(location);
   const isGuestRelationPage = isRelationAccountPage && !isCurrentUserLoading && !currentUser;
   const pageContent = isGuestMediaCreatePage
     ? <div className="detail-narrow collection-page"><section className="content-placeholder"><Icons.Upload size={28}/><h3>سجّل الدخول لرفع الوسائط</h3><p>تحتاج إلى حسابك في يمنا لرفع الصور والفيديوهات إلى ألبوماتك.</p><Link className="button" href="/login">تسجيل الدخول</Link></section></div>
