@@ -106,6 +106,26 @@ describe("عقود REST للحساب والدعم", () => {
     expect(new Headers(init.headers).get("Authorization")).toBe("Bearer relationship-token");
   });
 
+  it("يعرض الطلبات المرسلة ويلغيها ويتجاهل الاقتراحات عبر عقود العلاقات الحية", async () => {
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify([{ id: "request-1", recipient: { id: "user-2", displayName: "مستخدم", username: "user" } }]), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "request-1", status: "CANCELLED" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "dismissal-1" }), { status: 201 }));
+
+    const outgoing = await api.getOutgoingFriendRequests();
+    await api.cancelOutgoingFriendRequest("request/1");
+    await api.dismissFriendSuggestion("user/2");
+
+    expect(outgoing[0]?.recipient.id).toBe("user-2");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/relationships/requests/sent");
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBeUndefined();
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/v1/relationships/requests/request%2F1");
+    expect(fetchMock.mock.calls[1]?.[1]?.method).toBe("DELETE");
+    expect(fetchMock.mock.calls[2]?.[0]).toBe("/api/v1/relationships/suggestions/user%2F2/dismiss");
+    expect(fetchMock.mock.calls[2]?.[1]?.method).toBe("POST");
+    expect(fetchMock.mock.calls[2]?.[1]?.body).toBeUndefined();
+  });
+
   it("ينفذ المتابعة والإلغاء على معرف المستخدم المرمز", async () => {
     setRestAccessToken("relationship-token");
     fetchMock

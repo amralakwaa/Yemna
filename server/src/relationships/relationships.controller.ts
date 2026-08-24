@@ -18,9 +18,12 @@ export class RelationshipsController {
   @Get("friends") friends(@Req() req: AuthenticatedRequest) { return this.relationships.listFriends(req.user.sub); }
   @Delete("friends/:userId") removeFriend(@Req() req: AuthenticatedRequest, @Param("userId") userId: string) { return this.relationships.removeFriend(req.user.sub, userId); }
   @Get("requests") requests(@Req() req: AuthenticatedRequest) { return this.relationships.listRequests(req.user.sub); }
+  @Get("requests/sent") sentRequests(@Req() req: AuthenticatedRequest) { return this.relationships.listOutgoingRequests(req.user.sub); }
   @Post("requests") request(@Req() req: AuthenticatedRequest, @Body() dto: SendFriendRequestDto) { return this.relationships.sendFriendRequest(req.user.sub, dto.recipientId); }
   @Post("requests/:id/respond") respond(@Req() req: AuthenticatedRequest, @Param("id") id: string, @Body() dto: RespondFriendRequestDto) { return this.relationships.respondToFriendRequest(req.user.sub, id, dto.action); }
+  @Delete("requests/:id") cancelRequest(@Req() req: AuthenticatedRequest, @Param("id") id: string) { return this.relationships.cancelOutgoingFriendRequest(req.user.sub, id); }
   @Get("suggestions") suggestions(@Req() req: AuthenticatedRequest) { return this.relationships.suggestions(req.user.sub); }
+  @Post("suggestions/:userId/dismiss") dismissSuggestion(@Req() req: AuthenticatedRequest, @Param("userId") userId: string) { return this.relationships.dismissSuggestion(req.user.sub, userId); }
   @Get("followers") followers(@Req() req: AuthenticatedRequest) { return this.relationships.followers(req.user.sub); }
   @Get("following") following(@Req() req: AuthenticatedRequest) { return this.relationships.following(req.user.sub); }
   @Post("follow/:userId") follow(@Req() req: AuthenticatedRequest, @Param("userId") userId: string) { return this.relationships.follow(req.user.sub, userId); }

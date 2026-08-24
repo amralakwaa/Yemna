@@ -76,6 +76,18 @@ export class RelationshipsService {
     return this.database().friendship.findMany({ where: { recipientId: userId, status: FriendshipStatus.PENDING }, include: { requester: { select: person } }, orderBy: { createdAt: "desc" } });
   }
 
+  async listOutgoingRequests(userId: string) {
+    return this.database().friendship.findMany({ where: { requesterId: userId, status: FriendshipStatus.PENDING }, include: { recipient: { select: person } }, orderBy: { createdAt: "desc" } });
+  }
+
+  async cancelOutgoingFriendRequest(actorId: string, requestId: string) {
+    const request = await this.database().friendship.findUnique({ where: { id: requestId } });
+    if (!request || request.requesterId !== actorId || request.status !== FriendshipStatus.PENDING) {
+      throw new NotFoundException("طلب الصداقة غير متاح للإلغاء");
+    }
+    return this.database().friendship.update({ where: { id: request.id }, data: { status: FriendshipStatus.CANCELLED, respondedAt: new Date() } });
+  }
+
   async removeFriend(actorId: string, targetId: string) {
     await this.assertTarget(actorId, targetId);
     await this.database().friendship.deleteMany({
@@ -128,15 +140,26 @@ export class RelationshipsService {
     return this.database().block.findMany({ where: { blockerId: userId }, include: { blocked: { select: person } }, orderBy: { createdAt: "desc" } });
   }
 
+  async dismissSuggestion(actorId: string, dismissedUserId: string) {
+    await this.assertTarget(actorId, dismissedUserId);
+    return this.database().friendSuggestionDismissal.upsert({
+      where: { dismissingUserId_dismissedUserId: { dismissingUserId: actorId, dismissedUserId } },
+      create: { dismissingUserId: actorId, dismissedUserId },
+      update: {},
+    });
+  }
+
   async suggestions(userId: string) {
     const db = this.database();
-    const [blocked, relations, following] = await Promise.all([
+    const [blocked, relations, following, dismissals] = await Promise.all([
       db.block.findMany({ where: { OR: [{ blockerId: userId }, { blockedId: userId }] }, select: { blockerId: true, blockedId: true } }),
       db.friendship.findMany({ where: { OR: [{ requesterId: userId }, { recipientId: userId }] }, select: { requesterId: true, recipientId: true, status: true } }),
       db.follow.findMany({ where: { followerId: userId }, select: { followedId: true } }),
+      db.friendSuggestionDismissal.findMany({ where: { dismissingUserId: userId }, select: { dismissedUserId: true } }),
     ]);
     const excluded = new Set<string>([userId]);
     blocked.forEach(item => { excluded.add(item.blockerId); excluded.add(item.blockedId); });
+    dismissals.forEach(item => excluded.add(item.dismissedUserId));
     const related = new Set<string>();
     relations.forEach(relation => {
       const other = relation.requesterId === userId ? relation.recipientId : relation.requesterId;

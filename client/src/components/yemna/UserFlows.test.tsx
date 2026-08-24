@@ -128,6 +128,50 @@ describe("تدفقات المستخدم الأساسية", () => {
     expect(JSON.parse(String((requestCall?.[1] as RequestInit)?.body))).toEqual({ recipientId: "suggested-user" });
   });
 
+  it("يتجاهل اقتراح الصداقة عبر العقد الحي بدلاً من إخفائه محلياً فقط", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const liveUser = { id: "user-current", displayName: "حساب حالي", username: "current-account" };
+    const suggestion = { id: "suggested-user", displayName: "مرام صنعاء", username: "maram-sanaa", mutualCount: 1, isFollowing: false, hasPendingFriendRequest: false };
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.endsWith("/relationships/suggestions")) return jsonResponse([suggestion]);
+      if (url.endsWith("/relationships/suggestions/suggested-user/dismiss") && init?.method === "POST") return jsonResponse({ id: "dismissal-1" });
+      if (url.endsWith("/notifications") || url.endsWith("/messages/conversations")) return jsonResponse([]);
+      return jsonResponse([]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    setPath("/people/discover");
+    const user = userEvent.setup();
+    renderWithQuery(<LiveRelationshipsPage />);
+
+    expect(await screen.findByText("صديق مشترك واحد")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "تجاهل" }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([input, init]) => String(input).endsWith("/api/v1/relationships/suggestions/suggested-user/dismiss") && (init as RequestInit | undefined)?.method === "POST")).toBe(true));
+  });
+
+  it("يعرض الطلبات المرسلة ويلغي الطلب عبر عقد REST الحي", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const liveUser = { id: "user-current", displayName: "حساب حالي", username: "current-account" };
+    const recipient = { id: "recipient-user", displayName: "سليم تعز", username: "salim-taiz" };
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.endsWith("/relationships/requests/sent")) return jsonResponse([{ id: "request-1", recipient }]);
+      if (url.endsWith("/relationships/requests/request-1") && init?.method === "DELETE") return jsonResponse({ id: "request-1", status: "CANCELLED" });
+      if (url.endsWith("/notifications") || url.endsWith("/messages/conversations")) return jsonResponse([]);
+      return jsonResponse([]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    setPath("/friend-requests/sent");
+    const user = userEvent.setup();
+    renderWithQuery(<LiveRelationshipsPage />);
+
+    expect((await screen.findAllByText("سليم تعز")).length).toBeGreaterThan(0);
+    await user.click(screen.getByRole("button", { name: "إلغاء الطلب" }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([input, init]) => String(input).endsWith("/api/v1/relationships/requests/request-1") && (init as RequestInit | undefined)?.method === "DELETE")).toBe(true));
+  });
+
   it("يفتح ملفي الشخصي من الجلسة الحالية دون تسجيل خروج أو طلب تسجيل دخول ثانٍ", async () => {
     sessionStorage.setItem("yemna_access_token", "test-access-token");
     const liveUser = { id: "user-current", displayName: "مستخدم يمنا", username: "yemna-user", bio: "نبذة حقيقية" };

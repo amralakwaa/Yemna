@@ -271,13 +271,14 @@ describe("live social data contract", () => {
 
   it("reopens only REST-backed relationship lists and keeps mutual and generic management routes gated", () => {
     expect(app).toContain('import { LiveRelationshipsPage } from "./pages/LiveRelationshipsPage";');
-    expect(app).toContain('const liveRelationshipRoutes = ["/friends", "/friend-requests", "/followers", "/following", "/people/discover", "/blocked", "/blocked/unblock", "/friend-suggestions", "/people/suggestions"];');
+    expect(app).toContain('const liveRelationshipRoutes = ["/friends", "/friend-requests", "/friend-requests/sent", "/followers", "/following", "/people/discover", "/blocked", "/blocked/unblock", "/friend-suggestions", "/people/suggestions"];');
     expect(app).toContain('{liveRelationshipRoutes.map(path=><Route key={path} path={path} component={LiveRelationshipsPage}/>)}');
     expect(app).toContain('<Route path="/friends/mutual" component={LiveDataUnavailablePage}/>');
     expect(app).toContain('<Route path="/friendship/manage" component={LiveDataUnavailablePage}/>');
     expect(app).not.toContain('<Route path="/blocked/unblock" component={LiveDataUnavailablePage}/>');
     expect(liveRelationships).toContain("api.getFriends");
     expect(liveRelationships).toContain("api.getFriendRequests");
+    expect(liveRelationships).toContain("api.getOutgoingFriendRequests");
     expect(liveRelationships).toContain("api.getFriendSuggestions");
     expect(liveRelationships).toContain("api.getFollowers");
     expect(liveRelationships).toContain("api.getFollowing");
@@ -286,9 +287,12 @@ describe("live social data contract", () => {
     expect(liveRelationships).toContain('api.unblockUser(userId)');
     expect(liveRelationships).toContain("api.findOrCreateDirectConversation");
     expect(liveRelationships).toContain("api.respondToFriendRequest");
+    expect(liveRelationships).toContain("api.cancelOutgoingFriendRequest");
+    expect(liveRelationships).toContain("api.dismissFriendSuggestion");
     expect(liveRelationships).not.toContain("const suggestedUsers");
     expect(liveRelationships).not.toContain("عمر الحضرمي");
     expect(appShell).toContain('"/people/discover"');
+    expect(appShell).toContain('"/friend-requests/sent"');
   });
 
   it("protects the personal media creation route and does not leave it usable for guests", () => {

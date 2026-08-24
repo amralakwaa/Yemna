@@ -155,6 +155,8 @@ model User {
   followers          Follow[]      @relation("followedUser")
   blockedUsers       Block[]       @relation("blocker")
   blockedByUsers     Block[]       @relation("blocked")
+  dismissedSuggestions FriendSuggestionDismissal[] @relation("suggestionDismissedBy")
+  hiddenFromSuggestions FriendSuggestionDismissal[] @relation("suggestionHiddenUser")
   ownedCommunities   Community[]   @relation("communityOwner")
   communityMemberships CommunityMember[]
   conversationParticipations ConversationParticipant[]
@@ -369,6 +371,18 @@ model Block {
   blocked   User     @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
 
   @@unique([blockerId, blockedId])
+}
+
+model FriendSuggestionDismissal {
+  id                String   @id @default(cuid())
+  dismissingUserId  String
+  dismissedUserId   String
+  createdAt         DateTime @default(now())
+  dismissingUser    User     @relation("suggestionDismissedBy", fields: [dismissingUserId], references: [id], onDelete: Cascade)
+  dismissedUser     User     @relation("suggestionHiddenUser", fields: [dismissedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([dismissingUserId, dismissedUserId])
+  @@index([dismissingUserId, createdAt])
 }
 
 model Community {

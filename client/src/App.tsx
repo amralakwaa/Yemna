@@ -27,7 +27,7 @@ import { LiveAccountPage } from "./pages/LiveAccountPage";
 
 const profileCollections = ["/my-posts","/saved","/activity","/memories"];
 const liveProfileMediaCollections = ["/albums","/photos","/videos"];
-const liveRelationshipRoutes = ["/friends", "/friend-requests", "/followers", "/following", "/people/discover", "/blocked", "/blocked/unblock", "/friend-suggestions", "/people/suggestions"];
+const liveRelationshipRoutes = ["/friends", "/friend-requests", "/friend-requests/sent", "/followers", "/following", "/people/discover", "/blocked", "/blocked/unblock", "/friend-suggestions", "/people/suggestions"];
 const communityExplorer = ["/communities/local","/communities/governorates","/communities/universities","/communities/interests"];
 const settingsDetails = ["/settings/security","/settings/sessions","/settings/notifications","/settings/data"];
 const aiTools = ["/ai/post","/ai/summary","/ai/search","/ai/sentiment","/ai/recommendations","/ai/report"];
