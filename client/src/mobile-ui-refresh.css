@@ -381,6 +381,80 @@
     overflow: hidden;
   }
 
+  /* دليل الرسائل يستعمل بحث المستخدمين الفعلي: صفوف قابلة للمس وحالات واضحة بلا بيانات بديلة. */
+  .messages-page .conversations,
+  .messages-page .chat-window {
+    margin-inline: var(--mobile-edge);
+    border: 1px solid rgba(31, 36, 50, 0.07);
+    border-radius: var(--mobile-card-radius);
+    box-shadow: 0 4px 18px rgba(28, 33, 48, 0.055);
+    overflow: hidden;
+  }
+
+  .messages-page .conversations { margin-bottom: 10px; }
+
+  .message-directory {
+    margin: 10px;
+    padding: 12px;
+    border: 1px solid rgba(181, 18, 52, 0.12);
+    border-radius: 14px;
+    background: linear-gradient(145deg, rgba(181, 18, 52, 0.055), rgba(255, 255, 255, 0.98) 62%);
+  }
+
+  .message-directory-heading,
+  .message-directory-heading > span,
+  .directory-user,
+  .directory-state {
+    display: flex;
+    align-items: center;
+  }
+
+  .message-directory-heading {
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 9px;
+  }
+
+  .message-directory-heading > span { gap: 7px; color: var(--ink); }
+  .message-directory-heading small { color: var(--muted); font-size: 10px; }
+
+  .message-directory-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 42px;
+    padding-inline: 11px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid rgba(31, 36, 50, 0.09);
+  }
+
+  .message-directory-search input {
+    min-width: 0;
+    min-height: 38px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .directory-user {
+    width: 100%;
+    min-height: 58px;
+    gap: 9px;
+    margin-top: 7px;
+    padding: 8px;
+    border: 1px solid rgba(31, 36, 50, 0.07);
+    border-radius: 12px;
+    background: var(--surface);
+    text-align: right;
+  }
+
+  .directory-user > span { min-width: 0; flex: 1; display: grid; gap: 2px; }
+  .directory-user small { overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+  .directory-state { justify-content: center; gap: 7px; min-height: 44px; color: var(--muted); font-size: 12px; }
+  .directory-more { width: 100%; min-height: 40px; margin-top: 8px; border: 0; border-radius: 10px; background: var(--yemna-soft); color: var(--yemna); font: inherit; font-weight: 700; }
+
   .chat-detail-row {
     margin-inline: 8px;
     margin-bottom: 7px;
@@ -457,6 +531,44 @@
     min-inline-size: 0;
     background-color: var(--surface);
   }
+
+  .privacy-rows > label.privacy-toggle-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .privacy-toggle {
+    appearance: none;
+    inline-size: 48px;
+    block-size: 28px;
+    margin: 0;
+    border: 1px solid rgba(31, 36, 50, 0.16);
+    border-radius: 999px;
+    background: #d8dbe1;
+    cursor: pointer;
+    transition: background-color 160ms cubic-bezier(0.23, 1, 0.32, 1), border-color 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .privacy-toggle::after {
+    content: "";
+    display: block;
+    inline-size: 22px;
+    block-size: 22px;
+    margin: 2px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(25, 30, 42, 0.2);
+    transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .privacy-toggle:checked {
+    border-color: var(--yemna);
+    background: var(--yemna);
+  }
+
+  .privacy-toggle:checked::after { transform: translateX(-20px); }
+  .privacy-toggle:focus-visible { outline: 3px solid color-mix(in srgb, var(--yemna) 28%, transparent); outline-offset: 3px; }
+  .privacy-toggle:disabled { cursor: wait; opacity: 0.62; }
 }
 
 @media (max-width: 380px) {

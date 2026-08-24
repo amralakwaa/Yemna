@@ -723,7 +723,7 @@ describe("تدفقات المستخدم الأساسية", () => {
       id: "user-settings",
       displayName: "حساب الخصوصية",
       username: "privacy-user",
-      settings: { friendRequestPermission: "FRIENDS", followPermission: "EVERYONE" },
+      settings: { friendRequestPermission: "FRIENDS", followPermission: "EVERYONE", showOnlineStatus: true, allowDirectMessages: true },
     };
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = String(input);
@@ -742,6 +742,11 @@ describe("تدفقات المستخدم الأساسية", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
       "/api/v1/users/me/settings",
       expect.objectContaining({ method: "PATCH", body: JSON.stringify({ followPermission: "NOBODY" }) }),
+    ));
+    await user.click(screen.getByLabelText("إظهار حالة الاتصال"));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/users/me/settings",
+      expect.objectContaining({ method: "PATCH", body: JSON.stringify({ showOnlineStatus: false }) }),
     ));
   });
 
