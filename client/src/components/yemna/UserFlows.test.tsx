@@ -19,7 +19,7 @@ import { LiveStoryCreatePage } from "@/pages/LiveStoryCreatePage";
 import { RelationsCompletionPage } from "@/pages/CompletionSuite";
 import { LiveAccountPage } from "@/pages/LiveAccountPage";
 import { RealtimeMessagesPage } from "@/pages/RealtimePages";
-import { CreatePostDetailPage, PostDetailPage, ProfileCollectionPage, ProfileDetailPage } from "@/pages/ReferenceSuite";
+import { CreatePostDetailPage, PostDetailPage, ProfileCollectionPage, ProfileDetailPage, RegisterPage } from "@/pages/ReferenceSuite";
 import { CurrentUserProvider, useCurrentUser } from "@/contexts/CurrentUserContext";
 
 function setPath(path: string) {
@@ -207,6 +207,33 @@ describe("تدفقات المستخدم الأساسية", () => {
     await waitFor(() => expect(window.location.pathname).toBe("/"));
     expect(sessionStorage.getItem("yemna_access_token")).toBe("test-access-token");
     expect(localStorage.getItem("yemna_access_token")).toBe("test-access-token");
+  });
+
+  it("ينشئ الحساب عبر عقد REST ثم يخزن رمز الوصول وينتقل إلى التغذية", async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request, _init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/auth/register")) return jsonResponse({ accessToken: "registered-access-token", user: { id: "user-registered", displayName: "حساب جديد", username: "new-account" } });
+      if (url.endsWith("/auth/refresh")) return { ok: false, status: 401, json: async () => ({ message: "غير مصرح" }) } as Response;
+      return jsonResponse({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    setPath("/register");
+    const user = userEvent.setup();
+    renderWithQuery(<RegisterPage />);
+
+    await user.type(screen.getByLabelText("الاسم الكامل"), "حساب جديد");
+    await user.type(screen.getByLabelText("رقم الهاتف أو البريد الإلكتروني"), "new-account@yemna.ye");
+    await user.type(screen.getByLabelText("كلمة المرور"), "password-for-test");
+    await user.click(screen.getByRole("checkbox", { name: /أوافق على الشروط/ }));
+    await user.click(screen.getByRole("button", { name: "إنشاء الحساب" }));
+
+    await waitFor(() => expect(window.location.pathname).toBe("/"));
+    const registerCall = fetchMock.mock.calls.find(([input]) => String(input).endsWith("/api/v1/auth/register"));
+    expect(registerCall).toBeTruthy();
+    expect(registerCall?.[1]).toMatchObject({ method: "POST" });
+    expect(JSON.parse(String((registerCall?.[1] as RequestInit)?.body))).toMatchObject({ displayName: "حساب جديد", email: "new-account@yemna.ye", password: "password-for-test" });
+    expect(sessionStorage.getItem("yemna_access_token")).toBe("registered-access-token");
+    expect(localStorage.getItem("yemna_access_token")).toBe("registered-access-token");
   });
 
   it("يعرض نتائج البحث الحي ويوصلها إلى تفاصيل الملف والمنشور والمجتمع", async () => {

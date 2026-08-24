@@ -9,6 +9,7 @@ import "./community-button-fix.css";
 import "./realtime-status.css";
 import "./index.css";
 import "./mobile-ui-refresh.css";
+import "./auth-mobile-refresh.css";
 
 const queryClient = new QueryClient();
 
