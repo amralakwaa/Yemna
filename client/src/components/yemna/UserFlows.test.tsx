@@ -768,6 +768,9 @@ describe("تدفقات المستخدم الأساسية", () => {
     expect(await screen.findByText("أمل عدن")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: /أمل عدن/ }));
     await waitFor(() => expect(window.location.search).toBe("?conversation=conversation-read"));
+    await user.click(screen.getByRole("button", { name: "العودة إلى قائمة الرسائل" }));
+    await waitFor(() => expect(window.location.search).toBe(""));
+    expect(screen.getByPlaceholderText("ابحث في الرسائل")).toBeTruthy();
   });
 
   it("ينفذ المتابعة ثم يفتح محادثة مباشرة من الملف العام عبر REST", async () => {

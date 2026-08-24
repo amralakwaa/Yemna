@@ -121,7 +121,8 @@ export function LiveMessagesInboxPage() {
   };
   const closeMobileConversation = () => {
     setMobileConversationOpen(false);
-    setLocation("/messages");
+    setSelectedId(undefined);
+    setLocation("/messages", { replace: true });
   };
 
   if (!signedIn) return <SignInRequired/>;
@@ -152,7 +153,7 @@ export function LiveMessagesInboxPage() {
     </Surface>
     <Surface className="social-inbox-chat" aria-label="المحادثة الحالية">
       {selected ? <>
-        <header className="social-chat-header"><button type="button" className="social-back-button" onClick={closeMobileConversation} aria-label="العودة إلى قائمة الرسائل"><ArrowRight size={20}/></button>{selectedPerson && <Avatar person={asPerson(selectedPerson)}/>}<span>{selectedPerson?.username ? <Link href={`/profile/${encodeURIComponent(selectedPerson.username)}`}>{conversationTitle(selected, me.data?.id)}</Link> : <b>{conversationTitle(selected, me.data?.id)}</b>}<small>{selected.kind === "DIRECT" ? "محادثة خاصة" : `${selected.participants.length} مشاركين`}</small></span></header>
+        <header className="social-chat-header"><button type="button" className="social-back-button" onClick={closeMobileConversation} aria-label="العودة إلى قائمة الرسائل"><ArrowRight size={20}/><span>الرسائل</span></button>{selectedPerson && <Avatar person={asPerson(selectedPerson)}/>}<span>{selectedPerson?.username ? <Link href={`/profile/${encodeURIComponent(selectedPerson.username)}`}>{conversationTitle(selected, me.data?.id)}</Link> : <b>{conversationTitle(selected, me.data?.id)}</b>}<small>{selected.kind === "DIRECT" ? "محادثة خاصة" : `${selected.participants.length} مشاركين`}</small></span></header>
         <div className="social-chat-messages">
           {messages.hasNextPage && <button type="button" className="load-older" onClick={() => messages.fetchNextPage()} disabled={messages.isFetchingNextPage}>{messages.isFetchingNextPage ? <LoaderCircle className="animate-spin"/> : "تحميل رسائل سابقة"}</button>}
           {messages.isLoading && <div className="content-placeholder"><LoaderCircle className="animate-spin"/></div>}
