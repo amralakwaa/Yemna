@@ -128,16 +128,17 @@ describe("تدفقات المستخدم الأساسية", () => {
     expect(JSON.parse(String((requestCall?.[1] as RequestInit)?.body))).toEqual({ recipientId: "suggested-user" });
   });
 
-  it("يفتح قائمة الأصدقاء المشتركين من العقد الحي عند النقر على العدد", async () => {
+  it("يفتح قائمة الأصدقاء المشتركين ويبحث فيها ويربط الملف الشخصي والمراسلة بعقود حية", async () => {
     sessionStorage.setItem("yemna_access_token", "test-access-token");
     const liveUser = { id: "user-current", displayName: "حساب حالي", username: "current-account" };
     const suggestion = { id: "suggested-user", displayName: "مرام صنعاء", username: "maram-sanaa", mutualCount: 3, isFollowing: false, hasPendingFriendRequest: false };
     const mutualFriend = { id: "shared-user", displayName: "صديق حي مشترك", username: "shared-live", avatarUrl: "https://cdn.example/shared.jpg" };
-    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = String(input);
       if (url.endsWith("/users/me")) return jsonResponse(liveUser);
       if (url.endsWith("/relationships/suggestions")) return jsonResponse([suggestion]);
       if (url.endsWith("/relationships/mutual/suggested-user")) return jsonResponse([mutualFriend]);
+      if (url.endsWith("/messages/conversations/direct") && init?.method === "POST") return jsonResponse({ id: "conversation-shared", participantIds: ["user-current", "shared-user"] });
       if (url.endsWith("/notifications") || url.endsWith("/messages/conversations")) return jsonResponse([]);
       return jsonResponse([]);
     });
@@ -149,6 +150,14 @@ describe("تدفقات المستخدم الأساسية", () => {
     await user.click(await screen.findByRole("button", { name: "3 أصدقاء مشتركون" }));
     expect(await screen.findByRole("dialog", { name: "الأصدقاء المشتركون" })).toBeTruthy();
     expect(await screen.findByText("صديق حي مشترك")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /صديق حي مشترك/ }).getAttribute("href")).toBe("/profile/shared-live");
+    await user.type(screen.getByPlaceholderText("ابحث في الأصدقاء المشتركين"), "حي مشترك");
+    expect(screen.getByText("صديق حي مشترك")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "إرسال رسالة" }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([input, init]) => String(input).endsWith("/api/v1/messages/conversations/direct") && (init as RequestInit | undefined)?.method === "POST")).toBe(true));
+    const directCall = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith("/api/v1/messages/conversations/direct") && (init as RequestInit | undefined)?.method === "POST");
+    expect(JSON.parse(String((directCall?.[1] as RequestInit)?.body))).toEqual({ userId: "shared-user" });
+    await waitFor(() => expect(`${window.location.pathname}${window.location.search}`).toBe("/messages?conversation=conversation-shared"));
     expect(fetchMock.mock.calls.some(([input]) => String(input).endsWith("/api/v1/relationships/mutual/suggested-user"))).toBe(true);
   });
 

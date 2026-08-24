@@ -57,10 +57,12 @@ export function LiveRelationshipsPage() {
   const [term, setTerm] = useState("");
   const [followedBack, setFollowedBack] = useState<Record<string, boolean>>({});
   const [mutualTarget, setMutualTarget] = useState<ApiUser | null>(null);
+  const [mutualTerm, setMutualTerm] = useState("");
   const queryClient = useQueryClient();
   const listQuery = useQuery({ queryKey: ["rest", "relationships", active.view], queryFn: requestFor(active.view), enabled: isAuthenticated, retry: 1 });
   const mutualFriendsQuery = useQuery({ queryKey: ["rest", "relationships", "mutual", mutualTarget?.id], queryFn: () => api.getMutualFriends(mutualTarget!.id), enabled: Boolean(mutualTarget), retry: 1 });
   const entries = useMemo(() => entriesFor(active.view, listQuery.data).filter((entry): entry is RelationshipEntry => Boolean(entry.user) && `${entry.user.displayName} ${entry.user.fullName || ""} ${entry.user.username}`.toLocaleLowerCase("ar").includes(term.trim().toLocaleLowerCase("ar"))), [active.view, listQuery.data, term]);
+  const visibleMutualFriends = useMemo(() => (mutualFriendsQuery.data ?? []).filter(friend => `${friend.displayName} ${friend.fullName || ""} ${friend.username}`.toLocaleLowerCase("ar").includes(mutualTerm.trim().toLocaleLowerCase("ar"))), [mutualFriendsQuery.data, mutualTerm]);
   const refreshRelationships = async () => { await queryClient.invalidateQueries({ queryKey: ["rest", "relationships"] }); };
   const relationshipAction = useMutation({
     mutationFn: async ({ type, userId, requestId }: { type: "accept" | "decline" | "remove" | "follow" | "unfollow" | "block-unblock" | "request" | "cancel-request" | "dismiss-suggestion"; userId: string; requestId?: string }) => {
@@ -117,7 +119,7 @@ export function LiveRelationshipsPage() {
           return <article className={`relationship-row${active.view === "suggestions" ? " relationship-suggestion-row" : ""}`} key={entry.id}>
             <div className="relationship-person">
               <Link className="relationship-profile" href={`/profile/${encodeURIComponent(entry.user.username || entry.user.id)}`}><Avatar person={person} size="lg"/><span><strong>{person.name}</strong><small>@{entry.user.username || "مستخدم-يمنا"}</small>{entry.user.city && <em>{entry.user.city}</em>}</span></Link>
-              {active.view === "suggestions" && (entry.mutualCount && entry.mutualCount > 0 ? <button type="button" className="relationship-suggestion-reason" onClick={() => setMutualTarget(entry.user)}><Users size={14}/>{suggestionReason}</button> : <span className="relationship-suggestion-reason"><Users size={14}/>{suggestionReason}</span>)}
+              {active.view === "suggestions" && (entry.mutualCount && entry.mutualCount > 0 ? <button type="button" className="relationship-suggestion-reason" onClick={() => { setMutualTerm(""); setMutualTarget(entry.user); }}><Users size={14}/>{suggestionReason}</button> : <span className="relationship-suggestion-reason"><Users size={14}/>{suggestionReason}</span>)}
             </div>
             <div className="relationship-actions">
               {active.view === "requests" && <><button type="button" className="button" disabled={busy} onClick={() => relationshipAction.mutate({ type: "accept", userId: entry.user.id, requestId: entry.id })}><Check size={16}/>تأكيد</button><button type="button" className="button ghost" disabled={busy} onClick={() => relationshipAction.mutate({ type: "decline", userId: entry.user.id, requestId: entry.id })}><X size={16}/>رفض</button></>}
@@ -131,19 +133,21 @@ export function LiveRelationshipsPage() {
           </article>;
         })}
       </Surface>
-      <Dialog open={Boolean(mutualTarget)} onOpenChange={open => { if (!open) setMutualTarget(null); }}>
+      <Dialog open={Boolean(mutualTarget)} onOpenChange={open => { if (!open) { setMutualTarget(null); setMutualTerm(""); } }}>
         <DialogContent dir="rtl" className="mutual-friends-dialog" showCloseButton={false}>
           <DialogHeader className="mutual-friends-dialog-head">
             <DialogTitle>الأصدقاء المشتركون</DialogTitle>
             <DialogDescription>{mutualTarget ? `الأصدقاء الذين تربطهم صداقة مقبولة بك وبـ ${asPerson(mutualTarget).name}.` : ""}</DialogDescription>
           </DialogHeader>
           <div className="mutual-friends-dialog-body">
+            {!mutualFriendsQuery.isLoading && !mutualFriendsQuery.isError && (mutualFriendsQuery.data?.length ?? 0) > 0 && <div className="mutual-friends-search"><SearchBox value={mutualTerm} onChange={setMutualTerm} placeholder="ابحث في الأصدقاء المشتركين"/></div>}
             {mutualFriendsQuery.isLoading && <div className="relationship-state"><LoaderCircle className="animate-spin" size={25}/><p>يجري تحميل الأصدقاء المشتركين…</p></div>}
             {mutualFriendsQuery.isError && <div className="relationship-state"><WifiOff size={26}/><h3>تعذر تحميل الأصدقاء المشتركين</h3><p>تحقق من اتصالك ثم أعد المحاولة.</p><button type="button" className="button outline" onClick={() => mutualFriendsQuery.refetch()}>إعادة المحاولة</button></div>}
             {!mutualFriendsQuery.isLoading && !mutualFriendsQuery.isError && mutualFriendsQuery.data?.length === 0 && <div className="relationship-state"><Users size={27}/><h3>لا يوجد أصدقاء مشتركون الآن</h3><p>تتغير هذه القائمة وفق الصداقات المقبولة الحالية فقط.</p></div>}
-            {!mutualFriendsQuery.isLoading && !mutualFriendsQuery.isError && mutualFriendsQuery.data?.map(mutualFriend => {
+            {!mutualFriendsQuery.isLoading && !mutualFriendsQuery.isError && (mutualFriendsQuery.data?.length ?? 0) > 0 && visibleMutualFriends.length === 0 && <div className="relationship-state"><Search size={26}/><h3>لا توجد نتيجة مطابقة</h3><p>جرّب اسماً أو اسم مستخدم آخر.</p></div>}
+            {!mutualFriendsQuery.isLoading && !mutualFriendsQuery.isError && visibleMutualFriends.map(mutualFriend => {
               const mutualPerson = asPerson(mutualFriend);
-              return <Link key={mutualFriend.id} href={`/profile/${encodeURIComponent(mutualFriend.username || mutualFriend.id)}`} className="mutual-friend-row" onClick={() => setMutualTarget(null)}><Avatar person={mutualPerson} size="md"/><span><strong>{mutualPerson.name}</strong><small>@{mutualFriend.username || "مستخدم-يمنا"}</small></span></Link>;
+              return <div key={mutualFriend.id} className="mutual-friend-row"><Link href={`/profile/${encodeURIComponent(mutualFriend.username || mutualFriend.id)}`} className="mutual-friend-profile" onClick={() => setMutualTarget(null)}><Avatar person={mutualPerson} size="md"/><span><strong>{mutualPerson.name}</strong><small>@{mutualFriend.username || "مستخدم-يمنا"}</small></span></Link><button type="button" className="button outline mutual-friend-message" disabled={startConversation.isPending} onClick={() => startConversation.mutate(mutualFriend.id)}><MessageCircle size={15}/>{startConversation.isPending ? "يجري الفتح…" : "إرسال رسالة"}</button></div>;
             })}
           </div>
           <div className="mutual-friends-dialog-footer"><DialogClose className="button outline">إغلاق</DialogClose></div>
