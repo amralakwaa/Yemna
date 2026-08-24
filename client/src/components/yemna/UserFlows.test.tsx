@@ -384,6 +384,28 @@ describe("تدفقات المستخدم الأساسية", () => {
     expect(JSON.parse(String((update?.[1] as RequestInit).body))).toEqual({ status: "DISABLED" });
   });
 
+  it("يعرض فشل تحميل مستخدمي الإدارة كخطأ صريح قابل لإعادة المحاولة لا كقائمة فارغة", async () => {
+    sessionStorage.setItem("yemna_access_token", "admin-access-token");
+    const administrator = { id: "admin-current", displayName: "مدير يمنا", username: "yemna-admin" };
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(administrator);
+      if (url.endsWith("/admin/stats")) return jsonResponse({ users: 4, posts: 8, communities: 2, openTickets: 1, openReports: 0 });
+      if (url.endsWith("/admin/users")) return { ok: false, status: 503, json: async () => ({ message: "تعذر الاتصال" }) } as Response;
+      if (url.endsWith("/notifications") || url.endsWith("/messages/conversations")) return jsonResponse([]);
+      return jsonResponse([]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    setPath("/admin/users");
+    renderWithQuery(<LiveAdminPage />);
+
+    expect((await screen.findByRole("alert")).textContent).toContain("تعذر تحميل المستخدمون");
+    expect(screen.queryByText("لا توجد حسابات متاحة في الاستجابة الحالية.")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "إعادة المحاولة" }));
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/admin/users"))).toHaveLength(2));
+  });
+
   it("ينشئ منشوراً عبر REST ثم ينتقل إلى معرف المنشور الذي أعاده الخادم", async () => {
     sessionStorage.setItem("yemna_access_token", "test-access-token");
     const liveUser = { id: "user-9", displayName: "هدى إب", username: "huda-ibb", avatarUrl: "https://example.test/huda.jpg" };
