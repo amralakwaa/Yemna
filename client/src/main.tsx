@@ -8,6 +8,7 @@ import App from "./App";
 import "./community-button-fix.css";
 import "./realtime-status.css";
 import "./index.css";
+import "./mobile-ui-refresh.css";
 
 const queryClient = new QueryClient();
 

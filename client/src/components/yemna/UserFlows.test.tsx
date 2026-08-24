@@ -6,7 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Route } from "wouter";
 import { AppShell } from "./AppShell";
-import { CreatePage, HomePage, LoginPage } from "@/pages/YemnaPages";
+import { CreatePage, HomePage, LoginPage, SettingsPage } from "@/pages/YemnaPages";
 import { LiveSearchPage } from "@/pages/LiveSearchPage";
 import { LiveRelationshipsPage } from "@/pages/LiveRelationshipsPage";
 import { LiveProfileEditPage } from "@/pages/LiveProfileEditPage";
@@ -688,6 +688,34 @@ describe("تدفقات المستخدم الأساسية", () => {
     expect(await screen.findByRole("heading", { name: "سجّل الدخول لإنشاء قصة" })).toBeTruthy();
     expect(screen.getAllByRole("link", { name: "تسجيل الدخول" }).some(link => link.getAttribute("href") === "/login")).toBe(true);
     expect(screen.queryByText("اختيار من الجهاز")).toBeNull();
+  });
+
+  it("يفتح مسار الخصوصية المتصل بالإعدادات الحية ويحفظ اختيار المتابعة عبر REST", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const liveUser = {
+      id: "user-settings",
+      displayName: "حساب الخصوصية",
+      username: "privacy-user",
+      settings: { friendRequestPermission: "FRIENDS", followPermission: "EVERYONE" },
+    };
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.endsWith("/users/me/settings") && init?.method === "PATCH") return jsonResponse(liveUser);
+      return jsonResponse({ items: [], nextCursor: null });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    setPath("/settings/privacy");
+    renderWithQuery(<SettingsPage />);
+
+    expect(await screen.findByRole("heading", { name: "الخصوصية" })).toBeTruthy();
+    const followSelect = screen.getByLabelText("من يمكنه متابعتك؟");
+    await user.selectOptions(followSelect, "NOBODY");
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/users/me/settings",
+      expect.objectContaining({ method: "PATCH", body: JSON.stringify({ followPermission: "NOBODY" }) }),
+    ));
   });
 
   it("يعرض تفاصيل المجتمع وأعضاءه الحقيقيين وينفذ الانضمام عبر REST", async () => {

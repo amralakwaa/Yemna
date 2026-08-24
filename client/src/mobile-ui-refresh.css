@@ -1,0 +1,477 @@
+/* طبقة الهاتف المشتركة: لغة مرئية عربية مركّزة للأجهزة الصغيرة، بلا تغيير في العقود أو البيانات. */
+@media (max-width: 900px) {
+  :root {
+    --mobile-edge: 12px;
+    --mobile-card-radius: 16px;
+    --mobile-control-height: 44px;
+  }
+
+  body {
+    background: #f4f5f8;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .app-shell {
+    min-height: 100dvh;
+    padding-top: calc(62px + env(safe-area-inset-top));
+    padding-bottom: calc(82px + env(safe-area-inset-bottom));
+  }
+
+  .mobile-header {
+    height: calc(62px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) var(--mobile-edge) 0;
+    background: color-mix(in srgb, var(--surface) 95%, transparent);
+    box-shadow: 0 1px 0 rgba(26, 30, 43, 0.07);
+    backdrop-filter: blur(18px);
+  }
+
+  .mobile-header .yemna-logo { transform: translateY(1px); }
+  .mobile-header .wordmark { font-size: 30px; letter-spacing: -1.5px; }
+  .mobile-context-title { max-width: 54vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-header-actions { gap: 2px; }
+
+  .icon-button {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    color: var(--ink);
+  }
+
+  .icon-button:hover,
+  .icon-button:focus-visible {
+    background: var(--yemna-soft);
+    color: var(--yemna);
+    outline: 0;
+  }
+
+  .page-stage {
+    padding-block: 8px 10px;
+  }
+
+  .mobile-page-title {
+    padding: 6px var(--mobile-edge) 8px;
+  }
+
+  .mobile-page-title h1 {
+    color: var(--ink);
+    font-size: 18px;
+    line-height: 1.35;
+    letter-spacing: -0.2px;
+  }
+
+  /* البطاقات تحافظ على فصل واضح عن خلفية التطبيق بدلاً من صفوف سطح المكتب الممتدة. */
+  .surface,
+  .post-card {
+    margin-inline: var(--mobile-edge);
+    border: 1px solid rgba(31, 36, 50, 0.07);
+    border-radius: var(--mobile-card-radius);
+    box-shadow: 0 4px 18px rgba(28, 33, 48, 0.055);
+    overflow: clip;
+  }
+
+  .post-card {
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+
+  .post-header { gap: 10px; }
+  .post-author strong { font-size: 14px; }
+  .post-author span { font-size: 11px; }
+  .post-text { margin-block: 12px; font-size: 14px; line-height: 1.8; }
+  .post-image { border-radius: 12px; }
+  .post-stats { padding-block: 10px; }
+  .post-actions { gap: 2px; margin-inline: -4px; padding-top: 6px; }
+  .action { min-height: 36px; border-radius: 10px; padding-inline: 2px; }
+
+  .button {
+    min-height: var(--mobile-control-height);
+    border-radius: 12px;
+    padding-inline: 17px;
+    box-shadow: 0 5px 12px rgba(181, 18, 52, 0.15);
+  }
+
+  .button.secondary,
+  .button.ghost,
+  .button.outline { box-shadow: none; }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    min-height: var(--mobile-control-height);
+    border-radius: 12px;
+  }
+
+  .search-box {
+    min-height: 42px;
+    border-radius: 13px;
+    background: #f0f1f4;
+  }
+
+  .mobile-nav {
+    height: calc(70px + env(safe-area-inset-bottom));
+    padding: 6px 8px env(safe-area-inset-bottom);
+    background: color-mix(in srgb, var(--surface) 97%, transparent);
+    box-shadow: 0 -8px 24px rgba(25, 29, 42, 0.08);
+    backdrop-filter: blur(18px);
+  }
+
+  .mobile-nav > a,
+  .mobile-nav .menu-trigger {
+    min-width: 52px;
+    min-height: 52px;
+    justify-content: center;
+    gap: 3px;
+    border-radius: 13px;
+  }
+
+  .mobile-nav > a.active:not(.create-nav),
+  .mobile-nav .menu-trigger:focus-visible {
+    background: var(--yemna-soft);
+  }
+
+  .mobile-nav .create-nav {
+    width: 48px;
+    height: 48px;
+    transform: translateY(-15px);
+    border: 4px solid var(--canvas);
+    box-shadow: 0 8px 18px rgba(181, 18, 52, 0.32);
+  }
+
+  .mobile-menu-drawer {
+    width: min(336px, 90vw);
+    padding: calc(16px + env(safe-area-inset-top)) 13px calc(18px + env(safe-area-inset-bottom));
+    border-radius: 0 0 0 22px;
+  }
+
+  .mobile-menu-link {
+    min-height: 49px;
+    border-radius: 13px;
+    padding-inline: 13px;
+  }
+
+  .mobile-menu-head { padding-bottom: 16px; }
+  .mobile-menu-profile .avatar { box-shadow: 0 0 0 3px var(--yemna-soft); }
+
+  .content-placeholder,
+  .relationship-state {
+    margin-inline: var(--mobile-edge);
+    border-radius: var(--mobile-card-radius);
+  }
+
+  /* حالة صادقة عند غياب الجلسة: تبقى بلا بيانات مصطنعة، لكنها تحمل هوية المنتج وهرمية واضحة. */
+  .content-placeholder,
+  .relationship-state {
+    display: flex;
+    min-height: 232px;
+    padding: 26px 18px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-align: center;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(181, 18, 52, 0.08), transparent 42%),
+      var(--surface);
+    border: 1px solid rgba(31, 36, 50, 0.075);
+    box-shadow: 0 5px 20px rgba(28, 33, 48, 0.06);
+    box-sizing: border-box;
+  }
+
+  .content-placeholder h2,
+  .relationship-state h2 {
+    margin: 2px 0 0;
+    color: var(--ink);
+    font-size: 19px;
+    line-height: 1.45;
+  }
+
+  .content-placeholder p,
+  .relationship-state p {
+    max-width: 29ch;
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.75;
+  }
+
+  .content-placeholder .button,
+  .relationship-state .button {
+    width: min(100%, 240px);
+    margin-top: 6px;
+  }
+
+  /* هذه القواعد هي المرجع الأخير للشاشات التفصيلية: لا عرض 100vw أو هوامش سالبة داخل غلاف الهاتف. */
+  html,
+  body,
+  #root,
+  .app-shell,
+  .desktop-layout,
+  .page-stage {
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
+    overflow-x: clip;
+  }
+
+  .mobile-header-page {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    gap: 4px;
+  }
+
+  .mobile-header-page .mobile-context-title {
+    margin: 0;
+    text-align: center;
+  }
+
+  .page-stage > .detail-narrow {
+    inline-size: 100% !important;
+    max-inline-size: 100% !important;
+    min-inline-size: 0 !important;
+    margin-inline: 0 !important;
+    padding: 8px var(--mobile-edge) 20px !important;
+    box-sizing: border-box;
+  }
+
+  .detail-narrow > .surface,
+  .detail-narrow > .post-card,
+  .detail-narrow .collection-intro,
+  .detail-narrow .edit-profile-form,
+  .detail-narrow .comments-card,
+  .detail-narrow .report-form,
+  .detail-narrow .create-post-detail,
+  .detail-narrow .video-upload,
+  .detail-narrow .media-picker,
+  .detail-narrow .image-editor,
+  .detail-narrow .option-list {
+    margin-inline: 0;
+    border-radius: var(--mobile-card-radius);
+  }
+
+  .detail-narrow .edit-profile-form,
+  .detail-narrow .comments-card,
+  .detail-narrow .report-form,
+  .detail-narrow .create-post-detail,
+  .detail-narrow .video-upload,
+  .detail-narrow .media-picker,
+  .detail-narrow .image-editor,
+  .detail-narrow .option-list {
+    background: var(--surface);
+    border: 1px solid rgba(31, 36, 50, 0.07);
+    box-shadow: 0 4px 18px rgba(28, 33, 48, 0.055);
+  }
+
+  .detail-narrow .profile-detail-tabs,
+  .detail-narrow .media-picker-tabs {
+    padding-inline: 2px;
+  }
+
+  /* إيقاع الشبكة الاجتماعية: وحدات واضحة، كثافة مريحة، وإجراءات قابلة للمس. */
+  .story-strip,
+  .composer,
+  .explore-top,
+  .search-detail-head,
+  .directory-head,
+  .inbox-detail,
+  .notifications-page,
+  .friends-page,
+  .settings-page {
+    margin-inline: var(--mobile-edge);
+    border: 1px solid rgba(31, 36, 50, 0.07);
+    border-radius: var(--mobile-card-radius);
+    background: var(--surface);
+    box-shadow: 0 4px 18px rgba(28, 33, 48, 0.055);
+  }
+
+  .story-strip {
+    margin-block: 2px 10px;
+    padding: 12px 10px;
+  }
+
+  .story-ring {
+    box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--yemna-soft);
+  }
+
+  .composer {
+    margin-block: 0 10px;
+    padding: 12px;
+  }
+
+  .composer-top { gap: 10px; }
+
+  .composer-top input,
+  .composer textarea {
+    min-height: 42px;
+    background: #f0f1f4;
+    border-radius: 99px;
+  }
+
+  .composer-actions {
+    gap: 4px;
+    margin-top: 10px;
+    padding-top: 9px;
+    border-top: 1px solid #eef0f3;
+  }
+
+  .composer-attachment {
+    min-height: 36px;
+    border-radius: 10px;
+    font-size: 11px;
+  }
+
+  .explore-top,
+  .search-detail-head,
+  .directory-head {
+    margin-block: 0 10px;
+    padding: 12px;
+  }
+
+  .search-tabs,
+  .notification-tabs,
+  .inbox-tabs {
+    gap: 2px;
+    padding-inline: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .search-tabs button,
+  .notification-tabs button,
+  .inbox-tabs button {
+    min-height: 38px;
+    white-space: nowrap;
+    padding-inline: 11px;
+    border-radius: 10px 10px 0 0;
+  }
+
+  .search-result-stack,
+  .friends-list,
+  .notification-list,
+  .directory-list {
+    margin-inline: var(--mobile-edge);
+    gap: 8px;
+  }
+
+  .friend-row,
+  .notification-row,
+  .chat-detail-row,
+  .directory-row {
+    min-height: 64px;
+    border: 1px solid rgba(31, 36, 50, 0.065);
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: 0 2px 10px rgba(28, 33, 48, 0.035);
+  }
+
+  .friend-actions .button,
+  .directory-row .button {
+    min-height: 36px;
+    padding-inline: 11px;
+    border-radius: 10px;
+    font-size: 11px;
+  }
+
+  .notification-icon {
+    border-radius: 12px;
+    background: var(--yemna-soft);
+  }
+
+  .inbox-detail {
+    margin-block: 0 10px;
+    overflow: hidden;
+  }
+
+  .chat-detail-row {
+    margin-inline: 8px;
+    margin-bottom: 7px;
+    padding: 11px 12px;
+  }
+
+  .settings-page,
+  .notifications-page,
+  .friends-page {
+    padding-block: 8px;
+  }
+
+  .option-list > button {
+    min-height: 58px;
+    padding-inline: 14px;
+  }
+
+  /* قوائم المجتمعات وصفوف الخصوصية تستخدم العمود كاملاً ولا تضغط النص مقابل عناصر التحكم. */
+  .live-communities-page,
+  .communities-page {
+    inline-size: 100%;
+    max-inline-size: 100%;
+    padding-inline: 0;
+    box-sizing: border-box;
+  }
+
+  .community-cards,
+  .live-community-cards {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px;
+    margin-inline: var(--mobile-edge);
+  }
+
+  .community-cards .community-card,
+  .live-community-cards .community-card {
+    inline-size: 100%;
+    min-inline-size: 0;
+    margin-inline: 0;
+    box-sizing: border-box;
+  }
+
+  .community-card-body {
+    min-inline-size: 0;
+  }
+
+  .privacy-rows {
+    display: grid;
+    gap: 12px;
+  }
+
+  .privacy-rows > label {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
+    align-items: start;
+    padding: 14px;
+    border: 1px solid rgba(31, 36, 50, 0.07);
+    border-radius: 14px;
+    background: #fbfbfc;
+  }
+
+  .privacy-rows > label > span {
+    min-inline-size: 0;
+  }
+
+  .privacy-rows > label b,
+  .privacy-rows > label small {
+    overflow-wrap: anywhere;
+  }
+
+  .privacy-rows > label select {
+    inline-size: 100%;
+    min-inline-size: 0;
+    background-color: var(--surface);
+  }
+}
+
+@media (max-width: 380px) {
+  :root { --mobile-edge: 10px; }
+  .mobile-nav > a,
+  .mobile-nav .menu-trigger { min-width: 44px; }
+  .mobile-nav > a > span:last-child,
+  .mobile-nav .menu-trigger > span:last-child { font-size: 8px; }
+  .action { font-size: 10px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mobile-menu-drawer,
+  .mobile-nav,
+  .mobile-header {
+    transition: background-color 180ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 180ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+}
