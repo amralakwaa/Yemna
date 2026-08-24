@@ -101,6 +101,29 @@ export class RelationshipsService {
     return relations.map(relation => ({ id: relation.id, since: relation.respondedAt, user: relation.requesterId === userId ? relation.recipient : relation.requester }));
   }
 
+  async listMutualFriends(actorId: string, targetId: string) {
+    await this.assertTarget(actorId, targetId);
+    await this.assertNotBlocked(actorId, targetId);
+    const relationships = await this.database().friendship.findMany({
+      where: {
+        status: FriendshipStatus.ACCEPTED,
+        OR: [{ requesterId: actorId }, { recipientId: actorId }, { requesterId: targetId }, { recipientId: targetId }],
+      },
+      select: { requesterId: true, recipientId: true },
+    });
+    const actorFriends = new Set<string>();
+    const targetFriends = new Set<string>();
+    relationships.forEach(relation => {
+      if (relation.requesterId === actorId) actorFriends.add(relation.recipientId);
+      if (relation.recipientId === actorId) actorFriends.add(relation.requesterId);
+      if (relation.requesterId === targetId) targetFriends.add(relation.recipientId);
+      if (relation.recipientId === targetId) targetFriends.add(relation.requesterId);
+    });
+    const mutualIds = Array.from(actorFriends).filter(friendId => targetFriends.has(friendId));
+    if (!mutualIds.length) return [];
+    return this.database().user.findMany({ where: { id: { in: mutualIds }, status: "ACTIVE" }, select: person, orderBy: { displayName: "asc" } });
+  }
+
   async follow(actorId: string, targetId: string) {
     await this.assertTarget(actorId, targetId);
     await this.assertNotBlocked(actorId, targetId);

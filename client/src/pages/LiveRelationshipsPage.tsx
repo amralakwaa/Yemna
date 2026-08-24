@@ -5,6 +5,7 @@ import { Check, EyeOff, LoaderCircle, MessageCircle, Search, ShieldOff, UserMinu
 import { toast } from "sonner";
 import { AppShell } from "@/components/yemna/AppShell";
 import { Avatar, SearchBox, Surface } from "@/components/yemna/UI";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { api, asPerson, type ApiBlock, type ApiFollow, type ApiFriend, type ApiFriendRequest, type ApiOutgoingFriendRequest, type ApiSuggestion, type ApiUser } from "@/lib/api";
 
@@ -55,8 +56,10 @@ export function LiveRelationshipsPage() {
   const { isAuthenticated, isLoading: isSessionLoading } = useCurrentUser();
   const [term, setTerm] = useState("");
   const [followedBack, setFollowedBack] = useState<Record<string, boolean>>({});
+  const [mutualTarget, setMutualTarget] = useState<ApiUser | null>(null);
   const queryClient = useQueryClient();
   const listQuery = useQuery({ queryKey: ["rest", "relationships", active.view], queryFn: requestFor(active.view), enabled: isAuthenticated, retry: 1 });
+  const mutualFriendsQuery = useQuery({ queryKey: ["rest", "relationships", "mutual", mutualTarget?.id], queryFn: () => api.getMutualFriends(mutualTarget!.id), enabled: Boolean(mutualTarget), retry: 1 });
   const entries = useMemo(() => entriesFor(active.view, listQuery.data).filter((entry): entry is RelationshipEntry => Boolean(entry.user) && `${entry.user.displayName} ${entry.user.fullName || ""} ${entry.user.username}`.toLocaleLowerCase("ar").includes(term.trim().toLocaleLowerCase("ar"))), [active.view, listQuery.data, term]);
   const refreshRelationships = async () => { await queryClient.invalidateQueries({ queryKey: ["rest", "relationships"] }); };
   const relationshipAction = useMutation({
@@ -112,7 +115,10 @@ export function LiveRelationshipsPage() {
           const busy = relationshipAction.isPending || startConversation.isPending;
           const suggestionReason = entry.mutualCount && entry.mutualCount > 0 ? mutualFriendsText(entry.mutualCount) : "اقتراح مبني على علاقاتك في يمنا";
           return <article className={`relationship-row${active.view === "suggestions" ? " relationship-suggestion-row" : ""}`} key={entry.id}>
-            <Link className="relationship-profile" href={`/profile/${encodeURIComponent(entry.user.username || entry.user.id)}`}><Avatar person={person} size="lg"/><span><strong>{person.name}</strong><small>@{entry.user.username || "مستخدم-يمنا"}</small>{active.view === "suggestions" && <em className="relationship-suggestion-reason"><Users size={14}/>{suggestionReason}</em>}{entry.user.city && <em>{entry.user.city}</em>}</span></Link>
+            <div className="relationship-person">
+              <Link className="relationship-profile" href={`/profile/${encodeURIComponent(entry.user.username || entry.user.id)}`}><Avatar person={person} size="lg"/><span><strong>{person.name}</strong><small>@{entry.user.username || "مستخدم-يمنا"}</small>{entry.user.city && <em>{entry.user.city}</em>}</span></Link>
+              {active.view === "suggestions" && (entry.mutualCount && entry.mutualCount > 0 ? <button type="button" className="relationship-suggestion-reason" onClick={() => setMutualTarget(entry.user)}><Users size={14}/>{suggestionReason}</button> : <span className="relationship-suggestion-reason"><Users size={14}/>{suggestionReason}</span>)}
+            </div>
             <div className="relationship-actions">
               {active.view === "requests" && <><button type="button" className="button" disabled={busy} onClick={() => relationshipAction.mutate({ type: "accept", userId: entry.user.id, requestId: entry.id })}><Check size={16}/>تأكيد</button><button type="button" className="button ghost" disabled={busy} onClick={() => relationshipAction.mutate({ type: "decline", userId: entry.user.id, requestId: entry.id })}><X size={16}/>رفض</button></>}
               {active.view === "outgoing" && <button type="button" className="button ghost" disabled={busy} onClick={() => relationshipAction.mutate({ type: "cancel-request", userId: entry.user.id, requestId: entry.id })}><X size={16}/>إلغاء الطلب</button>}
@@ -125,6 +131,24 @@ export function LiveRelationshipsPage() {
           </article>;
         })}
       </Surface>
+      <Dialog open={Boolean(mutualTarget)} onOpenChange={open => { if (!open) setMutualTarget(null); }}>
+        <DialogContent dir="rtl" className="mutual-friends-dialog" showCloseButton={false}>
+          <DialogHeader className="mutual-friends-dialog-head">
+            <DialogTitle>الأصدقاء المشتركون</DialogTitle>
+            <DialogDescription>{mutualTarget ? `الأصدقاء الذين تربطهم صداقة مقبولة بك وبـ ${asPerson(mutualTarget).name}.` : ""}</DialogDescription>
+          </DialogHeader>
+          <div className="mutual-friends-dialog-body">
+            {mutualFriendsQuery.isLoading && <div className="relationship-state"><LoaderCircle className="animate-spin" size={25}/><p>يجري تحميل الأصدقاء المشتركين…</p></div>}
+            {mutualFriendsQuery.isError && <div className="relationship-state"><WifiOff size={26}/><h3>تعذر تحميل الأصدقاء المشتركين</h3><p>تحقق من اتصالك ثم أعد المحاولة.</p><button type="button" className="button outline" onClick={() => mutualFriendsQuery.refetch()}>إعادة المحاولة</button></div>}
+            {!mutualFriendsQuery.isLoading && !mutualFriendsQuery.isError && mutualFriendsQuery.data?.length === 0 && <div className="relationship-state"><Users size={27}/><h3>لا يوجد أصدقاء مشتركون الآن</h3><p>تتغير هذه القائمة وفق الصداقات المقبولة الحالية فقط.</p></div>}
+            {!mutualFriendsQuery.isLoading && !mutualFriendsQuery.isError && mutualFriendsQuery.data?.map(mutualFriend => {
+              const mutualPerson = asPerson(mutualFriend);
+              return <Link key={mutualFriend.id} href={`/profile/${encodeURIComponent(mutualFriend.username || mutualFriend.id)}`} className="mutual-friend-row" onClick={() => setMutualTarget(null)}><Avatar person={mutualPerson} size="md"/><span><strong>{mutualPerson.name}</strong><small>@{mutualFriend.username || "مستخدم-يمنا"}</small></span></Link>;
+            })}
+          </div>
+          <div className="mutual-friends-dialog-footer"><DialogClose className="button outline">إغلاق</DialogClose></div>
+        </DialogContent>
+      </Dialog>
     </div>
   </AppShell>;
 }

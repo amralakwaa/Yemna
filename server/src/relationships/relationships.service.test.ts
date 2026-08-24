@@ -104,6 +104,27 @@ describe("RelationshipsService", () => {
     await expect(service.suggestions("user-1")).resolves.toEqual([expect.objectContaining({ id: "candidate-1", mutualCount: 1 })]);
   });
 
+  it("يعرض قائمة الأصدقاء المشتركين من تقاطع الصداقات المقبولة فقط", async () => {
+    const prisma = makePrisma();
+    prisma.friendship.findMany.mockResolvedValue([
+      { requesterId: "user-1", recipientId: "shared-friend" },
+      { requesterId: "shared-friend", recipientId: "user-2" },
+      { requesterId: "user-1", recipientId: "actor-only" },
+      { requesterId: "target-only", recipientId: "user-2" },
+    ]);
+    prisma.user.findMany.mockResolvedValue([{ id: "shared-friend", displayName: "صديق مشترك", fullName: null, username: "shared", avatarUrl: "https://cdn.example/avatar.jpg", bio: null, city: null, governorate: null }]);
+    const service = new RelationshipsService(prisma as never);
+
+    await expect(service.listMutualFriends("user-1", "user-2")).resolves.toEqual([expect.objectContaining({ id: "shared-friend", displayName: "صديق مشترك" })]);
+    expect(prisma.friendship.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ status: "ACCEPTED", OR: expect.any(Array) }),
+      select: { requesterId: true, recipientId: true },
+    }));
+    expect(prisma.user.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: { in: ["shared-friend"] }, status: "ACTIVE" },
+    }));
+  });
+
   it("ينشئ متابعة واحدة قابلة للإعادة دون تكرار", async () => {
     const prisma = makePrisma();
     const service = new RelationshipsService(prisma as never);

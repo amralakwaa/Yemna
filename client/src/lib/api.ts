@@ -215,6 +215,7 @@ export const api = {
   markNotificationRead: (notificationId: string) => apiRequest<ApiNotification>(`/notifications/${encodeURIComponent(notificationId)}/read`, { method: "PATCH" }),
   markAllNotificationsRead: () => apiRequest<{ count: number }>("/notifications/read-all", { method: "PATCH" }),
   getFriends: () => apiRequest<ApiFriend[]>("/relationships/friends"),
+  getMutualFriends: (userId: string) => apiRequest<ApiUser[]>(`/relationships/mutual/${encodeURIComponent(userId)}`),
   getFriendRequests: () => apiRequest<ApiFriendRequest[]>("/relationships/requests"),
   getOutgoingFriendRequests: () => apiRequest<ApiOutgoingFriendRequest[]>("/relationships/requests/sent"),
   sendFriendRequest: (recipientId: string) => apiRequest<unknown>("/relationships/requests", { method: "POST", body: JSON.stringify({ recipientId }) }),

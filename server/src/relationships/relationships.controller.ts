@@ -17,6 +17,7 @@ export class RelationshipsController {
 
   @Get("friends") friends(@Req() req: AuthenticatedRequest) { return this.relationships.listFriends(req.user.sub); }
   @Delete("friends/:userId") removeFriend(@Req() req: AuthenticatedRequest, @Param("userId") userId: string) { return this.relationships.removeFriend(req.user.sub, userId); }
+  @Get("mutual/:userId") mutualFriends(@Req() req: AuthenticatedRequest, @Param("userId") userId: string) { return this.relationships.listMutualFriends(req.user.sub, userId); }
   @Get("requests") requests(@Req() req: AuthenticatedRequest) { return this.relationships.listRequests(req.user.sub); }
   @Get("requests/sent") sentRequests(@Req() req: AuthenticatedRequest) { return this.relationships.listOutgoingRequests(req.user.sub); }
   @Post("requests") request(@Req() req: AuthenticatedRequest, @Body() dto: SendFriendRequestDto) { return this.relationships.sendFriendRequest(req.user.sub, dto.recipientId); }

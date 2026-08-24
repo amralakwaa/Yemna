@@ -128,6 +128,30 @@ describe("تدفقات المستخدم الأساسية", () => {
     expect(JSON.parse(String((requestCall?.[1] as RequestInit)?.body))).toEqual({ recipientId: "suggested-user" });
   });
 
+  it("يفتح قائمة الأصدقاء المشتركين من العقد الحي عند النقر على العدد", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const liveUser = { id: "user-current", displayName: "حساب حالي", username: "current-account" };
+    const suggestion = { id: "suggested-user", displayName: "مرام صنعاء", username: "maram-sanaa", mutualCount: 3, isFollowing: false, hasPendingFriendRequest: false };
+    const mutualFriend = { id: "shared-user", displayName: "صديق حي مشترك", username: "shared-live", avatarUrl: "https://cdn.example/shared.jpg" };
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.endsWith("/relationships/suggestions")) return jsonResponse([suggestion]);
+      if (url.endsWith("/relationships/mutual/suggested-user")) return jsonResponse([mutualFriend]);
+      if (url.endsWith("/notifications") || url.endsWith("/messages/conversations")) return jsonResponse([]);
+      return jsonResponse([]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    setPath("/people/discover");
+    const user = userEvent.setup();
+    renderWithQuery(<LiveRelationshipsPage />);
+
+    await user.click(await screen.findByRole("button", { name: "3 أصدقاء مشتركون" }));
+    expect(await screen.findByRole("dialog", { name: "الأصدقاء المشتركون" })).toBeTruthy();
+    expect(await screen.findByText("صديق حي مشترك")).toBeTruthy();
+    expect(fetchMock.mock.calls.some(([input]) => String(input).endsWith("/api/v1/relationships/mutual/suggested-user"))).toBe(true);
+  });
+
   it("يتجاهل اقتراح الصداقة عبر العقد الحي بدلاً من إخفائه محلياً فقط", async () => {
     sessionStorage.setItem("yemna_access_token", "test-access-token");
     const liveUser = { id: "user-current", displayName: "حساب حالي", username: "current-account" };

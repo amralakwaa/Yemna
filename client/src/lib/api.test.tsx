@@ -126,6 +126,16 @@ describe("عقود REST للحساب والدعم", () => {
     expect(fetchMock.mock.calls[2]?.[1]?.body).toBeUndefined();
   });
 
+  it("يجلب قائمة الأصدقاء المشتركين بمعرف مستخدم مرمّز عبر العقد الحي", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify([{ id: "shared-user", displayName: "صديق مشترك", username: "shared" }]), { status: 200 }));
+
+    const mutualFriends = await api.getMutualFriends("user/2");
+
+    expect(mutualFriends).toEqual([expect.objectContaining({ id: "shared-user" })]);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/relationships/mutual/user%2F2");
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBeUndefined();
+  });
+
   it("ينفذ المتابعة والإلغاء على معرف المستخدم المرمز", async () => {
     setRestAccessToken("relationship-token");
     fetchMock
