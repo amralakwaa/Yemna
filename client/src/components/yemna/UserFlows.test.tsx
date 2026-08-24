@@ -102,6 +102,32 @@ describe("تدفقات المستخدم الأساسية", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/v1/relationships/friends", expect.anything());
   });
 
+  it("يعرض اقتراحات الأصدقاء من REST ويرسل طلب الصداقة إلى العقد الحي", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const liveUser = { id: "user-current", displayName: "حساب حالي", username: "current-account" };
+    const suggestion = { id: "suggested-user", displayName: "مرام صنعاء", username: "maram-sanaa", city: "صنعاء", mutualCount: 3, isFollowing: false, hasPendingFriendRequest: false };
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.endsWith("/relationships/suggestions")) return jsonResponse([suggestion]);
+      if (url.endsWith("/relationships/requests") && init?.method === "POST") return jsonResponse({ id: "request-1" });
+      if (url.endsWith("/notifications") || url.endsWith("/messages/conversations")) return jsonResponse([]);
+      return jsonResponse([]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    setPath("/people/discover");
+    const user = userEvent.setup();
+    renderWithQuery(<LiveRelationshipsPage />);
+
+    expect((await screen.findAllByText("مرام صنعاء")).length).toBeGreaterThan(0);
+    expect(screen.getByText("3 أصدقاء مشتركون")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "إضافة صديق" }));
+
+    await waitFor(() => expect(fetchMock.mock.calls.some(([input, init]) => String(input).endsWith("/api/v1/relationships/requests") && (init as RequestInit | undefined)?.method === "POST")).toBe(true));
+    const requestCall = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith("/api/v1/relationships/requests") && (init as RequestInit | undefined)?.method === "POST");
+    expect(JSON.parse(String((requestCall?.[1] as RequestInit)?.body))).toEqual({ recipientId: "suggested-user" });
+  });
+
   it("يفتح ملفي الشخصي من الجلسة الحالية دون تسجيل خروج أو طلب تسجيل دخول ثانٍ", async () => {
     sessionStorage.setItem("yemna_access_token", "test-access-token");
     const liveUser = { id: "user-current", displayName: "مستخدم يمنا", username: "yemna-user", bio: "نبذة حقيقية" };
