@@ -17,6 +17,7 @@ const liveAdmin = readFileSync(resolve(import.meta.dirname, "../client/src/pages
 const liveAssistant = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveAssistantPage.tsx"), "utf8");
 const liveMedia = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveMediaPage.tsx"), "utf8");
 const realtimePages = readFileSync(resolve(import.meta.dirname, "../client/src/pages/RealtimePages.tsx"), "utf8");
+const liveMessagesInbox = readFileSync(resolve(import.meta.dirname, "../client/src/pages/LiveMessagesInboxPage.tsx"), "utf8");
 const restApi = readFileSync(resolve(import.meta.dirname, "../client/src/lib/api.ts"), "utf8");
 const app = readFileSync(resolve(import.meta.dirname, "../client/src/App.tsx"), "utf8");
 const appShell = readFileSync(resolve(import.meta.dirname, "../client/src/components/yemna/AppShell.tsx"), "utf8");
@@ -229,15 +230,15 @@ describe("live social data contract", () => {
     expect(socialSuite).toContain('mutationFn:()=>api.createConversation(chosen.map(user=>user.id))');
     expect(socialSuite).toContain('if(!signedIn)return <AppShell title="رسالة جديدة">');
     expect(socialSuite).toContain("سجّل الدخول لبدء رسالة جديدة");
-    expect(app.indexOf('<Route path="/messages/new" component={NewMessagePage}/>')).toBeLessThan(app.indexOf('<Route path="/messages" component={RealtimeMessagesPage}/>'));
+    expect(app.indexOf('<Route path="/messages/new" component={NewMessagePage}/>')).toBeLessThan(app.indexOf('<Route path="/messages" component={LiveMessagesInboxPage}/>'));
   });
 
   it("reopens the direct chat entry point with the REST-backed messaging experience", () => {
-    expect(app).toContain('<Route path="/messages/chat" component={RealtimeMessagesPage}/>');
+    expect(app).toContain('<Route path="/messages/chat" component={LiveMessagesInboxPage}/>');
     expect(app).not.toContain('<Route path="/messages/chat" component={LiveDataUnavailablePage}/>');
-    expect(realtimePages).toContain('queryFn: api.getConversations');
-    expect(realtimePages).toContain('api.getConversationMessagesPage');
-    expect(realtimePages).toContain('سجّل الدخول للمتابعة');
+    expect(liveMessagesInbox).toContain('queryFn: api.getConversations');
+    expect(liveMessagesInbox).toContain('api.getConversationMessagesPage');
+    expect(liveMessagesInbox).toContain('سجّل الدخول للمتابعة');
     expect(app).toContain('<Route path="/messages/info" component={LiveDataUnavailablePage}/>');
     expect(app).toContain('<Route path="/messages/group" component={LiveDataUnavailablePage}/>');
   });

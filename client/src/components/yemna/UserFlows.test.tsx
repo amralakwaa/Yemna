@@ -19,6 +19,7 @@ import { LiveStoryCreatePage } from "@/pages/LiveStoryCreatePage";
 import { RelationsCompletionPage } from "@/pages/CompletionSuite";
 import { LiveAccountPage } from "@/pages/LiveAccountPage";
 import { RealtimeMessagesPage } from "@/pages/RealtimePages";
+import { LiveMessagesInboxPage } from "@/pages/LiveMessagesInboxPage";
 import { CreatePostDetailPage, PostDetailPage, ProfileCollectionPage, ProfileDetailPage, RegisterPage } from "@/pages/ReferenceSuite";
 import { CurrentUserProvider, useCurrentUser } from "@/contexts/CurrentUserContext";
 
@@ -736,6 +737,37 @@ describe("تدفقات المستخدم الأساسية", () => {
     await user.type(screen.getByPlaceholderText("اكتب رسالة..."), "رسالة اختبار");
     await user.click(screen.getByRole("button", { name: "إرسال الرسالة" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/messages/conversations/conversation-live/messages", expect.objectContaining({ method: "POST", body: JSON.stringify({ body: "رسالة اختبار" }) })));
+  });
+
+  it("يعرض صندوق الرسائل جميع المحادثات الحية مع فلتر غير المقروءة والبحث والانتقال", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const me = { id: "user-me", displayName: "سارة صنعاء", username: "sara-sanaa" };
+    const unreadConversation = { id: "conversation-unread", kind: "DIRECT", title: null, unreadCount: 2, participants: [{ user: me }, { user: { id: "user-khaled", displayName: "خالد تعز", username: "khaled-taiz" } }], messages: [{ id: "message-khaled", body: "صباح الخير", createdAt: new Date().toISOString(), sender: { id: "user-khaled", displayName: "خالد تعز", username: "khaled-taiz" }, conversationId: "conversation-unread" }] };
+    const readConversation = { id: "conversation-read", kind: "DIRECT", title: null, unreadCount: 0, participants: [{ user: me }, { user: { id: "user-amal", displayName: "أمل عدن", username: "amal-aden" } }], messages: [{ id: "message-amal", body: "تم الاستلام", createdAt: new Date().toISOString(), sender: { id: "user-amal", displayName: "أمل عدن", username: "amal-aden" }, conversationId: "conversation-read" }] };
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(me);
+      if (url.endsWith("/notifications")) return jsonResponse([]);
+      if (url.endsWith("/messages/conversations")) return jsonResponse([unreadConversation, readConversation]);
+      if (url.includes("/messages/conversations/conversation-")) return jsonResponse({ items: [], nextCursor: null });
+      return jsonResponse({ items: [], nextCursor: null });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    setPath("/messages");
+    renderWithQuery(<LiveMessagesInboxPage />);
+
+    expect(await screen.findByText("2 محادثة")).toBeTruthy();
+    expect(screen.getAllByText("خالد تعز").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("أمل عدن")).toBeTruthy();
+    await user.click(screen.getByRole("tab", { name: /غير المقروءة/ }));
+    expect(screen.getAllByText("خالد تعز").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("أمل عدن")).toBeNull();
+    await user.click(screen.getByRole("tab", { name: "الكل" }));
+    await user.type(screen.getByPlaceholderText("ابحث في الرسائل"), "أمل");
+    expect(await screen.findByText("أمل عدن")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: /أمل عدن/ }));
+    await waitFor(() => expect(window.location.search).toBe("?conversation=conversation-read"));
   });
 
   it("ينفذ المتابعة ثم يفتح محادثة مباشرة من الملف العام عبر REST", async () => {
