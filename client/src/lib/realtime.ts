@@ -5,7 +5,7 @@ import { getRestAccessToken } from "./api";
 export type RealtimeEvent<T = unknown> = {
   id: string;
   recipientId: string;
-  name: "message:new" | "message:read" | "typing:start" | "typing:stop" | "notification:new" | "notification:read";
+  name: "message:new" | "message:read" | "typing:start" | "typing:stop" | "notification:new" | "notification:read" | "call:invite" | "call:answer" | "call:candidate" | "call:decline" | "call:end" | "call:busy";
   payload: T;
   occurredAt: string;
 };
@@ -84,6 +84,13 @@ export function useRealtimeConnectionStatus() {
 }
 
 export function emitRealtime(name: "typing:start" | "typing:stop", payload: { conversationId: string }) {
+  activeSocket()?.emit(name, payload);
+}
+
+export type CallSignalName = "call:invite" | "call:answer" | "call:candidate" | "call:decline" | "call:end" | "call:busy";
+export type CallSignalPayload = { conversationId: string; callId: string; mode?: "audio" | "video"; description?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit };
+
+export function emitCallSignal(name: CallSignalName, payload: CallSignalPayload) {
   activeSocket()?.emit(name, payload);
 }
 

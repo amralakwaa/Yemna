@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, ImagePlus, LoaderCircle, MessageCircle, Plus, Search, Send, WifiOff, X } from "lucide-react";
+import { ArrowRight, ImagePlus, LoaderCircle, MessageCircle, Phone, Plus, Search, Send, Video, WifiOff, X } from "lucide-react";
 import { Link, useLocation, useSearch } from "wouter";
 import { toast } from "sonner";
 import { AppShell } from "@/components/yemna/AppShell";
@@ -8,6 +8,7 @@ import { Avatar, SearchBox, Surface } from "@/components/yemna/UI";
 import { api, asPerson, asRelativeTime, hasRestSession, type ApiConversation } from "@/lib/api";
 import { compressImageForUpload } from "@/lib/media";
 import { useRealtimeSubscription } from "@/lib/realtime";
+import { useCalls } from "@/contexts/CallsContext";
 
 type InboxFilter = "all" | "unread";
 
@@ -49,6 +50,7 @@ export function LiveMessagesInboxPage() {
   const [filter, setFilter] = useState<InboxFilter>("all");
   const [text, setText] = useState("");
   const [attachment, setAttachment] = useState<File>();
+  const { startCall } = useCalls();
   const me = useQuery({ queryKey: ["rest", "me"], queryFn: api.getMe, enabled: signedIn, staleTime: 60_000 });
   const conversations = useQuery({ queryKey: ["rest", "conversations"], queryFn: api.getConversations, enabled: signedIn, refetchOnWindowFocus: true });
 
@@ -135,6 +137,10 @@ export function LiveMessagesInboxPage() {
   if (!signedIn) return <SignInRequired/>;
 
   const selectedPerson = selected ? conversationPerson(selected, me.data?.id) : undefined;
+  const beginCall = (mode: "audio" | "video") => {
+    if (!selected || selected.kind !== "DIRECT" || !selectedPerson) return;
+    void startCall({ conversationId: selected.id, peerId: selectedPerson.id, peerName: conversationTitle(selected, me.data?.id), peerAvatar: selectedPerson.avatarUrl, mode });
+  };
   return <AppShell title="الرسائل"><div className={`social-inbox${selected ? " has-selected" : " list-only"}${mobileConversationOpen ? " mobile-chat-open" : ""}`}>
     <Surface className="social-inbox-list" aria-label="قائمة المحادثات">
       <header className="social-inbox-heading"><div><h1>كل المحادثات</h1><p>{conversations.data ? `${conversations.data.length} محادثة` : "محادثاتك الخاصة"}</p></div><Link href="/messages/new" className="icon-button" aria-label="بدء رسالة جديدة"><Plus size={19}/></Link></header>
@@ -159,7 +165,7 @@ export function LiveMessagesInboxPage() {
       </div>
     </Surface>
     {selected && <Surface className="social-inbox-chat" aria-label="المحادثة الحالية">
-        <header className="social-chat-header"><button type="button" className="social-back-button" onClick={closeMobileConversation} aria-label="العودة إلى قائمة الرسائل"><ArrowRight size={20}/><span>الرسائل</span></button>{selectedPerson && <Avatar person={asPerson(selectedPerson)}/>}<span>{selectedPerson?.username ? <Link href={`/profile/${encodeURIComponent(selectedPerson.username)}`}>{conversationTitle(selected, me.data?.id)}</Link> : <b>{conversationTitle(selected, me.data?.id)}</b>}<small>{selected.kind === "DIRECT" ? "محادثة خاصة" : `${selected.participants.length} مشاركين`}</small></span></header>
+        <header className="social-chat-header"><button type="button" className="social-back-button" onClick={closeMobileConversation} aria-label="العودة إلى قائمة الرسائل"><ArrowRight size={20}/><span>الرسائل</span></button>{selectedPerson && <Avatar person={asPerson(selectedPerson)}/>}<span className="social-chat-identity">{selectedPerson?.username ? <Link href={`/profile/${encodeURIComponent(selectedPerson.username)}`}>{conversationTitle(selected, me.data?.id)}</Link> : <b>{conversationTitle(selected, me.data?.id)}</b>}<small>{selected.kind === "DIRECT" ? "محادثة خاصة" : `${selected.participants.length} مشاركين`}</small></span>{selected.kind === "DIRECT" && selectedPerson && <span className="social-call-actions" aria-label="إجراءات الاتصال"><button type="button" className="icon-button" aria-label="بدء مكالمة صوتية" onClick={() => beginCall("audio")}><Phone size={18}/></button><button type="button" className="icon-button" aria-label="بدء اتصال فيديو" onClick={() => beginCall("video")}><Video size={18}/></button></span>}</header>
         <div className="social-chat-messages">
           {messages.hasNextPage && <button type="button" className="load-older" onClick={() => messages.fetchNextPage()} disabled={messages.isFetchingNextPage}>{messages.isFetchingNextPage ? <LoaderCircle className="animate-spin"/> : "تحميل رسائل سابقة"}</button>}
           {messages.isLoading && <div className="content-placeholder"><LoaderCircle className="animate-spin"/></div>}

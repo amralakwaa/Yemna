@@ -5,8 +5,9 @@ import { MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer } from
 import type { Server, Socket } from "socket.io";
 import { DEVELOPMENT_JWT_ACCESS_SECRET } from "../config/env";
 import type { JwtPayload } from "../auth/auth.types";
-import { RealtimeEventsService } from "./realtime-events.service";
+import type { RealtimeEventName } from "./realtime.types";
 import { PrismaService } from "../prisma/prisma.service";
+import { RealtimeEventsService } from "./realtime-events.service";
 
 @WebSocketGateway({ namespace: "/realtime", cors: { origin: true, credentials: true } })
 export class RealtimeGateway implements OnModuleDestroy {
@@ -52,6 +53,36 @@ export class RealtimeGateway implements OnModuleDestroy {
     return this.broadcastConversation(client, body?.conversationId, "typing:stop");
   }
 
+  @SubscribeMessage("call:invite")
+  callInvite(client: Socket, @MessageBody() body: CallSignalBody) {
+    return this.broadcastCallSignal(client, body, "call:invite", true);
+  }
+
+  @SubscribeMessage("call:answer")
+  callAnswer(client: Socket, @MessageBody() body: CallSignalBody) {
+    return this.broadcastCallSignal(client, body, "call:answer");
+  }
+
+  @SubscribeMessage("call:candidate")
+  callCandidate(client: Socket, @MessageBody() body: CallSignalBody) {
+    return this.broadcastCallSignal(client, body, "call:candidate");
+  }
+
+  @SubscribeMessage("call:decline")
+  callDecline(client: Socket, @MessageBody() body: CallSignalBody) {
+    return this.broadcastCallSignal(client, body, "call:decline");
+  }
+
+  @SubscribeMessage("call:end")
+  callEnd(client: Socket, @MessageBody() body: CallSignalBody) {
+    return this.broadcastCallSignal(client, body, "call:end");
+  }
+
+  @SubscribeMessage("call:busy")
+  callBusy(client: Socket, @MessageBody() body: CallSignalBody) {
+    return this.broadcastCallSignal(client, body, "call:busy");
+  }
+
   private async broadcastConversation(client: Socket, conversationId: string | undefined, name: "typing:start" | "typing:stop") {
     const userId = client.data.user?.sub as string | undefined;
     if (!userId || !conversationId || !this.prisma.isConfigured()) return { success: false };
@@ -59,6 +90,33 @@ export class RealtimeGateway implements OnModuleDestroy {
     if (!member) return { success: false };
     const recipients = await this.prisma.conversationParticipant.findMany({ where: { conversationId, userId: { not: userId } }, select: { userId: true } });
     await Promise.all(recipients.map(recipient => this.events.emit(recipient.userId, name, { conversationId, userId })));
+    return { success: true };
+  }
+
+  private async broadcastCallSignal(client: Socket, body: CallSignalBody | undefined, name: RealtimeEventName, requiresMode = false) {
+    const userId = client.data.user?.sub as string | undefined;
+    const conversationId = typeof body?.conversationId === "string" ? body.conversationId : undefined;
+    const callId = typeof body?.callId === "string" ? body.callId : undefined;
+    if (!userId || !conversationId || !callId || !this.prisma.isConfigured()) return { success: false };
+    if (requiresMode && body?.mode !== "audio" && body?.mode !== "video") return { success: false };
+
+    const conversation = await this.prisma.conversation.findUnique({ where: { id: conversationId }, select: { kind: true } }).catch(() => null);
+    if (!conversation || conversation.kind !== "DIRECT") return { success: false };
+    const member = await this.prisma.conversationParticipant.findUnique({ where: { conversationId_userId: { conversationId, userId } }, select: { conversationId: true } }).catch(() => null);
+    if (!member) return { success: false };
+
+    const recipients = await this.prisma.conversationParticipant.findMany({ where: { conversationId, userId: { not: userId } }, select: { userId: true } });
+    const caller = await this.prisma.user.findUnique({ where: { id: userId }, select: { displayName: true, avatarUrl: true } }).catch(() => null);
+    const payload: CallSignalPayload = {
+      conversationId,
+      callId,
+      fromUserId: userId,
+      ...(body?.mode === "audio" || body?.mode === "video" ? { mode: body.mode } : {}),
+      ...(isSessionDescription(body?.description) ? { description: body.description } : {}),
+      ...(isIceCandidate(body?.candidate) ? { candidate: body.candidate } : {}),
+      ...(caller ? { caller } : {}),
+    };
+    await Promise.all(recipients.map(recipient => this.events.emit(recipient.userId, name, payload)));
     return { success: true };
   }
 
@@ -72,4 +130,30 @@ export class RealtimeGateway implements OnModuleDestroy {
     const token = handshakeToken ?? authorization?.replace(/^Bearer\s+/i, "");
     return token?.trim() || undefined;
   }
+}
+
+type CallMode = "audio" | "video";
+type CallSignalBody = {
+  conversationId?: string;
+  callId?: string;
+  mode?: CallMode;
+  description?: { type?: string; sdp?: string };
+  candidate?: { candidate?: string; sdpMid?: string | null; sdpMLineIndex?: number | null; usernameFragment?: string | null };
+};
+type CallSignalPayload = {
+  conversationId: string;
+  callId: string;
+  fromUserId: string;
+  mode?: CallMode;
+  description?: { type: string; sdp: string };
+  candidate?: { candidate: string; sdpMid?: string | null; sdpMLineIndex?: number | null; usernameFragment?: string | null };
+  caller?: { displayName: string; avatarUrl: string | null };
+};
+
+function isSessionDescription(value: CallSignalBody["description"]): value is { type: string; sdp: string } {
+  return Boolean(value && typeof value.type === "string" && typeof value.sdp === "string" && value.sdp.length > 0);
+}
+
+function isIceCandidate(value: CallSignalBody["candidate"]): value is { candidate: string; sdpMid?: string | null; sdpMLineIndex?: number | null; usernameFragment?: string | null } {
+  return Boolean(value && typeof value.candidate === "string" && value.candidate.length > 0);
 }

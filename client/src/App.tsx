@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { CurrentUserProvider } from "./contexts/CurrentUserContext";
+import { CallsProvider } from "./contexts/CallsContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { HomePage, LoginPage, SettingsPage, CreatePage, NotFoundPage } from "./pages/YemnaPages";
 import { ForgotPasswordPage, OnboardingPage, PostDetailPage, ProfileCollectionPage, ProfileDetailPage, RegisterPage, StoryArchivePage, StoryPage, VerificationPage, WelcomePage } from "./pages/ReferenceSuite";
@@ -48,4 +49,4 @@ function Router() { return <Switch>
   <Route path="/ai" component={LiveDataUnavailablePage}/><Route path="/ai/assistant" component={LiveAssistantPage}/>{aiTools.map(path=><Route key={path} path={path} component={LiveDataUnavailablePage}/>)}{aiExtras.map(path=><Route key={path} path={path} component={LiveDataUnavailablePage}/>)}
   <Route path="/admin" component={LiveAdminPage}/><Route path="/admin/users" component={LiveAdminPage}/><Route path="/admin/tickets" component={LiveAdminPage}/><Route path="/admin/reports" component={LiveAdminPage}/><Route path="/admin/ai-analytics" component={AdminAccessGuard}/>{adminDetails.filter(path=>!["/admin","/admin/users","/admin/reports"].includes(path)).map(path=><Route key={path} path={path} component={AdminAccessGuard}/>)}{adminExtras.map(path=><Route key={path} path={path} component={AdminAccessGuard}/>)}{states.map(path=><Route key={path} path={path} component={LiveDataUnavailablePage}/>)}<Route component={NotFoundPage}/>
 </Switch>; }
-export default function App() { return <ErrorBoundary><ThemeProvider defaultTheme="light" switchable><TooltipProvider><CurrentUserProvider><Toaster richColors position="top-center"/><Router/></CurrentUserProvider></TooltipProvider></ThemeProvider></ErrorBoundary>; }
+export default function App() { return <ErrorBoundary><ThemeProvider defaultTheme="light" switchable><TooltipProvider><CurrentUserProvider><CallsProvider><Toaster richColors position="top-center"/><Router/></CallsProvider></CurrentUserProvider></TooltipProvider></ThemeProvider></ErrorBoundary>; }

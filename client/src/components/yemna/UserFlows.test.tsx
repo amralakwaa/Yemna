@@ -771,6 +771,8 @@ describe("تدفقات المستخدم الأساسية", () => {
     await user.click(screen.getByRole("button", { name: /أمل عدن/ }));
     await waitFor(() => expect(window.location.search).toBe("?conversation=conversation-read"));
     expect(await screen.findByPlaceholderText("اكتب رسالة…")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "بدء مكالمة صوتية" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "بدء اتصال فيديو" })).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "العودة إلى قائمة الرسائل" }));
     await waitFor(() => expect(window.location.search).toBe(""));
     expect(screen.queryByPlaceholderText("اكتب رسالة…")).toBeNull();

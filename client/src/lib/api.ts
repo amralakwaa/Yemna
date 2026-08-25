@@ -50,6 +50,8 @@ export type ApiAdminUser = ApiUser & { role?: string; status?: "ACTIVE" | "DISAB
 export type ApiAdminTicket = ApiSupportTicket & { user?: Pick<ApiUser, "id" | "displayName" | "username" | "avatarUrl"> | null };
 export type ApiAdminReport = { id: string; reason: string; details?: string | null; status: "OPEN" | "REVIEWING" | "RESOLVED" | "DISMISSED"; createdAt: string; reporter?: Pick<ApiUser, "id" | "displayName" | "username" | "avatarUrl"> | null; displayName: never };
 export type ApiAssistantChatResponse = { reply: string };
+export type ApiIceServer = { urls: string[]; username?: string; credential?: string };
+export type ApiCallIceConfig = { iceServers: ApiIceServer[]; turnConfigured: boolean };
 type AuthResponse = { accessToken: string; user: ApiUser };
 
 function readAccessToken() {
@@ -211,6 +213,7 @@ export const api = {
   getConversationMessagesPage: (conversationId: string, cursor?: string, limit = 30) => apiRequest<{ items: ApiMessage[]; nextCursor: string | null }>(`/messages/conversations/${encodeURIComponent(conversationId)}/page?limit=${limit}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`),
   sendMessage: (conversationId: string, body: string, mediaId?: string) => apiRequest<ApiMessage>(`/messages/conversations/${encodeURIComponent(conversationId)}/messages`, { method: "POST", body: JSON.stringify({ body, ...(mediaId ? { mediaId } : {}) }) }),
   markConversationRead: (conversationId: string) => apiRequest<{ success: true }>(`/messages/conversations/${encodeURIComponent(conversationId)}/read`, { method: "PATCH" }),
+  getCallIceConfig: () => apiRequest<ApiCallIceConfig>("/calls/ice"),
   getNotifications: () => apiRequest<ApiNotification[]>("/notifications"),
   markNotificationRead: (notificationId: string) => apiRequest<ApiNotification>(`/notifications/${encodeURIComponent(notificationId)}/read`, { method: "PATCH" }),
   markAllNotificationsRead: () => apiRequest<{ count: number }>("/notifications/read-all", { method: "PATCH" }),

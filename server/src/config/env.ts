@@ -14,6 +14,9 @@ const envSchema = z.object({
   YEMNA_JWT_ACCESS_TTL: z.string().default("15m"),
   YEMNA_REFRESH_TOKEN_DAYS: z.coerce.number().int().min(1).max(3650).default(3650),
   YEMNA_CORS_ORIGINS: z.string().optional(),
+  YEMNA_TURN_URLS: z.string().optional(),
+  YEMNA_TURN_USERNAME: z.string().optional(),
+  YEMNA_TURN_CREDENTIAL: z.string().optional(),
 });
 
 export type YemnaEnv = z.infer<typeof envSchema>;
