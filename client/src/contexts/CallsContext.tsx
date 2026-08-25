@@ -1,12 +1,16 @@
-import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, Volume2 } from "lucide-react";
+import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, Volume2, ShieldAlert, RefreshCcw } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { api, type ApiIceServer } from "@/lib/api";
 import { emitCallSignal, useRealtimeSubscription, type RealtimeEvent } from "@/lib/realtime";
+import "../calls.css";
 
 export type CallMode = "audio" | "video";
 type CallDirection = "incoming" | "outgoing";
 type CallStatus = "incoming" | "ringing" | "connecting" | "connected";
+export type MediaPermissionIssue = "blocked" | "unavailable" | "unsupported" | "failed";
+type CallInput = { conversationId: string; peerId: string; peerName: string; peerAvatar?: string | null; mode: CallMode };
+type PermissionRequest = { mode: CallMode; issue: MediaPermissionIssue; input?: CallInput; isIncoming?: boolean };
 
 export type CallSession = {
   callId: string;
@@ -26,7 +30,7 @@ type CallsContextValue = {
   remoteStream: MediaStream | null;
   isMuted: boolean;
   isCameraOff: boolean;
-  startCall: (input: { conversationId: string; peerId: string; peerName: string; peerAvatar?: string | null; mode: CallMode }) => Promise<void>;
+  startCall: (input: CallInput) => Promise<void>;
   acceptCall: () => Promise<void>;
   declineCall: () => void;
   endCall: () => void;
@@ -52,9 +56,19 @@ const unavailableCalls: CallsContextValue = {
 const CallsContext = createContext<CallsContextValue>(unavailableCalls);
 const callEvents = ["call:invite", "call:answer", "call:candidate", "call:decline", "call:end", "call:busy"] as RealtimeEvent["name"][];
 
+export function getMediaPermissionIssue(error: unknown): MediaPermissionIssue {
+  const name = error && typeof error === "object" && "name" in error && typeof error.name === "string" ? error.name : "";
+  if (name === "NotAllowedError" || name === "SecurityError") return "blocked";
+  if (name === "NotFoundError" || name === "OverconstrainedError") return "unavailable";
+  if (name === "MediaUnavailableError") return "unsupported";
+  return "failed";
+}
+
 function readableMediaError(error: unknown, mode: CallMode) {
-  if (error instanceof DOMException && error.name === "NotAllowedError") return mode === "video" ? "يلزم السماح بالكاميرا والميكروفون لبدء اتصال الفيديو" : "يلزم السماح بالميكروفون لبدء المكالمة الصوتية";
-  if (error instanceof DOMException && error.name === "NotFoundError") return mode === "video" ? "لم يتم العثور على كاميرا أو ميكروفون متاح" : "لم يتم العثور على ميكروفون متاح";
+  const issue = getMediaPermissionIssue(error);
+  if (issue === "blocked") return mode === "video" ? "تعذر منح إذن الكاميرا والميكروفون لاتصال الفيديو" : "تعذر منح إذن الميكروفون للمكالمة الصوتية";
+  if (issue === "unavailable") return mode === "video" ? "لم يتم العثور على كاميرا أو ميكروفون متاح" : "لم يتم العثور على ميكروفون متاح";
+  if (issue === "unsupported") return "لا يدعم هذا المتصفح التقاط الصوت أو الفيديو من الموقع";
   return "تعذر بدء المكالمة حالياً. حاول مجدداً.";
 }
 
@@ -79,6 +93,7 @@ export function CallsProvider({ children }: { children: ReactNode }) {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
+  const [permissionRequest, setPermissionRequest] = useState<PermissionRequest | null>(null);
   const sessionRef = useRef<CallSession | null>(null);
   const peerRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -135,6 +150,11 @@ export function CallsProvider({ children }: { children: ReactNode }) {
   }, [finishCall, updateSession]);
 
   const captureMedia = useCallback(async (mode: CallMode) => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      const error = new Error("Media capture is unavailable in this browser");
+      error.name = "MediaUnavailableError";
+      throw error;
+    }
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: mode === "video" });
     localStreamRef.current = stream;
     setLocalStream(stream);
@@ -148,7 +168,7 @@ export function CallsProvider({ children }: { children: ReactNode }) {
     await Promise.all(queued.map(candidate => peer.addIceCandidate(candidate).catch(() => undefined)));
   }, []);
 
-  const startCall = useCallback(async (input: { conversationId: string; peerId: string; peerName: string; peerAvatar?: string | null; mode: CallMode }) => {
+  const startCall = useCallback(async (input: CallInput) => {
     if (sessionRef.current) {
       toast.error("أنهِ المكالمة الحالية قبل بدء مكالمة جديدة");
       return;
@@ -171,6 +191,8 @@ export function CallsProvider({ children }: { children: ReactNode }) {
       if (!iceConfig.turnConfigured) toast.message("سيُستخدم اتصال مباشر؛ قد تحتاج بعض الشبكات إلى خادم ترحيل لإتمام المكالمة");
     } catch (error) {
       finishCall(false);
+      const issue = getMediaPermissionIssue(error);
+      if (issue !== "failed") setPermissionRequest({ mode: input.mode, issue, input });
       toast.error(readableMediaError(error, input.mode));
     }
   }, [captureMedia, finishCall, preparePeer, setCurrentSession]);
@@ -195,6 +217,8 @@ export function CallsProvider({ children }: { children: ReactNode }) {
       if (!iceConfig.turnConfigured) toast.message("قد تحتاج بعض الشبكات إلى خادم ترحيل لإتمام المكالمة");
     } catch (error) {
       finishCall(true);
+      const issue = getMediaPermissionIssue(error);
+      if (issue !== "failed") setPermissionRequest({ mode: current.mode, issue, isIncoming: true });
       toast.error(readableMediaError(error, current.mode));
     }
   }, [captureMedia, finishCall, flushCandidates, preparePeer, updateSession]);
@@ -206,6 +230,12 @@ export function CallsProvider({ children }: { children: ReactNode }) {
   }, [finishCall]);
 
   const endCall = useCallback(() => finishCall(true), [finishCall]);
+
+  const retryPermissionRequest = useCallback(() => {
+    const request = permissionRequest;
+    setPermissionRequest(null);
+    if (request?.input) void startCall(request.input);
+  }, [permissionRequest, startCall]);
 
   const toggleMute = useCallback(() => {
     const next = !isMuted;
@@ -252,7 +282,7 @@ export function CallsProvider({ children }: { children: ReactNode }) {
   useEffect(() => () => finishCall(true), [finishCall]);
 
   const value = useMemo<CallsContextValue>(() => ({ session, localStream, remoteStream, isMuted, isCameraOff, startCall, acceptCall, declineCall, endCall, toggleMute, toggleCamera }), [session, localStream, remoteStream, isMuted, isCameraOff, startCall, acceptCall, declineCall, endCall, toggleMute, toggleCamera]);
-  return <CallsContext.Provider value={value}>{children}<CallOverlay /></CallsContext.Provider>;
+  return <CallsContext.Provider value={value}>{children}<CallOverlay /><MediaPermissionDialog request={permissionRequest} onRetry={retryPermissionRequest} onDismiss={() => setPermissionRequest(null)} /></CallsContext.Provider>;
 }
 
 export function useCalls() {
@@ -291,6 +321,26 @@ function CallOverlay() {
         {isVideo && <button type="button" className="call-control neutral" onClick={toggleCamera} aria-label={isCameraOff ? "تشغيل الكاميرا" : "إيقاف الكاميرا"}>{isCameraOff ? <VideoOff size={22} /> : <Video size={22} />}</button>}
         <button type="button" className="call-control decline" onClick={endCall} aria-label="إنهاء المكالمة"><PhoneOff size={23} /><span>إنهاء</span></button>
       </>}
+    </div>
+  </section>;
+}
+
+function MediaPermissionDialog({ request, onRetry, onDismiss }: { request: PermissionRequest | null; onRetry: () => void; onDismiss: () => void }) {
+  if (!request) return null;
+  const target = request.mode === "video" ? "الكاميرا والميكروفون" : "الميكروفون";
+  const isBlocked = request.issue === "blocked";
+  const description = isBlocked
+    ? `لم يتمكّن المتصفح من منح إذن ${target}. افتح إعدادات الموقع بجانب العنوان، واجعل ${target} على «سماح»، ثم اضغط إعادة طلب الإذن.`
+    : request.issue === "unavailable"
+      ? `لا يوجد ${request.mode === "video" ? "كاميرا أو ميكروفون" : "ميكروفون"} متاح. تأكد من توصيله وعدم استخدامه في تطبيق آخر.`
+      : `لا يدعم المتصفح الحالي الوصول إلى ${target} من الموقع.`;
+  return <section className="media-permission-dialog" role="dialog" aria-modal="true" aria-labelledby="media-permission-title">
+    <div className="media-permission-card">
+      <ShieldAlert size={28} aria-hidden="true" />
+      <h2 id="media-permission-title">مطلوب إذن {target}</h2>
+      <p>{description}</p>
+      {request.input ? <button type="button" className="media-permission-primary" onClick={onRetry}><RefreshCcw size={17} /> إعادة طلب الإذن</button> : <p className="media-permission-note">اطلب من المتصل بدء اتصال جديد بعد السماح.</p>}
+      <button type="button" className="media-permission-dismiss" onClick={onDismiss}>إغلاق</button>
     </div>
   </section>;
 }
