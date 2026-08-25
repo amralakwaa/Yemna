@@ -19,4 +19,8 @@ export class CallsService {
     if (turnConfigured) iceServers.push({ urls: turnUrls, username, credential });
     return { iceServers, turnConfigured };
   }
+
+  iceStatus(): { turnConfigured: boolean } {
+    return { turnConfigured: this.iceConfig().turnConfigured };
+  }
 }

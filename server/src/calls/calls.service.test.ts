@@ -30,4 +30,11 @@ describe("CallsService", () => {
 
     expect(service.iceConfig().turnConfigured).toBe(true);
   });
+
+  it("يوفر حالة TURN من دون إعادة بيانات الاعتماد", () => {
+    const values = { WEBRTC_TURN_URL: "turn:relay.example.org:3478", WEBRTC_TURN_USERNAME: "private-user", WEBRTC_TURN_CREDENTIAL: "private-credential" };
+    const service = new CallsService({ get: vi.fn((key: keyof typeof values) => values[key]) } as never);
+
+    expect(service.iceStatus()).toEqual({ turnConfigured: true });
+  });
 });

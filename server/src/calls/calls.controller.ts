@@ -10,6 +10,11 @@ import { CallsService } from "./calls.service";
 export class CallsController {
   constructor(@Inject(CallsService) private readonly calls: CallsService) {}
 
+  @Get("ice/status")
+  iceStatus() {
+    return this.calls.iceStatus();
+  }
+
   @Get("ice")
   iceConfig() {
     return this.calls.iceConfig();
