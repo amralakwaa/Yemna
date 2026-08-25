@@ -73,14 +73,28 @@ function activeSocket() {
 export function useRealtimeConnectionStatus() {
   const [status, setStatus] = useState<RealtimeConnectionStatus>(connectionStatus);
   useEffect(() => subscribeRealtimeStatus(setStatus), []);
+  const accessToken = useRealtimeAccessToken();
   useEffect(() => {
-    if (!getRestAccessToken()) {
+    if (!accessToken) {
+      socket?.disconnect();
       setConnectionStatus("offline");
       return;
     }
-    connectRealtime();
-  }, []);
+    connectRealtime(accessToken);
+  }, [accessToken]);
   return status;
+}
+
+function useRealtimeAccessToken() {
+  const [accessToken, setAccessToken] = useState(() => getRestAccessToken());
+
+  useEffect(() => {
+    const syncSession = () => setAccessToken(getRestAccessToken());
+    window.addEventListener("yemna-session-change", syncSession);
+    return () => window.removeEventListener("yemna-session-change", syncSession);
+  }, []);
+
+  return accessToken;
 }
 
 export function emitRealtime(name: "typing:start" | "typing:stop", payload: { conversationId: string }) {
@@ -95,8 +109,12 @@ export function emitCallSignal(name: CallSignalName, payload: CallSignalPayload)
 }
 
 export function useRealtimeSubscription(names: RealtimeEvent["name"][], onEvent: (event: RealtimeEvent) => void) {
+  const accessToken = useRealtimeAccessToken();
+  const namesKey = names.join("|");
+
   useEffect(() => {
-    const connected = activeSocket();
+    if (!accessToken) return;
+    const connected = connectRealtime(accessToken);
     if (!connected) return;
     listeners += 1;
     const handlers = names.map(name => {
@@ -109,7 +127,7 @@ export function useRealtimeSubscription(names: RealtimeEvent["name"][], onEvent:
       listeners -= 1;
       if (listeners === 0) connected.disconnect();
     };
-  }, [names.join("|"), onEvent]);
+  }, [accessToken, namesKey, onEvent]);
 }
 
 export const realtimeTestApi = {
