@@ -76,6 +76,27 @@ function makeCallId() {
   return `call-${crypto.randomUUID()}`;
 }
 
+type PlayableMediaElement = Pick<HTMLMediaElement, "srcObject" | "muted" | "volume" | "play">;
+
+export async function attachRemoteMedia(stream: MediaStream | null, elements: Array<PlayableMediaElement | null>) {
+  if (!stream) return false;
+  const targets = elements.filter((element): element is PlayableMediaElement => Boolean(element));
+  targets.forEach(element => {
+    element.srcObject = stream;
+    element.muted = false;
+    element.volume = 1;
+  });
+  const results = await Promise.all(targets.map(async element => {
+    try {
+      await element.play();
+      return true;
+    } catch {
+      return false;
+    }
+  }));
+  return results.some(Boolean);
+}
+
 function callerPayload(value: unknown): { conversationId: string; callId: string; fromUserId: string; mode?: CallMode; description?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit; caller?: { displayName?: string; avatarUrl?: string | null } } | null {
   if (!value || typeof value !== "object") return null;
   const payload = value as Record<string, unknown>;
@@ -138,8 +159,16 @@ export function CallsProvider({ children }: { children: ReactNode }) {
       if (event.candidate && current) void emitCallSignal("call:candidate", { conversationId: current.conversationId, callId: current.callId, candidate: event.candidate.toJSON() });
     };
     peer.ontrack = event => {
-      const stream = event.streams[0] ?? new MediaStream([event.track]);
-      setRemoteStream(stream);
+      const stream = event.streams[0];
+      if (stream) {
+        setRemoteStream(stream);
+        return;
+      }
+      setRemoteStream(current => {
+        const next = current ?? new MediaStream();
+        if (!next.getTracks().some(track => track.id === event.track.id)) next.addTrack(event.track);
+        return next;
+      });
     };
     peer.onconnectionstatechange = () => {
       if (peer.connectionState === "connected") updateSession({ status: "connected" });
@@ -292,9 +321,27 @@ export function useCalls() {
 function CallOverlay() {
   const { session, localStream, remoteStream, isMuted, isCameraOff, acceptCall, declineCall, endCall, toggleMute, toggleCamera } = useCalls();
   const remoteVideo = useRef<HTMLVideoElement>(null);
+  const remoteAudio = useRef<HTMLAudioElement>(null);
   const localVideo = useRef<HTMLVideoElement>(null);
+  const [needsAudioActivation, setNeedsAudioActivation] = useState(false);
 
-  useEffect(() => { if (remoteVideo.current) remoteVideo.current.srcObject = remoteStream; }, [remoteStream]);
+  const activateRemoteAudio = useCallback(async () => {
+    const played = await attachRemoteMedia(remoteStream, [remoteAudio.current]);
+    setNeedsAudioActivation(!played);
+    if (!played) toast.error("تعذر تشغيل صوت الطرف الآخر. تأكد من أن صوت الجهاز غير مكتوم ثم اضغط تشغيل الصوت مرة أخرى.");
+  }, [remoteStream]);
+
+  useEffect(() => {
+    let active = true;
+    if (!remoteStream) {
+      setNeedsAudioActivation(false);
+      return;
+    }
+    void attachRemoteMedia(remoteStream, [remoteVideo.current, remoteAudio.current]).then(played => {
+      if (active) setNeedsAudioActivation(!played);
+    });
+    return () => { active = false; };
+  }, [remoteStream]);
   useEffect(() => { if (localVideo.current) localVideo.current.srcObject = localStream; }, [localStream]);
   if (!session) return null;
 
@@ -302,7 +349,8 @@ function CallOverlay() {
   const isVideo = session.mode === "video";
   const statusLabel = isIncoming ? "مكالمة واردة" : session.status === "ringing" ? "جارٍ الاتصال…" : session.status === "connecting" ? "جارٍ الربط…" : "متصل";
   return <section className={`call-overlay ${isVideo ? "is-video" : "is-audio"}`} aria-label={`${session.mode === "video" ? "اتصال فيديو" : "مكالمة صوتية"} مع ${session.peerName}`}>
-    {isVideo && <video ref={remoteVideo} className="call-remote-video" autoPlay playsInline />}
+    <audio ref={remoteAudio} className="call-remote-audio" autoPlay playsInline />
+    {isVideo && <video ref={remoteVideo} className="call-remote-video" autoPlay muted playsInline />}
     <div className="call-overlay-shade" />
     <div className="call-overlay-content">
       {isVideo && <video ref={localVideo} className="call-local-video" autoPlay muted playsInline />}
@@ -311,6 +359,7 @@ function CallOverlay() {
       <h2>{session.peerName}</h2>
       <p className="call-mode">{isVideo ? "اتصال فيديو" : "مكالمة صوتية"}</p>
       {!isIncoming && session.status === "ringing" && <div className="call-ringing"><Volume2 size={17} /> ننتظر الرد</div>}
+      {needsAudioActivation && remoteStream && <button type="button" className="call-enable-audio" onClick={() => void activateRemoteAudio()}><Volume2 size={17} /> تشغيل الصوت</button>}
     </div>
     <div className="call-controls">
       {isIncoming ? <>
