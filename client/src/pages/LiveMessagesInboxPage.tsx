@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, ImagePlus, LoaderCircle, MessageCircle, Plus, Search, Send, WifiOff, X } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { toast } from "sonner";
 import { AppShell } from "@/components/yemna/AppShell";
 import { Avatar, SearchBox, Surface } from "@/components/yemna/UI";
@@ -40,8 +40,9 @@ function SignInRequired() {
 export function LiveMessagesInboxPage() {
   const signedIn = hasRestSession();
   const queryClient = useQueryClient();
-  const [location, setLocation] = useLocation();
-  const requestedConversationId = new URLSearchParams(location.split("?")[1] || "").get("conversation") || undefined;
+  const [, setLocation] = useLocation();
+  const locationSearch = useSearch();
+  const requestedConversationId = new URLSearchParams(typeof window === "undefined" ? locationSearch : window.location.search).get("conversation") || undefined;
   const [selectedId, setSelectedId] = useState<string | undefined>(requestedConversationId);
   const [mobileConversationOpen, setMobileConversationOpen] = useState(Boolean(requestedConversationId));
   const [search, setSearch] = useState("");
