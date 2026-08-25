@@ -760,6 +760,8 @@ describe("تدفقات المستخدم الأساسية", () => {
     expect(await screen.findByText("2 محادثة")).toBeTruthy();
     expect(screen.getAllByText("خالد تعز").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("أمل عدن")).toBeTruthy();
+    expect(screen.getByPlaceholderText("ابحث في الرسائل")).toBeTruthy();
+    expect(screen.queryByPlaceholderText("اكتب رسالة...")).toBeNull();
     await user.click(screen.getByRole("tab", { name: /غير المقروءة/ }));
     expect(screen.getAllByText("خالد تعز").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText("أمل عدن")).toBeNull();

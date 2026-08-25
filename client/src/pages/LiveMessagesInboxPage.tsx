@@ -52,13 +52,19 @@ export function LiveMessagesInboxPage() {
   const conversations = useQuery({ queryKey: ["rest", "conversations"], queryFn: api.getConversations, enabled: signedIn, refetchOnWindowFocus: true });
 
   useEffect(() => {
-    if (requestedConversationId && conversations.data?.some(conversation => conversation.id === requestedConversationId)) {
+    if (!requestedConversationId) {
+      setSelectedId(undefined);
+      setMobileConversationOpen(false);
+      return;
+    }
+    if (conversations.data?.some(conversation => conversation.id === requestedConversationId)) {
       setSelectedId(requestedConversationId);
       setMobileConversationOpen(true);
-    } else if (!selectedId && conversations.data?.[0]) {
-      setSelectedId(conversations.data[0].id);
+    } else if (conversations.data) {
+      setSelectedId(undefined);
+      setMobileConversationOpen(false);
     }
-  }, [conversations.data, requestedConversationId, selectedId]);
+  }, [conversations.data, requestedConversationId]);
 
   const selected = conversations.data?.find(conversation => conversation.id === selectedId);
   const visibleConversations = useMemo(() => {
@@ -128,9 +134,9 @@ export function LiveMessagesInboxPage() {
   if (!signedIn) return <SignInRequired/>;
 
   const selectedPerson = selected ? conversationPerson(selected, me.data?.id) : undefined;
-  return <AppShell title="الرسائل"><div className={`social-inbox${mobileConversationOpen ? " mobile-chat-open" : ""}`}>
+  return <AppShell title="الرسائل"><div className={`social-inbox${selected ? " has-selected" : " list-only"}${mobileConversationOpen ? " mobile-chat-open" : ""}`}>
     <Surface className="social-inbox-list" aria-label="قائمة المحادثات">
-      <header className="social-inbox-heading"><div><h1>الرسائل</h1><p>{conversations.data ? `${conversations.data.length} محادثة` : "محادثاتك الخاصة"}</p></div><Link href="/messages/new" className="icon-button" aria-label="بدء رسالة جديدة"><Plus size={19}/></Link></header>
+      <header className="social-inbox-heading"><div><h1>كل المحادثات</h1><p>{conversations.data ? `${conversations.data.length} محادثة` : "محادثاتك الخاصة"}</p></div><Link href="/messages/new" className="icon-button" aria-label="بدء رسالة جديدة"><Plus size={19}/></Link></header>
       <SearchBox value={search} onChange={setSearch} placeholder="ابحث في الرسائل"/>
       <div className="social-inbox-tabs" role="tablist" aria-label="تصفية المحادثات">
         <button type="button" role="tab" aria-selected={filter === "all"} className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>الكل</button>
@@ -151,8 +157,7 @@ export function LiveMessagesInboxPage() {
         {!conversations.isLoading && !conversations.isError && conversations.data && conversations.data.length > 0 && visibleConversations.length === 0 && <div className="content-placeholder"><Search size={27}/><h3>لا توجد محادثات مطابقة</h3><p>{filter === "unread" ? "ليس لديك رسائل غير مقروءة الآن." : "جرّب كلمات بحث أخرى."}</p></div>}
       </div>
     </Surface>
-    <Surface className="social-inbox-chat" aria-label="المحادثة الحالية">
-      {selected ? <>
+    {selected && <Surface className="social-inbox-chat" aria-label="المحادثة الحالية">
         <header className="social-chat-header"><button type="button" className="social-back-button" onClick={closeMobileConversation} aria-label="العودة إلى قائمة الرسائل"><ArrowRight size={20}/><span>الرسائل</span></button>{selectedPerson && <Avatar person={asPerson(selectedPerson)}/>}<span>{selectedPerson?.username ? <Link href={`/profile/${encodeURIComponent(selectedPerson.username)}`}>{conversationTitle(selected, me.data?.id)}</Link> : <b>{conversationTitle(selected, me.data?.id)}</b>}<small>{selected.kind === "DIRECT" ? "محادثة خاصة" : `${selected.participants.length} مشاركين`}</small></span></header>
         <div className="social-chat-messages">
           {messages.hasNextPage && <button type="button" className="load-older" onClick={() => messages.fetchNextPage()} disabled={messages.isFetchingNextPage}>{messages.isFetchingNextPage ? <LoaderCircle className="animate-spin"/> : "تحميل رسائل سابقة"}</button>}
@@ -162,7 +167,6 @@ export function LiveMessagesInboxPage() {
           {messageItems.map(message => <div className={message.sender.id === me.data?.id ? "social-message mine" : "social-message"} key={message.id}>{message.media?.map(media => <img src={media.publicUrl} alt="صورة مرفقة" key={media.id}/>)}{message.body && <span>{message.body}</span>}</div>)}
         </div>
         <div className="social-chat-input"><input type="file" accept="image/*" id="social-message-attachment" className="sr-only" disabled={send.isPending} onChange={event => setAttachment(event.target.files?.[0])}/><label htmlFor="social-message-attachment" className="icon-button" aria-label="إرفاق صورة"><ImagePlus size={19}/></label>{attachment && <span className="attachment-chip">{attachment.name}<button type="button" onClick={() => setAttachment(undefined)} aria-label="إزالة الصورة"><X size={14}/></button></span>}<input value={text} disabled={send.isPending} onChange={event => setText(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && (text.trim() || attachment)) send.mutate(); }} placeholder="اكتب رسالة…" aria-label="نص الرسالة"/><button type="button" className="send-button" aria-label="إرسال الرسالة" disabled={(!text.trim() && !attachment) || send.isPending} onClick={() => send.mutate()}>{send.isPending ? <LoaderCircle className="animate-spin" size={18}/> : <Send size={18}/>}</button></div>
-      </> : <div className="content-placeholder"><MessageCircle size={32}/><h3>اختر محادثة</h3><p>اختر محادثة من القائمة لعرض رسائلها.</p></div>}
-    </Surface>
+    </Surface>}
   </div></AppShell>;
 }
