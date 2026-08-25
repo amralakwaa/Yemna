@@ -103,9 +103,24 @@ export function emitRealtime(name: "typing:start" | "typing:stop", payload: { co
 
 export type CallSignalName = "call:invite" | "call:answer" | "call:candidate" | "call:decline" | "call:end" | "call:busy";
 export type CallSignalPayload = { conversationId: string; callId: string; mode?: "audio" | "video"; description?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit };
+export type CallSignalDelivery = { success: boolean; reason?: string; recipientCount: number };
 
-export function emitCallSignal(name: CallSignalName, payload: CallSignalPayload) {
-  activeSocket()?.emit(name, payload);
+const CALL_SIGNAL_ACK_TIMEOUT_MS = 7_000;
+
+function isCallSignalDelivery(value: unknown): value is CallSignalDelivery {
+  return Boolean(value && typeof value === "object" && "success" in value && typeof (value as { success?: unknown }).success === "boolean" && "recipientCount" in value && typeof (value as { recipientCount?: unknown }).recipientCount === "number");
+}
+
+export function emitCallSignal(name: CallSignalName, payload: CallSignalPayload): Promise<CallSignalDelivery> {
+  const connected = activeSocket();
+  if (!connected) return Promise.resolve({ success: false, reason: "offline", recipientCount: 0 });
+  return new Promise(resolve => {
+    connected.timeout(CALL_SIGNAL_ACK_TIMEOUT_MS).emit(name, payload, (error: Error | null, response?: unknown) => {
+      if (error) return resolve({ success: false, reason: "timeout", recipientCount: 0 });
+      if (!isCallSignalDelivery(response)) return resolve({ success: false, reason: "invalid_receipt", recipientCount: 0 });
+      resolve(response);
+    });
+  });
 }
 
 export function useRealtimeSubscription(names: RealtimeEvent["name"][], onEvent: (event: RealtimeEvent) => void) {

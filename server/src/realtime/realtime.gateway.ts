@@ -93,19 +93,20 @@ export class RealtimeGateway implements OnModuleDestroy {
     return { success: true };
   }
 
-  private async broadcastCallSignal(client: Socket, body: CallSignalBody | undefined, name: RealtimeEventName, requiresMode = false) {
+  private async broadcastCallSignal(client: Socket, body: CallSignalBody | undefined, name: RealtimeEventName, requiresMode = false): Promise<CallSignalReceipt> {
     const userId = client.data.user?.sub as string | undefined;
     const conversationId = typeof body?.conversationId === "string" ? body.conversationId : undefined;
     const callId = typeof body?.callId === "string" ? body.callId : undefined;
-    if (!userId || !conversationId || !callId || !this.prisma.isConfigured()) return { success: false };
-    if (requiresMode && body?.mode !== "audio" && body?.mode !== "video") return { success: false };
+    if (!userId || !conversationId || !callId || !this.prisma.isConfigured()) return this.callReceipt(name, false, "invalid_request");
+    if (requiresMode && body?.mode !== "audio" && body?.mode !== "video") return this.callReceipt(name, false, "invalid_mode");
 
     const conversation = await this.prisma.conversation.findUnique({ where: { id: conversationId }, select: { kind: true } }).catch(() => null);
-    if (!conversation || conversation.kind !== "DIRECT") return { success: false };
+    if (!conversation || conversation.kind !== "DIRECT") return this.callReceipt(name, false, "not_direct");
     const member = await this.prisma.conversationParticipant.findUnique({ where: { conversationId_userId: { conversationId, userId } }, select: { conversationId: true } }).catch(() => null);
-    if (!member) return { success: false };
+    if (!member) return this.callReceipt(name, false, "not_member");
 
-    const recipients = await this.prisma.conversationParticipant.findMany({ where: { conversationId, userId: { not: userId } }, select: { userId: true } });
+    const recipients = await this.prisma.conversationParticipant.findMany({ where: { conversationId, userId: { not: userId } }, select: { userId: true } }).catch(() => []);
+    if (recipients.length === 0) return this.callReceipt(name, false, "no_recipient");
     const caller = await this.prisma.user.findUnique({ where: { id: userId }, select: { displayName: true, avatarUrl: true } }).catch(() => null);
     const payload: CallSignalPayload = {
       conversationId,
@@ -116,8 +117,18 @@ export class RealtimeGateway implements OnModuleDestroy {
       ...(isIceCandidate(body?.candidate) ? { candidate: body.candidate } : {}),
       ...(caller ? { caller } : {}),
     };
-    await Promise.all(recipients.map(recipient => this.events.emit(recipient.userId, name, payload)));
-    return { success: true };
+    try {
+      await Promise.all(recipients.map(recipient => this.events.emit(recipient.userId, name, payload)));
+      return this.callReceipt(name, true, undefined, recipients.length);
+    } catch {
+      return this.callReceipt(name, false, "delivery_failed");
+    }
+  }
+
+  private callReceipt(name: RealtimeEventName, success: boolean, reason?: CallSignalReceipt["reason"], recipientCount = 0): CallSignalReceipt {
+    // لا تسجل أي معرّفات مستخدمين أو مكالمات أو بيانات SDP/ICE أو إعدادات TURN.
+    if (name !== "call:candidate") this.logger.log(`call_signal event=${name} outcome=${success ? "delivered" : reason ?? "rejected"} recipients=${recipientCount}`);
+    return { success, ...(reason ? { reason } : {}), recipientCount };
   }
 
   onModuleDestroy(): void {
@@ -148,6 +159,11 @@ type CallSignalPayload = {
   description?: { type: string; sdp: string };
   candidate?: { candidate: string; sdpMid?: string | null; sdpMLineIndex?: number | null; usernameFragment?: string | null };
   caller?: { displayName: string; avatarUrl: string | null };
+};
+type CallSignalReceipt = {
+  success: boolean;
+  reason?: "invalid_request" | "invalid_mode" | "not_direct" | "not_member" | "no_recipient" | "delivery_failed";
+  recipientCount: number;
 };
 
 function isSessionDescription(value: CallSignalBody["description"]): value is { type: string; sdp: string } {

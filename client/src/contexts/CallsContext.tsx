@@ -110,7 +110,7 @@ export function CallsProvider({ children }: { children: ReactNode }) {
 
   const finishCall = useCallback((notifyPeer: boolean, notice?: string) => {
     const current = sessionRef.current;
-    if (notifyPeer && current) emitCallSignal("call:end", { conversationId: current.conversationId, callId: current.callId });
+    if (notifyPeer && current) void emitCallSignal("call:end", { conversationId: current.conversationId, callId: current.callId });
     stopMedia();
     setCurrentSession(null);
     if (notice) toast.message(notice);
@@ -120,7 +120,7 @@ export function CallsProvider({ children }: { children: ReactNode }) {
     const peer = new RTCPeerConnection({ iceServers });
     peer.onicecandidate = event => {
       const current = sessionRef.current;
-      if (event.candidate && current) emitCallSignal("call:candidate", { conversationId: current.conversationId, callId: current.callId, candidate: event.candidate.toJSON() });
+      if (event.candidate && current) void emitCallSignal("call:candidate", { conversationId: current.conversationId, callId: current.callId, candidate: event.candidate.toJSON() });
     };
     peer.ontrack = event => {
       const stream = event.streams[0] ?? new MediaStream([event.track]);
@@ -162,7 +162,12 @@ export function CallsProvider({ children }: { children: ReactNode }) {
       stream.getTracks().forEach(track => peer.addTrack(track, stream));
       const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
-      emitCallSignal("call:invite", { conversationId: input.conversationId, callId, mode: input.mode, description: offer });
+      const delivery = await emitCallSignal("call:invite", { conversationId: input.conversationId, callId, mode: input.mode, description: offer });
+      if (!delivery.success) {
+        finishCall(false);
+        toast.error("تعذر إرسال دعوة المكالمة. تحقق من اتصالك ثم حاول مجدداً.");
+        return;
+      }
       if (!iceConfig.turnConfigured) toast.message("سيُستخدم اتصال مباشر؛ قد تحتاج بعض الشبكات إلى خادم ترحيل لإتمام المكالمة");
     } catch (error) {
       finishCall(false);
@@ -182,7 +187,11 @@ export function CallsProvider({ children }: { children: ReactNode }) {
       const answer = await peer.createAnswer();
       await peer.setLocalDescription(answer);
       updateSession({ status: "connecting" });
-      emitCallSignal("call:answer", { conversationId: current.conversationId, callId: current.callId, description: answer });
+      const delivery = await emitCallSignal("call:answer", { conversationId: current.conversationId, callId: current.callId, description: answer });
+      if (!delivery.success) {
+        finishCall(false, "تعذر تأكيد قبول المكالمة");
+        return;
+      }
       if (!iceConfig.turnConfigured) toast.message("قد تحتاج بعض الشبكات إلى خادم ترحيل لإتمام المكالمة");
     } catch (error) {
       finishCall(true);
@@ -192,7 +201,7 @@ export function CallsProvider({ children }: { children: ReactNode }) {
 
   const declineCall = useCallback(() => {
     const current = sessionRef.current;
-    if (current) emitCallSignal("call:decline", { conversationId: current.conversationId, callId: current.callId });
+    if (current) void emitCallSignal("call:decline", { conversationId: current.conversationId, callId: current.callId });
     finishCall(false);
   }, [finishCall]);
 
@@ -216,7 +225,7 @@ export function CallsProvider({ children }: { children: ReactNode }) {
     const current = sessionRef.current;
     if (event.name === "call:invite") {
       if (current) {
-        emitCallSignal("call:busy", { conversationId: signal.conversationId, callId: signal.callId });
+        void emitCallSignal("call:busy", { conversationId: signal.conversationId, callId: signal.callId });
         return;
       }
       if (!signal.mode || signal.description?.type !== "offer") return;

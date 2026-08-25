@@ -51,7 +51,9 @@ async function startServer() {
   // fallback while preserving the public /api/v1 REST contract.
   const nestApi = express();
   app.use("/api", nestApi);
-  await bootstrapNestApi(nestApi, "");
+  // Nest would otherwise attach Socket.IO to an internal HTTP server that is
+  // never listened to. Pass the actual listener so /realtime uses this server.
+  await bootstrapNestApi(nestApi, "", server);
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

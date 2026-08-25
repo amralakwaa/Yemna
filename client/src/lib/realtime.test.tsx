@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import type { Socket } from "socket.io-client";
 import { clearRestAccessToken, setRestAccessToken } from "./api";
-import { realtimeTestApi, useRealtimeSubscription } from "./realtime";
+import { connectRealtime, emitCallSignal, realtimeTestApi, useRealtimeSubscription } from "./realtime";
 
 function SubscriptionProbe({ onEvent }: { onEvent: (event: unknown) => void }) {
   useRealtimeSubscription(["message:new", "call:invite"], onEvent);
@@ -35,6 +35,9 @@ function createSocket() {
       socket.connected = false;
       return socket;
     }),
+    timeout: vi.fn(() => ({
+      emit: vi.fn((_name: string, _payload: unknown, acknowledgement: (error: Error | null, response?: unknown) => void) => acknowledgement(null, { success: true, recipientCount: 1 })),
+    })),
   };
   return socket as unknown as Socket;
 }
@@ -60,5 +63,17 @@ describe("اشتراكات الأحداث اللحظية", () => {
     expect(socket.auth).toEqual({ token: "session-token" });
     expect(socket.on).toHaveBeenCalledWith("message:new", expect.any(Function));
     expect(socket.on).toHaveBeenCalledWith("call:invite", expect.any(Function));
+  });
+
+  it("ينتظر إقرار البوابة قبل اعتبار دعوة المكالمة مرسلة", async () => {
+    const socket = createSocket();
+    realtimeTestApi.setSocketFactory(() => socket);
+    setRestAccessToken("session-token");
+    connectRealtime();
+
+    const receipt = await emitCallSignal("call:invite", { conversationId: "conversation-1", callId: "call-1", mode: "audio", description: { type: "offer", sdp: "offer-sdp" } });
+
+    expect(receipt).toEqual({ success: true, recipientCount: 1 });
+    expect(socket.timeout).toHaveBeenCalledWith(7_000);
   });
 });

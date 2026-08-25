@@ -1,9 +1,11 @@
 import { INestApplication, ValidationPipe, VersioningType } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { ExpressAdapter } from "@nestjs/platform-express";
+import { IoAdapter } from "@nestjs/platform-socket.io";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import cookieParser from "cookie-parser";
 import type { Express } from "express";
+import type { Server as HttpServer } from "node:http";
 import * as express from "express";
 import helmet from "helmet";
 import { AppModule } from "./app.module";
@@ -23,8 +25,9 @@ function configure(app: INestApplication, apiPrefix = "api"): void {
   SwaggerModule.setup(apiPrefix ? `${apiPrefix}/docs` : "docs", app, document);
 }
 
-export async function bootstrapNestApi(expressApp: Express, apiPrefix = "api"): Promise<INestApplication> {
+export async function bootstrapNestApi(expressApp: Express, apiPrefix = "api", realtimeHttpServer?: HttpServer): Promise<INestApplication> {
   const app = await NestFactory.create(AppModule, new ExpressAdapter(expressApp), { bodyParser: false });
+  if (realtimeHttpServer) app.useWebSocketAdapter(new IoAdapter(realtimeHttpServer));
   configure(app, apiPrefix);
   await app.init();
   return app;
