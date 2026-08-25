@@ -53,4 +53,16 @@ describe("ربط Socket.IO بالإصغاء الفعلي", () => {
 
     expect(ready).toEqual({ userId: "socket-test-user" });
   });
+
+  it("يمرر مقبس العميل إلى معالج دعوة المكالمة ويعيد إقراراً بدلاً من الاستثناء", async () => {
+    const receipt = await new Promise<{ success: boolean; reason?: string; recipientCount: number }>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("Socket.IO call acknowledgement timeout")), 5_000);
+      socket?.emit("call:invite", {}, response => {
+        clearTimeout(timer);
+        resolve(response as { success: boolean; reason?: string; recipientCount: number });
+      });
+    });
+
+    expect(receipt).toEqual({ success: false, reason: "invalid_request", recipientCount: 0 });
+  });
 });

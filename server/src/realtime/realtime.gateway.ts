@@ -1,7 +1,7 @@
 import { Inject, Logger, OnModuleDestroy } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
-import { MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
+import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import type { Server, Socket } from "socket.io";
 import { DEVELOPMENT_JWT_ACCESS_SECRET } from "../config/env";
 import type { JwtPayload } from "../auth/auth.types";
@@ -44,42 +44,42 @@ export class RealtimeGateway implements OnModuleDestroy {
   }
 
   @SubscribeMessage("typing:start")
-  typingStart(client: Socket, @MessageBody() body: { conversationId?: string }) {
+  typingStart(@ConnectedSocket() client: Socket, @MessageBody() body: { conversationId?: string }) {
     return this.broadcastConversation(client, body?.conversationId, "typing:start");
   }
 
   @SubscribeMessage("typing:stop")
-  typingStop(client: Socket, @MessageBody() body: { conversationId?: string }) {
+  typingStop(@ConnectedSocket() client: Socket, @MessageBody() body: { conversationId?: string }) {
     return this.broadcastConversation(client, body?.conversationId, "typing:stop");
   }
 
   @SubscribeMessage("call:invite")
-  callInvite(client: Socket, @MessageBody() body: CallSignalBody) {
+  callInvite(@ConnectedSocket() client: Socket, @MessageBody() body: CallSignalBody) {
     return this.broadcastCallSignal(client, body, "call:invite", true);
   }
 
   @SubscribeMessage("call:answer")
-  callAnswer(client: Socket, @MessageBody() body: CallSignalBody) {
+  callAnswer(@ConnectedSocket() client: Socket, @MessageBody() body: CallSignalBody) {
     return this.broadcastCallSignal(client, body, "call:answer");
   }
 
   @SubscribeMessage("call:candidate")
-  callCandidate(client: Socket, @MessageBody() body: CallSignalBody) {
+  callCandidate(@ConnectedSocket() client: Socket, @MessageBody() body: CallSignalBody) {
     return this.broadcastCallSignal(client, body, "call:candidate");
   }
 
   @SubscribeMessage("call:decline")
-  callDecline(client: Socket, @MessageBody() body: CallSignalBody) {
+  callDecline(@ConnectedSocket() client: Socket, @MessageBody() body: CallSignalBody) {
     return this.broadcastCallSignal(client, body, "call:decline");
   }
 
   @SubscribeMessage("call:end")
-  callEnd(client: Socket, @MessageBody() body: CallSignalBody) {
+  callEnd(@ConnectedSocket() client: Socket, @MessageBody() body: CallSignalBody) {
     return this.broadcastCallSignal(client, body, "call:end");
   }
 
   @SubscribeMessage("call:busy")
-  callBusy(client: Socket, @MessageBody() body: CallSignalBody) {
+  callBusy(@ConnectedSocket() client: Socket, @MessageBody() body: CallSignalBody) {
     return this.broadcastCallSignal(client, body, "call:busy");
   }
 
