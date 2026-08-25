@@ -22,8 +22,10 @@ export type ApiOutgoingFriendRequest = { id: string; recipient: ApiUser; created
 export type ApiFollow = { id: string; follower?: ApiUser; followed?: ApiUser; createdAt?: string };
 export type ApiBlock = { id: string; blocked: ApiUser; createdAt?: string };
 export type ApiSuggestion = ApiUser & { mutualCount?: number; isFollowing?: boolean; hasPendingFriendRequest?: boolean };
-export type ApiCommunity = { id: string; name: string; slug: string; description?: string | null; coverUrl?: string | null; visibility?: "PUBLIC" | "PRIVATE"; owner?: ApiUser; _count?: { members?: number; posts?: number } };
+export type CommunityMemberRole = "MEMBER" | "MODERATOR" | "ADMIN";
+export type ApiCommunity = { id: string; name: string; slug: string; description?: string | null; coverUrl?: string | null; visibility?: "PUBLIC" | "PRIVATE"; owner?: ApiUser; conversationId?: string | null; _count?: { members?: number; posts?: number } };
 export type CreateCommunityPayload = { name: string; slug: string; description?: string; coverUrl?: string; visibility?: "PUBLIC" | "PRIVATE" };
+export type UpdateCommunityPayload = Partial<Pick<CreateCommunityPayload, "name" | "description" | "coverUrl" | "visibility">>;
 export type ApiCommunityMember = {
   id: string;
   userId?: string | null;
@@ -35,7 +37,7 @@ export type ApiCommunityMember = {
     bio?: string | null;
   };
   createdAt?: string;
-  role?: string;
+  role?: CommunityMemberRole;
 };
 export type ApiSearchPost = Omit<ApiPost, "_count"> & { _count: { comments: number; reactions: number } };
 export type ApiSearchResponse = { users: ApiUser[]; usersNextPage?: number | null; posts: ApiSearchPost[]; communities: ApiCommunity[] };
@@ -241,6 +243,10 @@ export const api = {
   getCommunityMembers: (communityId: string) => apiRequest<ApiCommunityMember[]>(`/communities/${encodeURIComponent(communityId)}/members`),
   joinCommunity: (communityId: string) => apiRequest<unknown>(`/communities/${encodeURIComponent(communityId)}/join`, { method: "POST" }),
   leaveCommunity: (communityId: string) => apiRequest<void>(`/communities/${encodeURIComponent(communityId)}/leave`, { method: "DELETE" }),
+  getCommunityConversation: (communityId: string) => apiRequest<ApiConversation>(`/communities/${encodeURIComponent(communityId)}/conversation`),
+  updateCommunity: (communityId: string, payload: UpdateCommunityPayload) => apiRequest<ApiCommunity>(`/communities/${encodeURIComponent(communityId)}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  updateCommunityMemberRole: (communityId: string, userId: string, role: CommunityMemberRole) => apiRequest<ApiCommunityMember>(`/communities/${encodeURIComponent(communityId)}/members/${encodeURIComponent(userId)}/role`, { method: "PATCH", body: JSON.stringify({ role }) }),
+  removeCommunityMember: (communityId: string, userId: string) => apiRequest<{ success: true }>(`/communities/${encodeURIComponent(communityId)}/members/${encodeURIComponent(userId)}`, { method: "DELETE" }),
   getSupportTickets: () => apiRequest<ApiSupportTicket[]>("/support/tickets"),
   createSupportTicket: (payload: Pick<ApiSupportTicket, "category" | "subject" | "body">) => apiRequest<ApiSupportTicket>("/support/tickets", { method: "POST", body: JSON.stringify(payload) }),
   getSupportReports: () => apiRequest<ApiContentReport[]>("/support/reports"),

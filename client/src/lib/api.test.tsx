@@ -347,4 +347,28 @@ describe("عقود REST للحساب والدعم", () => {
     expect(fetchMock.mock.calls[1]?.[1]?.method).toBe("PATCH");
     expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({ status: "IN_PROGRESS" });
   });
+
+  it("يفتح رسائل المجتمع ويحدّث إعداداته وعضويته بعقود REST مرمزة", async () => {
+    setRestAccessToken("community-manager-token");
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "conversation-1", participants: [] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "community-1", name: "مجتمع محدث" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "membership-1", role: "MODERATOR" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true }), { status: 200 }));
+
+    await api.getCommunityConversation("community/1");
+    await api.updateCommunity("community/1", { name: "مجتمع محدث", visibility: "PRIVATE" });
+    await api.updateCommunityMemberRole("community/1", "user/2", "MODERATOR");
+    await api.removeCommunityMember("community/1", "user/2");
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/communities/community%2F1/conversation");
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get("Authorization")).toBe("Bearer community-manager-token");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/v1/communities/community%2F1");
+    expect(fetchMock.mock.calls[1]?.[1]?.method).toBe("PATCH");
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({ name: "مجتمع محدث", visibility: "PRIVATE" });
+    expect(fetchMock.mock.calls[2]?.[0]).toBe("/api/v1/communities/community%2F1/members/user%2F2/role");
+    expect(JSON.parse(String(fetchMock.mock.calls[2]?.[1]?.body))).toEqual({ role: "MODERATOR" });
+    expect(fetchMock.mock.calls[3]?.[0]).toBe("/api/v1/communities/community%2F1/members/user%2F2");
+    expect(fetchMock.mock.calls[3]?.[1]?.method).toBe("DELETE");
+  });
 });

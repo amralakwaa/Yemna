@@ -107,7 +107,7 @@ export class MessagesService {
         type: "MESSAGE",
         title: context?.notification?.title ?? `رسالة جديدة من ${message.sender.displayName}`,
         body: message.body,
-        linkUrl: context?.notification?.linkUrl ?? `/messages/${conversationId}`,
+        linkUrl: context?.notification?.linkUrl ?? `/messages?conversation=${encodeURIComponent(conversationId)}`,
       });
     }));
     if (deliveryResults.some(result => result.status === "rejected")) {

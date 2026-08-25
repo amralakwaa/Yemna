@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, LoaderCircle, LockKeyhole, LogIn, Users, WifiOff } from "lucide-react";
-import { Link, useParams } from "wouter";
+import { ArrowRight, LoaderCircle, LockKeyhole, LogIn, MessageCircle, Settings2, ShieldCheck, Trash2, Users, WifiOff } from "lucide-react";
+import { Link, useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/yemna/AppShell";
 import { SectionHeading, Surface } from "@/components/yemna/UI";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
-import { api } from "@/lib/api";
+import { api, type CommunityMemberRole } from "@/lib/api";
 import "./live-community-detail.css";
 
 function CommunityState({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
@@ -15,6 +15,7 @@ function CommunityState({ icon, title, text }: { icon: React.ReactNode; title: s
 
 function CommunityDetailContent({ membersOnly = false }: { membersOnly?: boolean }) {
   const { id = "" } = useParams<{ id: string }>();
+  const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { currentUser, isLoading: isSessionLoading, isAuthenticated } = useCurrentUser();
   const communityQuery = useQuery({ queryKey: ["rest", "communities", id], queryFn: () => api.getCommunity(id), enabled: Boolean(id), retry: 1 });
@@ -23,6 +24,8 @@ function CommunityDetailContent({ membersOnly = false }: { membersOnly?: boolean
   const membership = Boolean(myCommunitiesQuery.data?.some((community) => community.id === id));
   const community = communityQuery.data;
   const owner = Boolean(community?.owner?.id && community.owner.id === currentUser?.id);
+  const ownMembership = membersQuery.data?.find((member) => member.userId === currentUser?.id || member.user.id === currentUser?.id);
+  const viewerRole: CommunityMemberRole | undefined = ownMembership?.role;
   const mutation = useMutation({
     mutationFn: () => membership ? api.leaveCommunity(id) : api.joinCommunity(id),
     onSuccess: async () => {
@@ -33,6 +36,11 @@ function CommunityDetailContent({ membersOnly = false }: { membersOnly?: boolean
       toast.success(membership ? "غادرت المجتمع" : "تم الانضمام إلى المجتمع");
     },
     onError: () => toast.error(membership ? "تعذر مغادرة المجتمع حالياً." : "تعذر الانضمام إلى المجتمع حالياً."),
+  });
+  const conversationMutation = useMutation({
+    mutationFn: () => api.getCommunityConversation(id),
+    onSuccess: (conversation) => setLocation(`/messages?conversation=${encodeURIComponent(conversation.id)}`),
+    onError: () => toast.error("تعذر فتح رسائل المجتمع حالياً."),
   });
 
   if (communityQuery.isLoading || isSessionLoading) return <CommunityState icon={<LoaderCircle className="animate-spin" size={28}/>} title="يجري تحميل المجتمع" text="انتظر لحظة بينما نجلب بيانات المجتمع الفعلية."/>;
@@ -48,24 +56,44 @@ function CommunityDetailContent({ membersOnly = false }: { membersOnly?: boolean
         <h1>{community.name}</h1>
         {community.description ? <p>{community.description}</p> : <p>لا توجد نبذة منشورة عن هذا المجتمع بعد.</p>}
         <div className="community-detail-meta"><span><Users size={16}/>{community._count?.members ?? members.length} عضو</span>{community._count?.posts !== undefined ? <span>{community._count.posts} منشور</span> : null}</div>
-        {!isAuthenticated ? <Link className="button" href={`/login?next=/community/${encodeURIComponent(id)}`}><LogIn size={17}/> سجّل الدخول للانضمام</Link> : owner ? <span className="community-owner-label">أنت مالك هذا المجتمع</span> : <button className={membership ? "button secondary" : "button"} type="button" disabled={mutation.isPending || myCommunitiesQuery.isLoading} onClick={() => mutation.mutate()}>{mutation.isPending ? "جارٍ الحفظ…" : membership ? "مغادرة المجتمع" : "انضمام"}</button>}
+        {!isAuthenticated ? <Link className="button" href={`/login?next=/community/${encodeURIComponent(id)}`}><LogIn size={17}/> سجّل الدخول للانضمام</Link> : <div className="community-action-row">
+          {owner ? <span className="community-owner-label"><ShieldCheck size={16}/> أنت مالك هذا المجتمع</span> : <button className={membership ? "button secondary" : "button"} type="button" disabled={mutation.isPending || myCommunitiesQuery.isLoading} onClick={() => mutation.mutate()}>{mutation.isPending ? "جارٍ الحفظ…" : membership ? "مغادرة المجتمع" : "انضمام"}</button>}
+          {membership ? <button className="button secondary" type="button" disabled={conversationMutation.isPending} onClick={() => conversationMutation.mutate()}><MessageCircle size={17}/>{conversationMutation.isPending ? "جارٍ الفتح…" : "رسائل المجتمع"}</button> : null}
+          {owner ? <Link className="button secondary" href={`/community/${encodeURIComponent(id)}/manage`}><Settings2 size={17}/> إدارة المجتمع</Link> : null}
+        </div>}
       </div>
     </Surface> : <SectionHeading title={`أعضاء ${community.name}`} action={<Link href={`/community/${encodeURIComponent(id)}`}>عن المجتمع</Link>}/>} 
     <section className="live-community-members" aria-live="polite">
       <SectionHeading title={membersOnly ? "قائمة الأعضاء" : "الأعضاء"} action={!membersOnly ? <Link href={`/community/${encodeURIComponent(id)}/members`}>عرض الكل</Link> : undefined}/>
-      {membersQuery.isLoading ? <CommunityState icon={<LoaderCircle className="animate-spin" size={24}/>} title="يجري تحميل الأعضاء" text=""/> : membersQuery.isError ? <CommunityState icon={<WifiOff size={24}/>} title="تعذر تحميل الأعضاء" text="تحقق من اتصالك ثم أعد المحاولة."/> : members.length === 0 ? <CommunityState icon={<Users size={24}/>} title="لا توجد عضويات معروضة" text="ستظهر قائمة الأعضاء عند وجود بيانات متاحة."/> : <div className="community-member-list">{members.slice(0, membersOnly ? undefined : 5).map(({ id: membershipId, userId, user, role }) => {
-        const normalizeIdentifier = (value: unknown) => {
-          if (typeof value !== "string") return "";
-          const normalized = value.trim();
-          return normalized === "null" || normalized === "undefined" ? "" : normalized;
-        };
-        const username = normalizeIdentifier(user.username);
-        const profileIdentifier = username || normalizeIdentifier(user.id) || normalizeIdentifier(userId);
-        return <Surface key={membershipId} className="community-member-row"><div className="member-avatar">{user.avatarUrl ? <img src={user.avatarUrl} alt=""/> : user.displayName.slice(0, 1)}</div><div>{profileIdentifier ? <Link href={`/profile/${encodeURIComponent(profileIdentifier)}`}>{user.displayName}</Link> : <span className="member-profile-unavailable">{user.displayName}</span>}<small>{username ? `@${username}` : "عضو بلا اسم مستخدم"}{role ? ` · ${role}` : ""}</small>{user.bio ? <p>{user.bio}</p> : null}</div></Surface>;
-      })}</div>}
+      {membersQuery.isLoading ? <CommunityState icon={<LoaderCircle className="animate-spin" size={24}/>} title="يجري تحميل الأعضاء" text=""/> : membersQuery.isError ? <CommunityState icon={<WifiOff size={24}/>} title="تعذر تحميل الأعضاء" text="تحقق من اتصالك ثم أعد المحاولة."/> : members.length === 0 ? <CommunityState icon={<Users size={24}/>} title="لا توجد عضويات معروضة" text="ستظهر قائمة الأعضاء عند وجود بيانات متاحة."/> : <CommunityMemberList members={members.slice(0, membersOnly ? undefined : 5)} communityId={id} currentUserId={currentUser?.id} isOwner={owner} viewerRole={viewerRole}/>}
     </section>
     {community.visibility === "PRIVATE" ? <p className="community-privacy-note"><LockKeyhole size={15}/> قد تخضع بعض معلومات المجتمع الخاص لضوابط العضوية التي يحددها الخادم.</p> : null}
   </main>;
+}
+
+function CommunityMemberList({ members, communityId, currentUserId, isOwner, viewerRole }: { members: Awaited<ReturnType<typeof api.getCommunityMembers>>; communityId: string; currentUserId?: string; isOwner: boolean; viewerRole?: CommunityMemberRole }) {
+  const queryClient = useQueryClient();
+  const canRemove = isOwner || viewerRole === "ADMIN" || viewerRole === "MODERATOR";
+  const roleMutation = useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: CommunityMemberRole }) => api.updateCommunityMemberRole(communityId, userId, role),
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["rest", "communities", communityId, "members"] }); toast.success("تم تحديث دور العضو"); },
+    onError: () => toast.error("تعذر تحديث دور العضو."),
+  });
+  const removeMutation = useMutation({
+    mutationFn: (userId: string) => api.removeCommunityMember(communityId, userId),
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["rest", "communities", communityId, "members"] }); void queryClient.invalidateQueries({ queryKey: ["rest", "communities", communityId] }); toast.success("تمت إزالة العضو من المجتمع"); },
+    onError: () => toast.error("تعذر إزالة العضو."),
+  });
+
+  return <div className="community-member-list">{members.map(({ id: membershipId, userId, user, role }) => {
+    const normalized = (value: unknown) => typeof value === "string" && value.trim() && value !== "null" && value !== "undefined" ? value.trim() : "";
+    const stableUserId = normalized(user.id) || normalized(userId);
+    const username = normalized(user.username);
+    const profileIdentifier = username || stableUserId;
+    const isTargetOwner = isOwner && stableUserId === currentUserId;
+    const mayRemoveTarget = canRemove && Boolean(stableUserId) && !isTargetOwner && (isOwner || role === "MEMBER");
+    return <Surface key={membershipId} className="community-member-row"><div className="member-avatar">{user.avatarUrl ? <img src={user.avatarUrl} alt=""/> : user.displayName.slice(0, 1)}</div><div className="community-member-copy">{profileIdentifier ? <Link href={`/profile/${encodeURIComponent(profileIdentifier)}`}>{user.displayName}</Link> : <span className="member-profile-unavailable">{user.displayName}</span>}<small>{username ? `@${username}` : "عضو بلا اسم مستخدم"}{role ? ` · ${role}` : ""}</small>{user.bio ? <p>{user.bio}</p> : null}</div>{isOwner && stableUserId && !isTargetOwner ? <label className="community-role-picker"><span className="sr-only">دور {user.displayName}</span><select value={role ?? "MEMBER"} disabled={roleMutation.isPending} onChange={(event) => roleMutation.mutate({ userId: stableUserId, role: event.target.value as CommunityMemberRole })}><option value="MEMBER">عضو</option><option value="MODERATOR">مشرف</option><option value="ADMIN">مدير</option></select></label> : null}{mayRemoveTarget ? <button className="community-remove-member" type="button" disabled={removeMutation.isPending} onClick={() => { if (window.confirm(`إزالة ${user.displayName} من المجتمع؟`)) removeMutation.mutate(stableUserId); }} aria-label={`إزالة ${user.displayName}`}><Trash2 size={17}/><span>إزالة</span></button> : null}</Surface>;
+  })}</div>;
 }
 
 export function LiveCommunityDetailPage() { return <AppShell title="تفاصيل المجتمع"><CommunityDetailContent/></AppShell>; }

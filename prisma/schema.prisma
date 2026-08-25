@@ -386,18 +386,20 @@ model FriendSuggestionDismissal {
 }
 
 model Community {
-  id          String              @id @default(cuid())
-  slug        String              @unique
-  name        String
-  description String?             @db.VarChar(1000)
-  coverUrl    String?
-  visibility  CommunityVisibility @default(PUBLIC)
-  ownerId     String
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  owner       User                @relation("communityOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members     CommunityMember[]
-  posts       CommunityPost[]
+  id             String              @id @default(cuid())
+  slug           String              @unique
+  name           String
+  description    String?             @db.VarChar(1000)
+  coverUrl       String?
+  visibility     CommunityVisibility @default(PUBLIC)
+  ownerId        String
+  conversationId String?             @unique
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  owner          User                @relation("communityOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  conversation   Conversation?       @relation("communityConversation", fields: [conversationId], references: [id], onDelete: SetNull)
+  members        CommunityMember[]
+  posts          CommunityPost[]
 
   @@index([visibility, createdAt])
   @@index([ownerId])
@@ -436,6 +438,7 @@ model Conversation {
   createdAt   DateTime                  @default(now())
   updatedAt   DateTime                  @updatedAt
   createdBy   User                      @relation("conversationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  community   Community?                @relation("communityConversation")
   participants ConversationParticipant[]
   messages    Message[]
 
