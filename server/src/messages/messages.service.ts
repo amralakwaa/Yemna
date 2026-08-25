@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import { AccountStatus, ConversationKind, Prisma } from "@prisma/client";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -16,6 +16,8 @@ type MessageSendContext = {
 
 @Injectable()
 export class MessagesService {
+  private readonly logger = new Logger(MessagesService.name);
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(RealtimeEventsService) private readonly realtime: RealtimeEventsService,
@@ -97,7 +99,7 @@ export class MessagesService {
       this.database().conversationParticipant.update({ where: { conversationId_userId: { conversationId, userId } }, data: { lastReadAt: new Date() } }),
     ]);
     const recipients = await this.database().conversationParticipant.findMany({ where: { conversationId, userId: { not: userId } }, select: { userId: true } });
-    await Promise.all(recipients.map(async ({ userId: recipientId }) => {
+    const deliveryResults = await Promise.allSettled(recipients.map(async ({ userId: recipientId }) => {
       await this.realtime.emit(recipientId, "message:new", { conversationId, message });
       await this.notifications.create({
         recipientId,
@@ -108,6 +110,9 @@ export class MessagesService {
         linkUrl: context?.notification?.linkUrl ?? `/messages/${conversationId}`,
       });
     }));
+    if (deliveryResults.some(result => result.status === "rejected")) {
+      this.logger.warn(`تعذر إيصال بعض أحداث الرسائل للمحادثة ${conversationId}`);
+    }
     return message;
   }
 
@@ -120,4 +125,3 @@ export class MessagesService {
     return { success: true, lastReadAt: lastReadAt.toISOString() };
   }
 }
-

@@ -1,0 +1,508 @@
+{
+  "count": 100,
+  "entries": [
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/auth/logout, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/auth/me, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RoutesResolver] \u001b[39m\u001b[32mAssistantController {/assistant} (version: 1):\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/assistant/chat, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RoutesResolver] \u001b[39m\u001b[32mUsersController {/users} (version: 1):\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/users/me, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/users/me, PATCH} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/users/me/settings, PATCH} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/users/:username, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RoutesResolver] \u001b[39m\u001b[32mPostsController {/posts} (version: 1):\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/posts, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/posts, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/posts/:id, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/posts/:id, PATCH} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/posts/:id, DELETE} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/posts/:id/comments, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/posts/:id/comments, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/posts/:id/comments/:commentId, PATCH} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/posts/:id/comments/:commentId, DELETE} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/posts/:id/reactions, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/posts/:id/save, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RoutesResolver] \u001b[39m\u001b[32mRelationshipsController {/relationships} (version: 1):\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/relationships/friends, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/relationships/friends/:userId, DELETE} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/relationships/mutual/:userId, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/relationships/requests, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +2ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/relationships/requests/sent, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/relationships/requests, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/relationships/requests/:id/respond, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/relationships/requests/:id, DELETE} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/relationships/suggestions, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/relationships/suggestions/:userId/dismiss, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/relationships/followers, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/relationships/following, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/relationships/follow/:userId, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/relationships/follow/:userId, DELETE} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/relationships/blocked, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/relationships/block/:userId, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/relationships/block/:userId, DELETE} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RoutesResolver] \u001b[39m\u001b[32mCommunitiesController {/communities} (version: 1):\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/communities, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/communities/mine, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/communities/:id, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/communities, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/communities/:id/join, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/communities/:id/leave, DELETE} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/communities/:id/members, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RoutesResolver] \u001b[39m\u001b[32mMessagesController {/messages} (version: 1):\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/messages/conversations, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/messages/conversations, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/messages/conversations/direct, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/messages/conversations/:id, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/messages/conversations/:id/page, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/messages/conversations/:id/messages, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/messages/conversations/:id/read, PATCH} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RoutesResolver] \u001b[39m\u001b[32mNotificationsController {/notifications} (version: 1):\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/notifications, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/notifications/read-all, PATCH} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/notifications/:id/read, PATCH} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RoutesResolver] \u001b[39m\u001b[32mMediaController {/media} (version: 1):\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/media, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/media/albums, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/media/albums, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/media/albums/:id, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/media/upload, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/media/:id, DELETE} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RoutesResolver] \u001b[39m\u001b[32mSearchController {/search} (version: 1):\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/search, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RoutesResolver] \u001b[39m\u001b[32mSupportController {/support} (version: 1):\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/support/tickets, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +2ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/support/tickets, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/support/tickets/:id, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/support/reports, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/support/reports, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RoutesResolver] \u001b[39m\u001b[32mStoriesController {/stories} (version: 1):\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/stories, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/stories/archive, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/stories/:id, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/stories, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/stories/:id/views, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/stories/:id/viewers, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/stories/:id/reply, POST} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/stories/:id, DELETE} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RoutesResolver] \u001b[39m\u001b[32mAdminController {/admin} (version: 1):\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/admin/stats, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/admin/users, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/admin/users/:id/status, PATCH} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/admin/tickets, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/admin/tickets/:id/status, PATCH} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/admin/reports, GET} (version: 1) route\u001b[39m\u001b[38;5;3m +1ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:35Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:35 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RouterExplorer] \u001b[39m\u001b[32mMapped {/admin/reports/:id/status, PATCH} (version: 1) route\u001b[39m\u001b[38;5;3m +0ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:36Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:36 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[RealtimeEventsService] \u001b[39m\u001b[32mتم تفعيل توزيع الأحداث اللحظية عبر Redis\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:36Z",
+      "severity": "Default",
+      "message": "\u001b[32m[Nest] 1  - \u001b[39m08/25/2026, 12:11:36 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[NestApplication] \u001b[39m\u001b[32mNest application successfully started\u001b[39m\u001b[38;5;3m +3ms\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:11:36Z",
+      "severity": "Default",
+      "message": "Server running on http://localhost:3000/"
+    },
+    {
+      "timestamp": "2026-08-25T00:12:00Z",
+      "severity": "Default",
+      "message": "\u001b[31m[Nest] 1  - \u001b[39m08/25/2026, 12:12:00 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[ApiExceptionFilter] \u001b[39m\u001b[31mPOST /v1/messages/conversations/cmt3h42hr0009s60127hwya4z/messages\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:12:01Z",
+      "severity": "Error",
+      "message": "TypeError: Cannot read properties of undefined (reading 'emit')\n    at NotificationsService.create (file:///usr/src/app/dist/index.js:2281:25)\n    at async file:///usr/src/app/dist/index.js:2430:7\n    at async Promise.all (index 0)\n    at async MessagesService.send (file:///usr/src/app/dist/index.js:2428:5)\n    at async /usr/src/app/node_modules/.pnpm/@nestjs+core@11.2.1_@nestjs+common@11.2.1_class-transformer@0.5.1_class-validator@0.14._5c0bdfb5998826621900eb698a95402f/node_modules/@nestjs/core/router/router-execution-context.js:55:62\n    at async /usr/src/app/node_modules/.pnpm/@nestjs+core@11.2.1_@nestjs+common@11.2.1_class-transformer@0.5.1_class-validator@0.14._5c0bdfb5998826621900eb698a95402f/node_modules/@nestjs/core/router/router-proxy.js:9:17"
+    },
+    {
+      "timestamp": "2026-08-25T00:12:04Z",
+      "severity": "Default",
+      "message": "\u001b[31m[Nest] 1  - \u001b[39m08/25/2026, 12:12:04 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[ApiExceptionFilter] \u001b[39m\u001b[31mPOST /v1/messages/conversations/cmt3h42hr0009s60127hwya4z/messages\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:12:05Z",
+      "severity": "Error",
+      "message": "TypeError: Cannot read properties of undefined (reading 'emit')\n    at NotificationsService.create (file:///usr/src/app/dist/index.js:2281:25)\n    at async file:///usr/src/app/dist/index.js:2430:7\n    at async Promise.all (index 0)\n    at async MessagesService.send (file:///usr/src/app/dist/index.js:2428:5)\n    at async /usr/src/app/node_modules/.pnpm/@nestjs+core@11.2.1_@nestjs+common@11.2.1_class-transformer@0.5.1_class-validator@0.14._5c0bdfb5998826621900eb698a95402f/node_modules/@nestjs/core/router/router-execution-context.js:55:62\n    at async /usr/src/app/node_modules/.pnpm/@nestjs+core@11.2.1_@nestjs+common@11.2.1_class-transformer@0.5.1_class-validator@0.14._5c0bdfb5998826621900eb698a95402f/node_modules/@nestjs/core/router/router-proxy.js:9:17"
+    },
+    {
+      "timestamp": "2026-08-25T00:13:31Z",
+      "severity": "Default",
+      "message": "\u001b[31m[Nest] 1  - \u001b[39m08/25/2026, 12:13:31 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[ApiExceptionFilter] \u001b[39m\u001b[31mPOST /v1/messages/conversations/cmt3h42hr0009s60127hwya4z/messages\u001b[39m"
+    },
+    {
+      "timestamp": "2026-08-25T00:13:32Z",
+      "severity": "Error",
+      "message": "TypeError: Cannot read properties of undefined (reading 'emit')\n    at NotificationsService.create (file:///usr/src/app/dist/index.js:2281:25)\n    at async file:///usr/src/app/dist/index.js:2430:7\n    at async Promise.all (index 0)\n    at async MessagesService.send (file:///usr/src/app/dist/index.js:2428:5)\n    at async /usr/src/app/node_modules/.pnpm/@nestjs+core@11.2.1_@nestjs+common@11.2.1_class-transformer@0.5.1_class-validator@0.14._5c0bdfb5998826621900eb698a95402f/node_modules/@nestjs/core/router/router-execution-context.js:55:62\n    at async /usr/src/app/node_modules/.pnpm/@nestjs+core@11.2.1_@nestjs+common@11.2.1_class-transformer@0.5.1_class-validator@0.14._5c0bdfb5998826621900eb698a95402f/node_modules/@nestjs/core/router/router-proxy.js:9:17"
+    }
+  ],
+  "has_more": true,
+  "oldest_time": "2026-08-25T00:11:35Z",
+  "project_id": "MHBuUcvzohVS5pTz5t4fNt"
+}
