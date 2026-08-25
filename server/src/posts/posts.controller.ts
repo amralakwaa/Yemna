@@ -13,6 +13,8 @@ export class PostsController {
   @Get() feed(@Query() query: ListPostsDto) { return this.posts.feed(query); }
   @Post() @UseGuards(JwtAuthGuard) create(@Req() req: AuthenticatedRequest, @Body() dto: CreatePostDto) { return this.posts.create(req.user.sub, dto); }
   @Get(":id") get(@Param("id") id: string) { return this.posts.get(id); }
+  @Get(":id/reactions") reactions(@Param("id") id: string) { return this.posts.listReactions(id); }
+  @Get(":id/engagement") @UseGuards(JwtAuthGuard) engagement(@Req() req: AuthenticatedRequest, @Param("id") id: string) { return this.posts.getEngagement(req.user.sub, id); }
   @Patch(":id") @UseGuards(JwtAuthGuard) update(@Req() req: AuthenticatedRequest, @Param("id") id: string, @Body() dto: UpdatePostDto) { return this.posts.update(req.user.sub, id, dto); }
   @Delete(":id") @UseGuards(JwtAuthGuard) remove(@Req() req: AuthenticatedRequest, @Param("id") id: string) { return this.posts.remove(req.user.sub, id); }
   @Get(":id/comments") comments(@Param("id") id: string) { return this.posts.listComments(id); }

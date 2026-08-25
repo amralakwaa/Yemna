@@ -6,6 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Route } from "wouter";
 import { AppShell } from "./AppShell";
+import { PostCard } from "./PostCard";
 import { CreatePage, HomePage, LoginPage, SettingsPage } from "@/pages/YemnaPages";
 import { LiveSearchPage } from "@/pages/LiveSearchPage";
 import { LiveRelationshipsPage } from "@/pages/LiveRelationshipsPage";
@@ -845,6 +846,27 @@ describe("تدفقات المستخدم الأساسية", () => {
     await waitFor(() => expect(window.location.pathname).toBe("/login"));
     expect(sessionStorage.getItem("yemna_access_token")).toBeNull();
     expect(fetchMock).toHaveBeenCalledWith("/api/v1/auth/logout", expect.objectContaining({ method: "POST" }));
+  });
+
+  it("يحفظ تفاعلاً حياً ويحدّث بطاقة المنشور من استجابة REST", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const liveUser = { id: "user-react", displayName: "نورا صنعاء", username: "nora-sanaa", avatarUrl: "https://example.test/nora.jpg" };
+    const engagement = { reactionSummary: { LIKE: 0, LOVE: 1, SUPPORT: 0, WOW: 0, SAD: 0, ANGRY: 0 }, reactionTotal: 1, viewerReaction: "LOVE", saved: false, reactors: [] };
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.endsWith("/posts/post-react/engagement")) return jsonResponse({ ...engagement, reactionSummary: { LIKE: 0, LOVE: 0, SUPPORT: 0, WOW: 0, SAD: 0, ANGRY: 0 }, reactionTotal: 0, viewerReaction: null });
+      if (url.endsWith("/posts/post-react/reactions") && init?.method === "POST") return jsonResponse({ active: true, type: "LOVE", engagement });
+      return jsonResponse([]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    renderWithQuery(<PostCard post={{ id: "post-react", author: { id: 8, userId: liveUser.id, name: liveUser.displayName, handle: "@nora-sanaa", avatar: liveUser.avatarUrl }, time: "الآن", text: "منشور للتفاعل", reactions: 0, comments: 0, shares: 0 }}/>);
+
+    await user.click(await screen.findByRole("button", { name: "تفاعل" }));
+    await user.click(screen.getByRole("button", { name: "أحببته" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/posts/post-react/reactions", expect.objectContaining({ method: "POST", body: JSON.stringify({ type: "LOVE" }) })));
+    expect(await screen.findByRole("button", { name: "أحببته" })).toBeTruthy();
   });
 
   it("يحمي إنشاء القصة للضيف بدعوة دخول صادقة قبل اختيار أي ملف", async () => {

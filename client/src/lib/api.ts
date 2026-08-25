@@ -10,7 +10,11 @@ export class ApiError extends Error {
 
 export type ApiUser = { id: string; displayName: string; username: string; fullName?: string | null; email?: string | null; phone?: string | null; avatarUrl?: string | null; bio?: string | null; city?: string | null; governorate?: string | null; createdAt?: string; status?: string | null; settings?: { showOnlineStatus?: boolean; allowDirectMessages?: boolean; friendRequestPermission?: "EVERYONE" | "FRIENDS" | "NOBODY"; followPermission?: "EVERYONE" | "FRIENDS" | "NOBODY" } | null };
 export type ApiMedia = { url?: string | null; publicUrl?: string | null; kind?: string };
-export type ApiPost = { id: string; body: string; publishedAt?: string | null; createdAt: string; author: ApiUser; media?: ApiMedia[]; _count: { comments: number; reactions: number; shares: number } };
+export type ApiReactionType = "LIKE" | "LOVE" | "SUPPORT" | "WOW" | "SAD" | "ANGRY";
+export type ApiReactionSummary = Record<ApiReactionType, number>;
+export type ApiReaction = { id: string; type: ApiReactionType; createdAt: string; user: Pick<ApiUser, "id" | "displayName" | "username" | "avatarUrl"> };
+export type ApiPostEngagement = { reactionSummary: ApiReactionSummary; reactionTotal: number; viewerReaction: ApiReactionType | null; saved: boolean; reactors: ApiReaction[] };
+export type ApiPost = { id: string; body: string; publishedAt?: string | null; createdAt: string; author: ApiUser; media?: ApiMedia[]; reactionSummary?: ApiReactionSummary; _count: { comments: number; reactions: number; shares: number } };
 export type FeedResponse = { items: ApiPost[]; nextCursor: string | null };
 export type ApiComment = { id: string; body: string; createdAt: string; author: ApiUser; replies?: ApiComment[] };
 export type ApiMessage = { id: string; body: string; createdAt: string; sender: ApiUser; conversationId: string; media?: ApiMediaAsset[] };
@@ -223,9 +227,13 @@ export const api = {
   updatePost: (postId: string, payload: { body?: string; visibility?: "PUBLIC" | "FRIENDS" | "PRIVATE" }) => apiRequest<ApiPost>(`/posts/${encodeURIComponent(postId)}`, { method: "PATCH", body: JSON.stringify(payload) }),
   deletePost: (postId: string) => apiRequest<{ success: boolean }>(`/posts/${encodeURIComponent(postId)}`, { method: "DELETE" }),
   getPostComments: (postId: string) => apiRequest<ApiComment[]>(`/posts/${encodeURIComponent(postId)}/comments`),
-  createPostComment: (postId: string, body: string) => apiRequest<ApiComment>(`/posts/${encodeURIComponent(postId)}/comments`, { method: "POST", body: JSON.stringify({ body }) }),
+  createPostComment: (postId: string, body: string, parentId?: string) => apiRequest<ApiComment>(`/posts/${encodeURIComponent(postId)}/comments`, { method: "POST", body: JSON.stringify({ body, ...(parentId ? { parentId } : {}) }) }),
   updatePostComment: (postId: string, commentId: string, body: string) => apiRequest<ApiComment>(`/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`, { method: "PATCH", body: JSON.stringify({ body }) }),
   deletePostComment: (postId: string, commentId: string) => apiRequest<{ success: boolean }>(`/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`, { method: "DELETE" }),
+  getPostReactions: (postId: string) => apiRequest<ApiReaction[]>(`/posts/${encodeURIComponent(postId)}/reactions`),
+  getPostEngagement: (postId: string) => apiRequest<ApiPostEngagement>(`/posts/${encodeURIComponent(postId)}/engagement`),
+  reactToPost: (postId: string, type: ApiReactionType) => apiRequest<{ active: boolean; type: ApiReactionType; engagement: ApiPostEngagement }>(`/posts/${encodeURIComponent(postId)}/reactions`, { method: "POST", body: JSON.stringify({ type }) }),
+  toggleSavePost: (postId: string) => apiRequest<{ saved: boolean }>(`/posts/${encodeURIComponent(postId)}/save`, { method: "POST" }),
   getMe: () => apiRequest<ApiUser>("/users/me"),
   updateMe: (payload: Partial<Pick<ApiUser, "displayName" | "fullName" | "username" | "bio" | "city" | "governorate" | "avatarUrl">>) => apiRequest<ApiUser>("/users/me", { method: "PATCH", body: JSON.stringify(payload) }),
   updateSettings: (payload: { friendRequestPermission?: "EVERYONE" | "FRIENDS" | "NOBODY"; followPermission?: "EVERYONE" | "FRIENDS" | "NOBODY"; showOnlineStatus?: boolean; allowDirectMessages?: boolean }) => apiRequest<ApiUser>("/users/me/settings", { method: "PATCH", body: JSON.stringify(payload) }),
@@ -321,5 +329,5 @@ function relativeTime(value?: string | null) {
 
 function numericUiId(value: string) { return Array.from(value).reduce((total, character) => ((total * 31) + character.charCodeAt(0)) >>> 0, 7); }
 export function asPerson(user: ApiUser): Person { return { id: numericUiId(user.id), userId: user.id, username: user.username, name: user.displayName, handle: `@${user.username}`, avatar: user.avatarUrl || "https://i.pravatar.cc/160?img=12", online: false }; }
-export function asPost(post: ApiPost): Post { const media = post.media?.find(item => item.kind === "IMAGE" || item.kind === "VIDEO"); return { id: post.id, author: asPerson(post.author), time: relativeTime(post.publishedAt || post.createdAt), text: post.body, image: media?.publicUrl || media?.url || undefined, mediaKind: media?.kind === "VIDEO" ? "VIDEO" : media?.kind === "IMAGE" ? "IMAGE" : undefined, reactions: post._count.reactions, comments: post._count.comments, shares: post._count.shares }; }
+export function asPost(post: ApiPost): Post { const media = post.media?.find(item => item.kind === "IMAGE" || item.kind === "VIDEO"); return { id: post.id, author: asPerson(post.author), time: relativeTime(post.publishedAt || post.createdAt), text: post.body, image: media?.publicUrl || media?.url || undefined, mediaKind: media?.kind === "VIDEO" ? "VIDEO" : media?.kind === "IMAGE" ? "IMAGE" : undefined, reactions: post._count.reactions, comments: post._count.comments, shares: post._count.shares, reactionSummary: post.reactionSummary }; }
 export function asRelativeTime(value?: string | null) { return relativeTime(value); }

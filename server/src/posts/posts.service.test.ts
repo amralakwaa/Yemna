@@ -1,4 +1,4 @@
-import { ForbiddenException, ServiceUnavailableException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, ServiceUnavailableException } from "@nestjs/common";
 import { PostVisibility, ReactionType } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
 import { PostsService } from "./posts.service";
@@ -13,7 +13,7 @@ function makePrisma(configured = true) {
       update: vi.fn(async ({ data }: { data: unknown }) => ({ id: "post-1", ...data })),
     },
     mediaAsset: { findMany: vi.fn(async () => []) },
-    reaction: { findFirst: vi.fn(async () => null), delete: vi.fn(), deleteMany: vi.fn(), create: vi.fn() },
+    reaction: { findFirst: vi.fn(async () => null), findMany: vi.fn(async () => []), groupBy: vi.fn(async () => []), delete: vi.fn(), deleteMany: vi.fn(), create: vi.fn() },
     comment: { findFirst: vi.fn(async () => null), create: vi.fn(async () => ({ id: "comment-1" })), update: vi.fn(async ({ data }: { data: unknown }) => ({ id: "comment-1", ...data })), delete: vi.fn(async () => undefined), findMany: vi.fn(async () => []) },
     savedPost: { findUnique: vi.fn(async () => null), create: vi.fn(async () => ({ id: "saved-1" })), delete: vi.fn() },
     $transaction: vi.fn(async () => []),
@@ -58,8 +58,41 @@ describe("PostsService", () => {
     const prisma = makePrisma();
     const service = new PostsService(prisma as never);
     const result = await service.react("user-1", "post-1", { type: ReactionType.LIKE });
-    expect(result).toEqual({ active: true, type: ReactionType.LIKE });
+    expect(result).toEqual(expect.objectContaining({ active: true, type: ReactionType.LIKE, engagement: expect.objectContaining({ viewerReaction: null }) }));
     expect(prisma.$transaction).toHaveBeenCalledOnce();
+  });
+
+  it("يلغي التفاعل نفسه مع تنظيف كل تفاعلات المستخدم السابقة على المنشور", async () => {
+    const prisma = makePrisma();
+    prisma.reaction.findFirst.mockResolvedValue({ id: "reaction-1", type: ReactionType.LOVE });
+    const service = new PostsService(prisma as never);
+    const result = await service.react("user-1", "post-1", { type: ReactionType.LOVE });
+    expect(result).toEqual(expect.objectContaining({ active: false, type: ReactionType.LOVE }));
+    expect(prisma.reaction.deleteMany).toHaveBeenCalledWith({ where: { userId: "user-1", postId: "post-1" } });
+  });
+
+  it("يعيد ملخص الأنواع وحالة المشاهد والحفظ وقائمة معاينة المتفاعلين", async () => {
+    const prisma = makePrisma();
+    prisma.reaction.groupBy.mockResolvedValue([{ postId: "post-1", type: ReactionType.LOVE, _count: { _all: 2 } }]);
+    prisma.reaction.findFirst.mockResolvedValue({ type: ReactionType.LOVE });
+    prisma.reaction.findMany.mockResolvedValue([{ id: "reaction-1", type: ReactionType.LOVE, user: { id: "user-2", displayName: "مستخدم", username: "user", avatarUrl: null } }]);
+    prisma.savedPost.findUnique.mockResolvedValue({ id: "saved-1" });
+    const service = new PostsService(prisma as never);
+    await expect(service.getEngagement("user-1", "post-1")).resolves.toEqual(expect.objectContaining({
+      reactionSummary: expect.objectContaining({ LOVE: 2, LIKE: 0 }),
+      reactionTotal: 2,
+      viewerReaction: ReactionType.LOVE,
+      saved: true,
+      reactors: [expect.objectContaining({ id: "reaction-1" })],
+    }));
+  });
+
+  it("يرفض إنشاء رد داخل رد للحفاظ على بنية تعليق واضحة", async () => {
+    const prisma = makePrisma();
+    prisma.comment.findFirst.mockResolvedValue({ id: "reply-1", postId: "post-1", parentId: "comment-1" });
+    const service = new PostsService(prisma as never);
+    await expect(service.comment("user-1", "post-1", { body: "رد متداخل", parentId: "reply-1" })).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.comment.create).not.toHaveBeenCalled();
   });
 
   it("ينشئ تعليقاً مرتبطاً بالمنشور والمستخدم المصادق عليه", async () => {
