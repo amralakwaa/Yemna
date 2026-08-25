@@ -7,6 +7,7 @@ import { DEVELOPMENT_JWT_ACCESS_SECRET } from "../config/env";
 import type { JwtPayload } from "../auth/auth.types";
 import type { RealtimeEventName } from "./realtime.types";
 import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { RealtimeEventsService } from "./realtime-events.service";
 
 @WebSocketGateway({ namespace: "/realtime", cors: { origin: true, credentials: true } })
@@ -20,6 +21,7 @@ export class RealtimeGateway implements OnModuleDestroy {
     @Inject(ConfigService) private readonly config: ConfigService,
     @Inject(RealtimeEventsService) private readonly events: RealtimeEventsService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(NotificationsService) private readonly notifications: NotificationsService,
   ) {}
 
   afterInit(): void {
@@ -119,6 +121,16 @@ export class RealtimeGateway implements OnModuleDestroy {
     };
     try {
       await Promise.all(recipients.map(recipient => this.events.emit(recipient.userId, name, payload)));
+      if (name === "call:invite") {
+        await Promise.allSettled(recipients.map(recipient => this.notifications.create({
+          recipientId: recipient.userId,
+          actorId: userId,
+          type: "CALL_INVITE",
+          title: `دعوة مكالمة ${body?.mode === "video" ? "فيديو" : "صوتية"} واردة`,
+          linkUrl: `/messages?conversation=${encodeURIComponent(conversationId)}`,
+          sourceKey: `call-invite:${callId}:${recipient.userId}`,
+        })));
+      }
       return this.callReceipt(name, true, undefined, recipients.length);
     } catch {
       return this.callReceipt(name, false, "delivery_failed");

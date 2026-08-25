@@ -398,4 +398,28 @@ describe("عقود REST للحساب والدعم", () => {
     expect(audit[0]?.action).toBe("OWNERSHIP_TRANSFERRED");
     expect(new Headers(fetchMock.mock.calls[4]?.[1]?.headers).get("Authorization")).toBe("Bearer community-audit-token");
   });
+
+  it("يجلب عدّاد الإشعارات ويفلترها ويحدّث حالة القراءة عبر العقود الموحدة", async () => {
+    setRestAccessToken("notifications-token");
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify({ count: 4 }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([{ id: "notification-1", type: "CALL_INVITE", readAt: null }]), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "notification-1", readAt: "2026-08-25T10:00:00.000Z" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ count: 4 }), { status: 200 }));
+
+    const unread = await api.getUnreadNotificationCount();
+    const calls = await api.getNotifications("CALL_INVITE");
+    await api.markNotificationRead("notification/1");
+    await api.markAllNotificationsRead();
+
+    expect(unread.count).toBe(4);
+    expect(calls[0]?.type).toBe("CALL_INVITE");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/notifications/unread-count");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/v1/notifications?type=CALL_INVITE");
+    expect(fetchMock.mock.calls[2]?.[0]).toBe("/api/v1/notifications/notification%2F1/read");
+    expect(fetchMock.mock.calls[2]?.[1]?.method).toBe("PATCH");
+    expect(fetchMock.mock.calls[3]?.[0]).toBe("/api/v1/notifications/read-all");
+    expect(fetchMock.mock.calls[3]?.[1]?.method).toBe("PATCH");
+    expect(new Headers(fetchMock.mock.calls[3]?.[1]?.headers).get("Authorization")).toBe("Bearer notifications-token");
+  });
 });

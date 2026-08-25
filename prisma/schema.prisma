@@ -106,6 +106,7 @@ enum NotificationType {
   FOLLOW
   POST_REACTION
   POST_COMMENT
+  CALL_INVITE
   COMMUNITY
   MESSAGE
   SYSTEM
@@ -542,12 +543,14 @@ model Notification {
   title       String
   body        String?
   linkUrl     String?
+  sourceKey   String?
   readAt      DateTime?
   createdAt   DateTime         @default(now())
   recipient   User             @relation("notificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
   actor       User?            @relation("notificationActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([recipientId, readAt, createdAt])
+  @@unique([recipientId, sourceKey])
 }
 
 model SupportTicket {

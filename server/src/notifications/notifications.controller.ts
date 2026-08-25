@@ -1,5 +1,7 @@
 import { Controller, Get, Inject, Param, Patch, Req, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import { Query } from "@nestjs/common";
+import { NotificationType } from "@prisma/client";
 import type { Request } from "express";
 import type { JwtPayload } from "../auth/auth.types";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
@@ -8,7 +10,11 @@ type AuthenticatedRequest = Request & { user: JwtPayload };
 @ApiTags("notifications") @ApiBearerAuth() @UseGuards(JwtAuthGuard) @Controller({ path: "notifications", version: "1" })
 export class NotificationsController {
   constructor(@Inject(NotificationsService) private readonly notifications: NotificationsService) {}
-  @Get() list(@Req() req: AuthenticatedRequest) { return this.notifications.list(req.user.sub); }
+  @Get() list(@Req() req: AuthenticatedRequest, @Query("type") type?: string) {
+    const notificationType = type && Object.values(NotificationType).includes(type as NotificationType) ? (type as NotificationType) : undefined;
+    return this.notifications.list(req.user.sub, notificationType);
+  }
+  @Get("unread-count") unreadCount(@Req() req: AuthenticatedRequest) { return this.notifications.unreadCount(req.user.sub); }
   @Patch("read-all") readAll(@Req() req: AuthenticatedRequest) { return this.notifications.markAllRead(req.user.sub); }
   @Patch(":id/read") read(@Req() req: AuthenticatedRequest, @Param("id") id: string) { return this.notifications.markRead(req.user.sub, id); }
 }

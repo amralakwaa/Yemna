@@ -30,7 +30,8 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
   const queryClient = useQueryClient();
-  const notificationsQuery = useQuery({ queryKey: ["rest", "notifications"], queryFn: api.getNotifications, enabled: Boolean(currentUser), staleTime: 15_000, refetchInterval: 30_000 });
+  const notificationsQuery = useQuery({ queryKey: ["rest", "notifications"], queryFn: () => api.getNotifications(), enabled: Boolean(currentUser), staleTime: 15_000, refetchInterval: 30_000 });
+  const unreadNotificationsQuery = useQuery<{ count: number }>({ queryKey: ["rest", "notifications", "unread-count"], queryFn: api.getUnreadNotificationCount, enabled: Boolean(currentUser), staleTime: 15_000, refetchInterval: 30_000 });
   const conversationsQuery = useQuery({ queryKey: ["rest", "conversations"], queryFn: api.getConversations, enabled: Boolean(currentUser), staleTime: 15_000, refetchInterval: 30_000 });
   const refreshCounters = useCallback(() => { void queryClient.invalidateQueries({ queryKey: ["rest", "notifications"] }); void queryClient.invalidateQueries({ queryKey: ["rest", "conversations"] }); }, [queryClient]);
   useRealtimeSubscription(["message:new", "notification:new", "notification:read"], refreshCounters);
@@ -41,7 +42,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
   const themeControl = <button className="theme-row" type="button" aria-pressed={theme === "dark"} onClick={toggleTheme}><Moon size={18}/><span>{theme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}</span><span className={theme === "dark" ? "theme-switch is-on" : "theme-switch"}/></button>;
   const notifications = Array.isArray(notificationsQuery.data) ? notificationsQuery.data : [];
   const conversations = Array.isArray(conversationsQuery.data) ? conversationsQuery.data : [];
-  const notificationCount = notifications.filter(notification => !notification.readAt).length;
+  const notificationCount = unreadNotificationsQuery.data?.count ?? notifications.filter(notification => !notification.readAt).length;
   const messageCount = conversations.reduce((total, conversation) => total + (conversation.unreadCount ?? 0), 0);
   const badgeFor = (key: string, fallback?: number) => key === "alerts" ? notificationCount : key === "messages" ? messageCount : fallback;
   const isGroupsDirectory = location === "/groups";

@@ -1,5 +1,6 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import { PostStatus, PostVisibility, Prisma, ReactionType } from "@prisma/client";
+import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateCommentDto, CreatePostDto, ListPostsDto, ReactToPostDto, UpdateCommentDto, UpdatePostDto } from "./dto/post.dto";
 
@@ -11,7 +12,7 @@ const postInclude = {
 
 @Injectable()
 export class PostsService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService, @Inject(NotificationsService) private readonly notifications: NotificationsService) {}
 
   private database() {
     if (!this.prisma.isConfigured()) throw new ServiceUnavailableException("قاعدة البيانات غير مهيأة");
@@ -75,12 +76,14 @@ export class PostsService {
   }
 
   async comment(userId: string, postId: string, dto: CreateCommentDto) {
-    await this.get(postId);
+    const post = await this.get(postId);
     if (dto.parentId) {
       const parent = await this.database().comment.findFirst({ where: { id: dto.parentId, postId } });
       if (!parent) throw new NotFoundException("التعليق الأب غير موجود");
     }
-    return this.database().comment.create({ data: { postId, authorId: userId, body: dto.body, parentId: dto.parentId }, include: { author: { select: { id: true, displayName: true, username: true, avatarUrl: true } } } });
+    const comment = await this.database().comment.create({ data: { postId, authorId: userId, body: dto.body, parentId: dto.parentId }, include: { author: { select: { id: true, displayName: true, username: true, avatarUrl: true } } } });
+    if (post.authorId !== userId) await this.notifications.create({ recipientId: post.authorId, actorId: userId, type: "POST_COMMENT", title: "علّق على منشورك", body: dto.body.slice(0, 180), linkUrl: `/posts/${encodeURIComponent(postId)}`, sourceKey: `post-comment:${comment.id}` }).catch(() => undefined);
+    return comment;
   }
 
   async listComments(postId: string) {
@@ -100,20 +103,24 @@ export class PostsService {
     if (!comment) throw new NotFoundException("التعليق غير موجود");
     if (comment.authorId !== userId) throw new ForbiddenException("لا تملك صلاحية حذف هذا التعليق");
     await this.database().comment.delete({ where: { id: commentId } });
+    const post = await this.get(postId);
+    if (post.authorId !== userId) await this.notifications.removeBySourceKey(post.authorId, `post-comment:${commentId}`).catch(() => undefined);
     return { success: true };
   }
 
   async react(userId: string, postId: string, dto: ReactToPostDto) {
-    await this.get(postId);
+    const post = await this.get(postId);
     const same = await this.database().reaction.findFirst({ where: { userId, postId, type: dto.type } });
     if (same) {
       await this.database().reaction.delete({ where: { id: same.id } });
+      if (post.authorId !== userId) await this.notifications.removeBySourceKey(post.authorId, `post-reaction:${postId}:${userId}`).catch(() => undefined);
       return { active: false, type: dto.type };
     }
     await this.database().$transaction([
       this.database().reaction.deleteMany({ where: { userId, postId } }),
       this.database().reaction.create({ data: { userId, postId, type: dto.type } }),
     ]);
+    if (post.authorId !== userId) await this.notifications.create({ recipientId: post.authorId, actorId: userId, type: "POST_REACTION", title: "تفاعل مع منشورك", body: dto.type, linkUrl: `/posts/${encodeURIComponent(postId)}`, sourceKey: `post-reaction:${postId}:${userId}` }).catch(() => undefined);
     return { active: true, type: dto.type };
   }
 

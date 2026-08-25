@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import { FriendshipStatus, Prisma, RelationPermission } from "@prisma/client";
+import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 
 const person = {
@@ -8,7 +9,7 @@ const person = {
 
 @Injectable()
 export class RelationshipsService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService, @Inject(NotificationsService) private readonly notifications: NotificationsService) {}
 
   private database() {
     if (!this.prisma.isConfigured()) throw new ServiceUnavailableException("قاعدة البيانات غير مهيأة");
@@ -53,8 +54,11 @@ export class RelationshipsService {
     const existing = await this.database().friendship.findFirst({ where: { OR: [{ requesterId: actorId, recipientId }, { requesterId: recipientId, recipientId: actorId }] } });
     if (existing?.status === FriendshipStatus.ACCEPTED) throw new ConflictException("أنتم أصدقاء بالفعل");
     if (existing?.status === FriendshipStatus.PENDING) throw new ConflictException("يوجد طلب صداقة قائم بالفعل");
-    if (existing) return this.database().friendship.update({ where: { id: existing.id }, data: { requesterId: actorId, recipientId, status: FriendshipStatus.PENDING, respondedAt: null } });
-    return this.database().friendship.create({ data: { requesterId: actorId, recipientId } });
+    const request = existing
+      ? await this.database().friendship.update({ where: { id: existing.id }, data: { requesterId: actorId, recipientId, status: FriendshipStatus.PENDING, respondedAt: null } })
+      : await this.database().friendship.create({ data: { requesterId: actorId, recipientId } });
+    await this.notifications.create({ recipientId, actorId, type: "FRIEND_REQUEST", title: "لديك طلب صداقة جديد", linkUrl: "/friends/requests", sourceKey: `friend-request:${request.id}` }).catch(() => undefined);
+    return request;
   }
 
   async respondToFriendRequest(actorId: string, requestId: string, action: "accept" | "decline") {
@@ -68,6 +72,7 @@ export class RelationshipsService {
         this.database().follow.upsert({ where: { followerId_followedId: { followerId: actorId, followedId: request.requesterId } }, create: { followerId: actorId, followedId: request.requesterId }, update: {} }),
         this.database().follow.upsert({ where: { followerId_followedId: { followerId: request.requesterId, followedId: actorId } }, create: { followerId: request.requesterId, followedId: actorId }, update: {} }),
       ]);
+      await this.notifications.create({ recipientId: request.requesterId, actorId, type: "FRIEND_ACCEPTED", title: "تم قبول طلب صداقتك", linkUrl: "/friends", sourceKey: `friend-accepted:${request.id}` }).catch(() => undefined);
     }
     return updated;
   }
@@ -85,7 +90,9 @@ export class RelationshipsService {
     if (!request || request.requesterId !== actorId || request.status !== FriendshipStatus.PENDING) {
       throw new NotFoundException("طلب الصداقة غير متاح للإلغاء");
     }
-    return this.database().friendship.update({ where: { id: request.id }, data: { status: FriendshipStatus.CANCELLED, respondedAt: new Date() } });
+    const cancelled = await this.database().friendship.update({ where: { id: request.id }, data: { status: FriendshipStatus.CANCELLED, respondedAt: new Date() } });
+    await this.notifications.removeBySourceKey(request.recipientId, `friend-request:${request.id}`).catch(() => undefined);
+    return cancelled;
   }
 
   async removeFriend(actorId: string, targetId: string) {
@@ -128,11 +135,16 @@ export class RelationshipsService {
     await this.assertTarget(actorId, targetId);
     await this.assertNotBlocked(actorId, targetId);
     await this.assertRelationPermission(actorId, targetId, "follow");
-    return this.database().follow.upsert({ where: { followerId_followedId: { followerId: actorId, followedId: targetId } }, create: { followerId: actorId, followedId: targetId }, update: {} });
+    const existing = await this.database().follow.findUnique({ where: { followerId_followedId: { followerId: actorId, followedId: targetId } } });
+    if (existing) return existing;
+    const follow = await this.database().follow.create({ data: { followerId: actorId, followedId: targetId } });
+    await this.notifications.create({ recipientId: targetId, actorId, type: "FOLLOW", title: "لديك متابع جديد", linkUrl: `/profile/${encodeURIComponent(actorId)}`, sourceKey: `follow:${actorId}:${targetId}` }).catch(() => undefined);
+    return follow;
   }
 
   async unfollow(actorId: string, targetId: string) {
     await this.database().follow.deleteMany({ where: { followerId: actorId, followedId: targetId } });
+    await this.notifications.removeBySourceKey(targetId, `follow:${actorId}:${targetId}`).catch(() => undefined);
     return { success: true };
   }
 

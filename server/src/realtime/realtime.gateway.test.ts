@@ -14,7 +14,8 @@ describe("RealtimeGateway", () => {
       },
       user: { findUnique: vi.fn(async () => ({ displayName: "Caller", avatarUrl: null })) },
     };
-    return { gateway: new RealtimeGateway(jwt as never, { get: vi.fn(() => "test-secret") } as never, events as never, prisma as never), jwt, events, prisma };
+    const notifications = { create: vi.fn(async () => ({ id: "notification-1" })) };
+    return { gateway: new RealtimeGateway(jwt as never, { get: vi.fn(() => "test-secret") } as never, events as never, prisma as never, notifications as never), jwt, events, prisma, notifications };
   }
 
   it("ينضم المستخدم الموثق إلى غرفته الخاصة", async () => {

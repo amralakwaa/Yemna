@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, ImagePlus, LoaderCircle, MoreHorizontal, Plus, Search, Send, Settings, UserRound, WifiOff, X } from "lucide-react";
+import { Bell, Heart, ImagePlus, LoaderCircle, MessageCircle, MoreHorizontal, PhoneCall, Plus, Search, Send, Settings, UserPlus, UserRound, WifiOff, X } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import { AppShell } from "@/components/yemna/AppShell";
 import { Avatar, Pill, SearchBox, SectionHeading, Surface } from "@/components/yemna/UI";
-import { api, asPerson, asRelativeTime, hasRestSession } from "@/lib/api";
+import { api, asPerson, asRelativeTime, hasRestSession, type ApiNotification, type ApiNotificationType } from "@/lib/api";
 import { compressImageForUpload } from "@/lib/media";
 import { emitRealtime, type RealtimeConnectionStatus, useRealtimeConnectionStatus, useRealtimeSubscription } from "@/lib/realtime";
 
@@ -87,13 +87,46 @@ export function RealtimeNotificationsPage() {
   const queryClient = useQueryClient();
   const signedIn = hasRestSession();
   const realtimeStatus = useRealtimeConnectionStatus();
-  const [all, setAll] = useState(true);
-  const notifications = useQuery({ queryKey: ["rest", "notifications"], queryFn: api.getNotifications, enabled: signedIn });
-  const markRead = useMutation({ mutationFn: api.markNotificationRead, onSuccess: () => queryClient.invalidateQueries({ queryKey: ["rest", "notifications"] }) });
-  const markAll = useMutation({ mutationFn: api.markAllNotificationsRead, onSuccess: () => queryClient.invalidateQueries({ queryKey: ["rest", "notifications"] }) });
-  const onEvent = useCallback(() => queryClient.invalidateQueries({ queryKey: ["rest", "notifications"] }), [queryClient]);
+  const [, navigate] = useLocation();
+  const [filter, setFilter] = useState<"ALL" | "UNREAD" | "MESSAGES" | "RELATIONSHIPS" | "POSTS" | "CALLS">("ALL");
+  const notifications = useQuery<ApiNotification[]>({ queryKey: ["rest", "notifications", "center"], queryFn: () => api.getNotifications(), enabled: signedIn });
+  const unread = useQuery<{ count: number }>({ queryKey: ["rest", "notifications", "unread-count"], queryFn: api.getUnreadNotificationCount, enabled: signedIn, staleTime: 15_000 });
+  const refreshNotifications = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ["rest", "notifications"] });
+  }, [queryClient]);
+  const markRead = useMutation({ mutationFn: api.markNotificationRead, onSuccess: refreshNotifications, onError: () => toast.error("تعذر تعليم الإشعار كمقروء") });
+  const markAll = useMutation({ mutationFn: api.markAllNotificationsRead, onSuccess: refreshNotifications, onError: () => toast.error("تعذر تحديث حالة الإشعارات") });
+  const onEvent = refreshNotifications;
   useRealtimeSubscription(["notification:new", "notification:read"], onEvent);
-  const visible = useMemo(() => notifications.data?.filter(notification => all || !notification.readAt) ?? [], [all, notifications.data]);
+  const matchesFilter = (notification: ApiNotification) => {
+    if (filter === "ALL") return true;
+    if (filter === "UNREAD") return !notification.readAt;
+    if (filter === "MESSAGES") return notification.type === "MESSAGE";
+    if (filter === "RELATIONSHIPS") return ["FRIEND_REQUEST", "FRIEND_ACCEPTED", "FOLLOW"].includes(notification.type);
+    if (filter === "POSTS") return ["POST_REACTION", "POST_COMMENT"].includes(notification.type);
+    return notification.type === "CALL_INVITE";
+  };
+  const visible = useMemo(() => notifications.data?.filter(matchesFilter) ?? [], [filter, notifications.data]);
+  const allNotifications = notifications.data ?? [];
+  const totalUnread = unread.data?.count ?? allNotifications.filter(notification => !notification.readAt).length;
+  const counters = {
+    messages: allNotifications.filter(notification => notification.type === "MESSAGE" && !notification.readAt).length,
+    relationships: allNotifications.filter(notification => ["FRIEND_REQUEST", "FRIEND_ACCEPTED", "FOLLOW"].includes(notification.type) && !notification.readAt).length,
+    posts: allNotifications.filter(notification => ["POST_REACTION", "POST_COMMENT"].includes(notification.type) && !notification.readAt).length,
+    calls: allNotifications.filter(notification => notification.type === "CALL_INVITE" && !notification.readAt).length,
+  };
+  const openNotification = (notification: ApiNotification) => {
+    if (!notification.readAt) markRead.mutate(notification.id);
+    if (notification.linkUrl) navigate(notification.linkUrl);
+  };
   if (!signedIn) return <SignInRequired title="الإشعارات"/>;
-  return <AppShell title="الإشعارات"><div className="notifications-page"><Surface className="notification-list"><header><h1>الإشعارات</h1><span><RealtimeStatus status={realtimeStatus}/><button type="button" className="icon-button" onClick={() => markAll.mutate()} disabled={markAll.isPending} title="تعليم الكل كمقروء"><Settings size={19}/></button></span></header><div className="notification-tabs"><Pill active={all} onClick={() => setAll(true)}>الكل</Pill><Pill active={!all} onClick={() => setAll(false)}>غير المقروءة</Pill></div>{notifications.isLoading && <div className="content-placeholder"><LoaderCircle className="animate-spin"/><p>يجري تحميل الإشعارات…</p></div>}{notifications.isError && <div className="content-placeholder"><WifiOff/><p>تعذر تحميل الإشعارات.</p></div>}{!notifications.isLoading && !notifications.isError && visible.length === 0 && <div className="content-placeholder"><Bell size={28}/><h3>لا توجد إشعارات</h3><p>ستظهر تفاعلات مجتمعك هنا فور وصولها.</p></div>}{visible.map(notification => <button type="button" className="notification-row" key={notification.id} onClick={() => { if (!notification.readAt) markRead.mutate(notification.id); if (notification.linkUrl) window.location.assign(notification.linkUrl); }}><span className="notification-icon"><Bell size={19}/></span><span><b>{notification.actor?.displayName || notification.title}</b> {notification.actor ? notification.title : notification.body}<small>{asRelativeTime(notification.createdAt)}</small></span>{notification.actor && <Avatar person={asPerson(notification.actor)} />}{!notification.readAt && <i className="notice-dot"/>}</button>)}</Surface><aside className="notice-guide"><Surface><Bell size={27}/><h3>تحكم بما يهمك</h3><p>تصل الإشعارات الجديدة مباشرةً عندما تكون متصلاً.</p><Link href="/settings/notifications" className="button">إعدادات الإشعارات</Link></Surface></aside></div></AppShell>;
+  return <AppShell title="الإشعارات"><div className="notifications-page"><Surface className="notification-list"><header><div><h1>الإشعارات</h1><small>{totalUnread > 0 ? `${totalUnread} إشعار غير مقروء` : "أنت على اطلاع بكل جديد"}</small></div><span><RealtimeStatus status={realtimeStatus}/><button type="button" className="icon-button" onClick={() => markAll.mutate()} disabled={markAll.isPending || totalUnread === 0} title="تعليم الكل كمقروء" aria-label="تعليم كل الإشعارات كمقروء"><Settings size={19}/></button></span></header><div className="notification-summary" aria-label="ملخص الإشعارات غير المقروءة"><button type="button" onClick={() => setFilter("MESSAGES")}><MessageCircle size={17}/><span>الرسائل</span><b>{counters.messages}</b></button><button type="button" onClick={() => setFilter("RELATIONSHIPS")}><UserPlus size={17}/><span>العلاقات</span><b>{counters.relationships}</b></button><button type="button" onClick={() => setFilter("POSTS")}><Heart size={17}/><span>المنشورات</span><b>{counters.posts}</b></button><button type="button" onClick={() => setFilter("CALLS")}><PhoneCall size={17}/><span>المكالمات</span><b>{counters.calls}</b></button></div><div className="notification-tabs notification-tabs--types"><Pill active={filter === "ALL"} onClick={() => setFilter("ALL")}>الكل</Pill><Pill active={filter === "UNREAD"} onClick={() => setFilter("UNREAD")}>غير المقروءة</Pill><Pill active={filter === "MESSAGES"} onClick={() => setFilter("MESSAGES")}>رسائل</Pill><Pill active={filter === "RELATIONSHIPS"} onClick={() => setFilter("RELATIONSHIPS")}>العلاقات</Pill><Pill active={filter === "POSTS"} onClick={() => setFilter("POSTS")}>المنشورات</Pill><Pill active={filter === "CALLS"} onClick={() => setFilter("CALLS")}>مكالمات</Pill></div>{notifications.isLoading && <div className="content-placeholder"><LoaderCircle className="animate-spin"/><p>يجري تحميل الإشعارات…</p></div>}{notifications.isError && <div className="content-placeholder"><WifiOff/><p>تعذر تحميل الإشعارات. تحقق من اتصالك ثم أعد المحاولة.</p></div>}{!notifications.isLoading && !notifications.isError && visible.length === 0 && <div className="content-placeholder"><Bell size={28}/><h3>{filter === "ALL" ? "لا توجد إشعارات" : "لا توجد إشعارات ضمن هذا القسم"}</h3><p>{filter === "ALL" ? "ستظهر الرسائل والعلاقات والتفاعلات والمكالمات هنا فور وصولها." : "جرّب اختيار قسم آخر أو اعرض كل الإشعارات."}</p></div>}{visible.map(notification => <button type="button" className={notification.readAt ? "notification-row" : "notification-row notification-row--unread"} key={notification.id} onClick={() => openNotification(notification)}><NotificationIcon type={notification.type}/><span><b>{notification.actor?.displayName || notification.title}</b> {notification.actor ? notification.title : notification.body}<small>{asRelativeTime(notification.createdAt)}</small></span>{notification.actor && <Avatar person={asPerson(notification.actor)} />}{!notification.readAt && <i className="notice-dot"/>}</button>)}</Surface><aside className="notice-guide"><Surface><Bell size={27}/><h3>كل ما يهمك في مكان واحد</h3><p>تصل إشعارات الرسائل والعلاقات والمنشورات والمكالمات مباشرةً عند اتصالك.</p><Link href="/settings/notifications" className="button">إعدادات الإشعارات</Link></Surface></aside></div></AppShell>;
+}
+
+function NotificationIcon({ type }: { type: ApiNotificationType }) {
+  if (type === "MESSAGE") return <span className="notification-icon"><MessageCircle size={19}/></span>;
+  if (["FRIEND_REQUEST", "FRIEND_ACCEPTED", "FOLLOW"].includes(type)) return <span className="notification-icon"><UserPlus size={19}/></span>;
+  if (["POST_REACTION", "POST_COMMENT"].includes(type)) return <span className="notification-icon"><Heart size={19}/></span>;
+  if (type === "CALL_INVITE") return <span className="notification-icon"><PhoneCall size={19}/></span>;
+  return <span className="notification-icon"><Bell size={19}/></span>;
 }
