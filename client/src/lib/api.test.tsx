@@ -371,4 +371,31 @@ describe("عقود REST للحساب والدعم", () => {
     expect(fetchMock.mock.calls[3]?.[0]).toBe("/api/v1/communities/community%2F1/members/user%2F2");
     expect(fetchMock.mock.calls[3]?.[1]?.method).toBe("DELETE");
   });
+
+  it("يدير طلبات الانضمام ونقل الملكية وسجل المجتمع بعقود مرمزة", async () => {
+    setRestAccessToken("community-audit-token");
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "request-1", status: "PENDING" }), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([{ id: "request-1", status: "PENDING" }]), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "request-1", status: "APPROVED" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: "community-1", ownerId: "user-2" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([{ id: "audit-1", action: "OWNERSHIP_TRANSFERRED" }]), { status: 200 }));
+
+    await api.requestCommunityJoin("community/1");
+    await api.getCommunityJoinRequests("community/1");
+    await api.respondToCommunityJoinRequest("community/1", "request/1", "APPROVE");
+    await api.transferCommunityOwnership("community/1", "user/2");
+    const audit = await api.getCommunityAuditLog("community/1");
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/communities/community%2F1/join-request");
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("POST");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/v1/communities/community%2F1/join-requests");
+    expect(fetchMock.mock.calls[2]?.[0]).toBe("/api/v1/communities/community%2F1/join-requests/request%2F1/respond");
+    expect(JSON.parse(String(fetchMock.mock.calls[2]?.[1]?.body))).toEqual({ action: "APPROVE" });
+    expect(fetchMock.mock.calls[3]?.[0]).toBe("/api/v1/communities/community%2F1/transfer-ownership");
+    expect(JSON.parse(String(fetchMock.mock.calls[3]?.[1]?.body))).toEqual({ targetUserId: "user/2" });
+    expect(fetchMock.mock.calls[4]?.[0]).toBe("/api/v1/communities/community%2F1/audit-log");
+    expect(audit[0]?.action).toBe("OWNERSHIP_TRANSFERRED");
+    expect(new Headers(fetchMock.mock.calls[4]?.[1]?.headers).get("Authorization")).toBe("Bearer community-audit-token");
+  });
 });

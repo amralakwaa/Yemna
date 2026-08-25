@@ -74,6 +74,27 @@ enum CommunityMemberRole {
   ADMIN
 }
 
+enum CommunityJoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum CommunityAuditAction {
+  COMMUNITY_CREATED
+  SETTINGS_UPDATED
+  MEMBER_JOINED
+  MEMBER_LEFT
+  MEMBER_REMOVED
+  MEMBER_ROLE_UPDATED
+  JOIN_REQUEST_CREATED
+  JOIN_REQUEST_CANCELLED
+  JOIN_REQUEST_APPROVED
+  JOIN_REQUEST_REJECTED
+  OWNERSHIP_TRANSFERRED
+}
+
 enum ConversationKind {
   DIRECT
   GROUP
@@ -159,6 +180,10 @@ model User {
   hiddenFromSuggestions FriendSuggestionDismissal[] @relation("suggestionHiddenUser")
   ownedCommunities   Community[]   @relation("communityOwner")
   communityMemberships CommunityMember[]
+  communityJoinRequests CommunityJoinRequest[] @relation("communityJoinRequester")
+  reviewedCommunityJoinRequests CommunityJoinRequest[] @relation("communityJoinReviewer")
+  communityAuditActions CommunityAuditLog[] @relation("communityAuditActor")
+  communityAuditTargets CommunityAuditLog[] @relation("communityAuditTarget")
   conversationParticipations ConversationParticipant[]
   createdConversations Conversation[] @relation("conversationCreator")
   sentMessages       Message[]     @relation("messageSender")
@@ -399,6 +424,8 @@ model Community {
   owner          User                @relation("communityOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   conversation   Conversation?       @relation("communityConversation", fields: [conversationId], references: [id], onDelete: SetNull)
   members        CommunityMember[]
+  joinRequests   CommunityJoinRequest[]
+  auditLogs      CommunityAuditLog[]
   posts          CommunityPost[]
 
   @@index([visibility, createdAt])
@@ -416,6 +443,40 @@ model CommunityMember {
 
   @@unique([communityId, userId])
   @@index([userId, joinedAt])
+}
+
+model CommunityJoinRequest {
+  id          String                     @id @default(cuid())
+  communityId String
+  userId      String
+  status      CommunityJoinRequestStatus @default(PENDING)
+  reviewerId  String?
+  respondedAt DateTime?
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+  community   Community                  @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  requester   User                       @relation("communityJoinRequester", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer    User?                      @relation("communityJoinReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@unique([communityId, userId])
+  @@index([communityId, status, createdAt])
+  @@index([userId, status, createdAt])
+}
+
+model CommunityAuditLog {
+  id           String               @id @default(cuid())
+  communityId  String
+  actorId      String?
+  targetUserId String?
+  action       CommunityAuditAction
+  metadata     Json?
+  createdAt    DateTime             @default(now())
+  community    Community            @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  actor        User?                @relation("communityAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  targetUser   User?                @relation("communityAuditTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([communityId, createdAt])
+  @@index([actorId, createdAt])
 }
 
 model CommunityPost {

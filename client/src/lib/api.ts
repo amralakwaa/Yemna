@@ -39,6 +39,27 @@ export type ApiCommunityMember = {
   createdAt?: string;
   role?: CommunityMemberRole;
 };
+export type CommunityJoinRequestStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+export type ApiCommunityJoinRequest = {
+  id: string;
+  communityId?: string;
+  userId?: string;
+  status: CommunityJoinRequestStatus;
+  createdAt?: string;
+  updatedAt?: string;
+  respondedAt?: string | null;
+  user?: Pick<ApiUser, "id" | "displayName" | "username" | "avatarUrl" | "bio">;
+  reviewer?: Pick<ApiUser, "id" | "displayName" | "username" | "avatarUrl"> | null;
+};
+export type CommunityAuditAction = "COMMUNITY_CREATED" | "SETTINGS_UPDATED" | "MEMBER_JOINED" | "MEMBER_LEFT" | "MEMBER_REMOVED" | "MEMBER_ROLE_UPDATED" | "JOIN_REQUEST_CREATED" | "JOIN_REQUEST_CANCELLED" | "JOIN_REQUEST_APPROVED" | "JOIN_REQUEST_REJECTED" | "OWNERSHIP_TRANSFERRED";
+export type ApiCommunityAuditLog = {
+  id: string;
+  action: CommunityAuditAction;
+  createdAt: string;
+  metadata?: Record<string, unknown> | null;
+  actor?: Pick<ApiUser, "id" | "displayName" | "username" | "avatarUrl"> | null;
+  targetUser?: Pick<ApiUser, "id" | "displayName" | "username" | "avatarUrl"> | null;
+};
 export type ApiSearchPost = Omit<ApiPost, "_count"> & { _count: { comments: number; reactions: number } };
 export type ApiSearchResponse = { users: ApiUser[]; usersNextPage?: number | null; posts: ApiSearchPost[]; communities: ApiCommunity[] };
 export type ApiSupportTicket = { id: string; category: "ACCOUNT" | "TECHNICAL" | "SAFETY" | "OTHER"; subject: string; body: string; status: string; createdAt: string; updatedAt?: string };
@@ -242,6 +263,13 @@ export const api = {
   getCommunity: (communityId: string) => apiRequest<ApiCommunity>(`/communities/${encodeURIComponent(communityId)}`),
   getCommunityMembers: (communityId: string) => apiRequest<ApiCommunityMember[]>(`/communities/${encodeURIComponent(communityId)}/members`),
   joinCommunity: (communityId: string) => apiRequest<unknown>(`/communities/${encodeURIComponent(communityId)}/join`, { method: "POST" }),
+  requestCommunityJoin: (communityId: string) => apiRequest<ApiCommunityJoinRequest>(`/communities/${encodeURIComponent(communityId)}/join-request`, { method: "POST" }),
+  getMyCommunityJoinRequest: (communityId: string) => apiRequest<ApiCommunityJoinRequest | null>(`/communities/${encodeURIComponent(communityId)}/join-request`),
+  cancelCommunityJoinRequest: (communityId: string) => apiRequest<{ success: true }>(`/communities/${encodeURIComponent(communityId)}/join-request`, { method: "DELETE" }),
+  getCommunityJoinRequests: (communityId: string) => apiRequest<ApiCommunityJoinRequest[]>(`/communities/${encodeURIComponent(communityId)}/join-requests`),
+  respondToCommunityJoinRequest: (communityId: string, requestId: string, action: "APPROVE" | "REJECT") => apiRequest<ApiCommunityJoinRequest>(`/communities/${encodeURIComponent(communityId)}/join-requests/${encodeURIComponent(requestId)}/respond`, { method: "POST", body: JSON.stringify({ action }) }),
+  transferCommunityOwnership: (communityId: string, targetUserId: string) => apiRequest<ApiCommunity>(`/communities/${encodeURIComponent(communityId)}/transfer-ownership`, { method: "POST", body: JSON.stringify({ targetUserId }) }),
+  getCommunityAuditLog: (communityId: string) => apiRequest<ApiCommunityAuditLog[]>(`/communities/${encodeURIComponent(communityId)}/audit-log`),
   leaveCommunity: (communityId: string) => apiRequest<void>(`/communities/${encodeURIComponent(communityId)}/leave`, { method: "DELETE" }),
   getCommunityConversation: (communityId: string) => apiRequest<ApiConversation>(`/communities/${encodeURIComponent(communityId)}/conversation`),
   updateCommunity: (communityId: string, payload: UpdateCommunityPayload) => apiRequest<ApiCommunity>(`/communities/${encodeURIComponent(communityId)}`, { method: "PATCH", body: JSON.stringify(payload) }),

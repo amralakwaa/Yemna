@@ -26,6 +26,7 @@ export function LiveCommunitiesPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [joinedIds, setJoinedIds] = useState<string[]>([]);
+  const [requestedIds, setRequestedIds] = useState<string[]>([]);
   const authenticated = hasRestSession();
   const communitiesQuery = useQuery({
     queryKey: ["rest", "communities"],
@@ -52,13 +53,22 @@ export function LiveCommunitiesPage() {
     },
     onError: () => toast.error("تعذر الانضمام إلى المجتمع، حاول مجدداً."),
   });
+  const requestCommunityJoin = useMutation({
+    mutationFn: (communityId: string) => api.requestCommunityJoin(communityId),
+    onSuccess: (_result, communityId) => {
+      setRequestedIds((current) => (current.includes(communityId) ? current : [...current, communityId]));
+      toast.success("تم إرسال طلب الانضمام للمراجعة");
+    },
+    onError: () => toast.error("تعذر إرسال طلب الانضمام، حاول مجدداً."),
+  });
 
-  const requestJoin = (communityId: string) => {
+  const requestJoin = (communityId: string, visibility?: "PUBLIC" | "PRIVATE") => {
     if (!authenticated) {
       toast.error("سجّل الدخول أولاً للانضمام إلى مجتمع.");
       return;
     }
-    joinCommunity.mutate(communityId);
+    if (visibility === "PRIVATE") requestCommunityJoin.mutate(communityId);
+    else joinCommunity.mutate(communityId);
   };
 
   return (
@@ -107,6 +117,7 @@ export function LiveCommunitiesPage() {
             <div className="community-cards live-community-cards">
               {visibleCommunities.map((community) => {
                 const joined = joinedIds.includes(community.id);
+                const requested = requestedIds.includes(community.id);
                 const memberCount = community._count?.members ?? 0;
 
                 return (
@@ -125,11 +136,11 @@ export function LiveCommunitiesPage() {
                       <small>{memberCount} عضو</small>
                       <button
                         className={joined ? "button secondary" : "button"}
-                        disabled={joined || joinCommunity.isPending}
-                        onClick={() => requestJoin(community.id)}
+                        disabled={joined || requested || joinCommunity.isPending || requestCommunityJoin.isPending}
+                        onClick={() => requestJoin(community.id, community.visibility)}
                         type="button"
                       >
-                        {joined ? "تم الانضمام" : "انضمام"}
+                        {joined ? "تم الانضمام" : requested ? "الطلب قيد المراجعة" : community.visibility === "PRIVATE" ? "طلب الانضمام" : "انضمام"}
                       </button>
                     </div>
                   </Surface>

@@ -39,3 +39,13 @@ export class UpdateCommunityMemberRoleDto {
   @IsIn(["MEMBER", "MODERATOR", "ADMIN"])
   role!: "MEMBER" | "MODERATOR" | "ADMIN";
 }
+
+export class RespondToCommunityJoinRequestDto {
+  @IsIn(["APPROVE", "REJECT"])
+  action!: "APPROVE" | "REJECT";
+}
+
+export class TransferCommunityOwnershipDto {
+  @IsString() @MinLength(1) @MaxLength(191) @Transform(trim)
+  targetUserId!: string;
+}

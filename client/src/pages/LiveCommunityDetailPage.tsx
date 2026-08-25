@@ -23,10 +23,17 @@ function CommunityDetailContent({ membersOnly = false }: { membersOnly?: boolean
   const myCommunitiesQuery = useQuery({ queryKey: ["rest", "communities", "mine"], queryFn: api.getMyCommunities, enabled: isAuthenticated, retry: 1 });
   const membership = Boolean(myCommunitiesQuery.data?.some((community) => community.id === id));
   const community = communityQuery.data;
+  const myJoinRequestQuery = useQuery({
+    queryKey: ["rest", "communities", id, "my-join-request"],
+    queryFn: () => api.getMyCommunityJoinRequest(id),
+    enabled: isAuthenticated && Boolean(id) && community?.visibility === "PRIVATE" && !membership,
+    retry: false,
+  });
   const owner = Boolean(community?.owner?.id && community.owner.id === currentUser?.id);
   const ownMembership = membersQuery.data?.find((member) => member.userId === currentUser?.id || member.user.id === currentUser?.id);
   const viewerRole: CommunityMemberRole | undefined = ownMembership?.role;
-  const mutation = useMutation({
+  const canReviewRequests = owner || viewerRole === "ADMIN" || viewerRole === "MODERATOR";
+  const membershipMutation = useMutation({
     mutationFn: () => membership ? api.leaveCommunity(id) : api.joinCommunity(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["rest", "communities", "mine"] });
@@ -36,6 +43,22 @@ function CommunityDetailContent({ membersOnly = false }: { membersOnly?: boolean
       toast.success(membership ? "غادرت المجتمع" : "تم الانضمام إلى المجتمع");
     },
     onError: () => toast.error(membership ? "تعذر مغادرة المجتمع حالياً." : "تعذر الانضمام إلى المجتمع حالياً."),
+  });
+  const joinRequestMutation = useMutation({
+    mutationFn: () => api.requestCommunityJoin(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["rest", "communities", id, "my-join-request"] });
+      toast.success("تم إرسال طلب الانضمام للمراجعة");
+    },
+    onError: () => toast.error("تعذر إرسال طلب الانضمام حالياً."),
+  });
+  const cancelJoinRequestMutation = useMutation({
+    mutationFn: () => api.cancelCommunityJoinRequest(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["rest", "communities", id, "my-join-request"] });
+      toast.success("تم إلغاء طلب الانضمام");
+    },
+    onError: () => toast.error("تعذر إلغاء طلب الانضمام حالياً."),
   });
   const conversationMutation = useMutation({
     mutationFn: () => api.getCommunityConversation(id),
@@ -57,9 +80,10 @@ function CommunityDetailContent({ membersOnly = false }: { membersOnly?: boolean
         {community.description ? <p>{community.description}</p> : <p>لا توجد نبذة منشورة عن هذا المجتمع بعد.</p>}
         <div className="community-detail-meta"><span><Users size={16}/>{community._count?.members ?? members.length} عضو</span>{community._count?.posts !== undefined ? <span>{community._count.posts} منشور</span> : null}</div>
         {!isAuthenticated ? <Link className="button" href={`/login?next=/community/${encodeURIComponent(id)}`}><LogIn size={17}/> سجّل الدخول للانضمام</Link> : <div className="community-action-row">
-          {owner ? <span className="community-owner-label"><ShieldCheck size={16}/> أنت مالك هذا المجتمع</span> : <button className={membership ? "button secondary" : "button"} type="button" disabled={mutation.isPending || myCommunitiesQuery.isLoading} onClick={() => mutation.mutate()}>{mutation.isPending ? "جارٍ الحفظ…" : membership ? "مغادرة المجتمع" : "انضمام"}</button>}
+          {!isAuthenticated ? <Link className="button" href={`/login?next=/community/${encodeURIComponent(id)}`}>سجّل الدخول للانضمام</Link> : owner ? <span className="community-owner-label"><ShieldCheck size={16}/> أنت مالك هذا المجتمع</span> : membership ? <button className="button secondary" type="button" disabled={membershipMutation.isPending || myCommunitiesQuery.isLoading} onClick={() => membershipMutation.mutate()}>{membershipMutation.isPending ? "جارٍ الحفظ…" : "مغادرة المجتمع"}</button> : community.visibility === "PRIVATE" ? <PrivateJoinAction status={myJoinRequestQuery.data?.status} loading={myJoinRequestQuery.isLoading} pending={joinRequestMutation.isPending || cancelJoinRequestMutation.isPending} onRequest={() => joinRequestMutation.mutate()} onCancel={() => cancelJoinRequestMutation.mutate()}/> : <button className="button" type="button" disabled={membershipMutation.isPending || myCommunitiesQuery.isLoading} onClick={() => membershipMutation.mutate()}>{membershipMutation.isPending ? "جارٍ الحفظ…" : "انضمام"}</button>}
           {membership ? <button className="button secondary" type="button" disabled={conversationMutation.isPending} onClick={() => conversationMutation.mutate()}><MessageCircle size={17}/>{conversationMutation.isPending ? "جارٍ الفتح…" : "رسائل المجتمع"}</button> : null}
-          {owner ? <Link className="button secondary" href={`/community/${encodeURIComponent(id)}/manage`}><Settings2 size={17}/> إدارة المجتمع</Link> : null}
+          {owner ? <Link className="button secondary" href={`/community/${encodeURIComponent(id)}/manage`}><Settings2 size={17}/> إعدادات المجتمع</Link> : null}
+          {canReviewRequests ? <Link className="button secondary" href={`/community/${encodeURIComponent(id)}/manage#requests`}><Settings2 size={17}/> إدارة المجتمع</Link> : null}
         </div>}
       </div>
     </Surface> : <SectionHeading title={`أعضاء ${community.name}`} action={<Link href={`/community/${encodeURIComponent(id)}`}>عن المجتمع</Link>}/>} 
@@ -69,6 +93,13 @@ function CommunityDetailContent({ membersOnly = false }: { membersOnly?: boolean
     </section>
     {community.visibility === "PRIVATE" ? <p className="community-privacy-note"><LockKeyhole size={15}/> قد تخضع بعض معلومات المجتمع الخاص لضوابط العضوية التي يحددها الخادم.</p> : null}
   </main>;
+}
+
+function PrivateJoinAction({ status, loading, pending, onRequest, onCancel }: { status?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED"; loading: boolean; pending: boolean; onRequest: () => void; onCancel: () => void }) {
+  if (loading) return <button className="button" type="button" disabled>يجري التحقق…</button>;
+  if (status === "PENDING") return <><span className="community-request-status">طلبك قيد المراجعة</span><button className="button secondary" type="button" disabled={pending} onClick={onCancel}>إلغاء الطلب</button></>;
+  if (status === "APPROVED") return <span className="community-request-status">تمت الموافقة، حدّث الصفحة للمتابعة</span>;
+  return <button className="button" type="button" disabled={pending} onClick={onRequest}>{pending ? "جارٍ الإرسال…" : status === "REJECTED" ? "إرسال طلب جديد" : "طلب الانضمام"}</button>;
 }
 
 function CommunityMemberList({ members, communityId, currentUserId, isOwner, viewerRole }: { members: Awaited<ReturnType<typeof api.getCommunityMembers>>; communityId: string; currentUserId?: string; isOwner: boolean; viewerRole?: CommunityMemberRole }) {
