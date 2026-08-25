@@ -1,5 +1,5 @@
 import { Transform, Type } from "class-transformer";
-import { ArrayMaxSize, IsArray, IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from "class-validator";
+import { ArrayMaxSize, IsArray, IsEnum, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from "class-validator";
 import { PostVisibility, ReactionType } from "@prisma/client";
 
 const trim = ({ value }: { value: unknown }) => (typeof value === "string" ? value.trim() : value);
@@ -37,6 +37,11 @@ export class CreateCommentDto {
 export class UpdateCommentDto {
   @IsString() @MinLength(1) @MaxLength(2_000) @Transform(trim)
   body!: string;
+}
+
+export class ListCommentsDto {
+  @IsOptional() @IsIn(["NEWEST", "TOP"])
+  sort?: "NEWEST" | "TOP" = "NEWEST";
 }
 
 export class ReactToPostDto {

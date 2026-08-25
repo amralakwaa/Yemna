@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Inject, Param, Patch, Post, Query, Req, 
 import type { Request } from "express";
 import type { JwtPayload } from "../auth/auth.types";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
-import { CreateCommentDto, CreatePostDto, ListPostsDto, ReactToPostDto, UpdateCommentDto, UpdatePostDto } from "./dto/post.dto";
+import { CreateCommentDto, CreatePostDto, ListCommentsDto, ListPostsDto, ReactToPostDto, UpdateCommentDto, UpdatePostDto } from "./dto/post.dto";
 import { PostsService } from "./posts.service";
 
 type AuthenticatedRequest = Request & { user: JwtPayload };
@@ -17,8 +17,10 @@ export class PostsController {
   @Get(":id/engagement") @UseGuards(JwtAuthGuard) engagement(@Req() req: AuthenticatedRequest, @Param("id") id: string) { return this.posts.getEngagement(req.user.sub, id); }
   @Patch(":id") @UseGuards(JwtAuthGuard) update(@Req() req: AuthenticatedRequest, @Param("id") id: string, @Body() dto: UpdatePostDto) { return this.posts.update(req.user.sub, id, dto); }
   @Delete(":id") @UseGuards(JwtAuthGuard) remove(@Req() req: AuthenticatedRequest, @Param("id") id: string) { return this.posts.remove(req.user.sub, id); }
-  @Get(":id/comments") comments(@Param("id") id: string) { return this.posts.listComments(id); }
+  @Get(":id/comments") comments(@Param("id") id: string, @Query() query: ListCommentsDto) { return this.posts.listComments(id, query); }
+  @Get(":id/comments/engagement") @UseGuards(JwtAuthGuard) commentEngagement(@Req() req: AuthenticatedRequest, @Param("id") id: string) { return this.posts.getCommentViewerReactions(req.user.sub, id); }
   @Post(":id/comments") @UseGuards(JwtAuthGuard) comment(@Req() req: AuthenticatedRequest, @Param("id") id: string, @Body() dto: CreateCommentDto) { return this.posts.comment(req.user.sub, id, dto); }
+  @Post(":id/comments/:commentId/reactions") @UseGuards(JwtAuthGuard) reactToComment(@Req() req: AuthenticatedRequest, @Param("id") id: string, @Param("commentId") commentId: string, @Body() dto: ReactToPostDto) { return this.posts.reactToComment(req.user.sub, id, commentId, dto); }
   @Patch(":id/comments/:commentId") @UseGuards(JwtAuthGuard) updateComment(@Req() req: AuthenticatedRequest, @Param("id") id: string, @Param("commentId") commentId: string, @Body() dto: UpdateCommentDto) { return this.posts.updateComment(req.user.sub, id, commentId, dto); }
   @Delete(":id/comments/:commentId") @UseGuards(JwtAuthGuard) removeComment(@Req() req: AuthenticatedRequest, @Param("id") id: string, @Param("commentId") commentId: string) { return this.posts.removeComment(req.user.sub, id, commentId); }
   @Post(":id/reactions") @UseGuards(JwtAuthGuard) react(@Req() req: AuthenticatedRequest, @Param("id") id: string, @Body() dto: ReactToPostDto) { return this.posts.react(req.user.sub, id, dto); }

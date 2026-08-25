@@ -106,6 +106,7 @@ enum NotificationType {
   FOLLOW
   POST_REACTION
   POST_COMMENT
+  COMMENT_REPLY
   CALL_INVITE
   COMMUNITY
   MESSAGE
@@ -166,6 +167,7 @@ model User {
   posts              Post[]        @relation("postAuthor")
   comments           Comment[]     @relation("commentAuthor")
   reactions          Reaction[]
+  commentReactions   CommentReaction[]
   savedPosts         SavedPost[]
   mediaAssets        MediaAsset[]  @relation("mediaOwner")
   stories            Story[]
@@ -263,8 +265,22 @@ model Comment {
   author    User      @relation("commentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   parent    Comment?  @relation("commentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   Comment[] @relation("commentReplies")
+  reactions CommentReaction[]
 
   @@index([postId, createdAt])
+}
+
+model CommentReaction {
+  id        String       @id @default(cuid())
+  commentId String
+  userId    String
+  type      ReactionType
+  createdAt DateTime     @default(now())
+  comment   Comment      @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+  @@index([commentId, createdAt])
 }
 
 model Reaction {

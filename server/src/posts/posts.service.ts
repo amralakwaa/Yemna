@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundEx
 import { PostStatus, PostVisibility, Prisma, ReactionType } from "@prisma/client";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
-import { CreateCommentDto, CreatePostDto, ListPostsDto, ReactToPostDto, UpdateCommentDto, UpdatePostDto } from "./dto/post.dto";
+import { CreateCommentDto, CreatePostDto, ListCommentsDto, ListPostsDto, ReactToPostDto, UpdateCommentDto, UpdatePostDto } from "./dto/post.dto";
 
 const postInclude = {
   author: { select: { id: true, displayName: true, username: true, avatarUrl: true } },
@@ -42,6 +42,28 @@ export class PostsService {
   private async withReactionSummaries<T extends { id: string }>(posts: T[]) {
     const summaries = await this.reactionSummaries(posts.map(post => post.id));
     return posts.map(post => ({ ...post, reactionSummary: summaries.get(post.id) ?? emptyReactionSummary() }));
+  }
+
+  private async commentReactionSummaries(commentIds: string[]) {
+    const summaries = new Map<string, ReactionSummary>(commentIds.map(id => [id, emptyReactionSummary()]));
+    if (!commentIds.length) return summaries;
+    const groups = await this.database().commentReaction.groupBy({
+      by: ["commentId", "type"],
+      where: { commentId: { in: commentIds } },
+      _count: { _all: true },
+    });
+    for (const group of groups) summaries.get(group.commentId)![group.type] = group._count._all;
+    return summaries;
+  }
+
+  private async withCommentEngagement<T extends { id: string; replies?: Array<{ id: string }> }>(comments: T[]) {
+    const commentIds = comments.flatMap(comment => [comment.id, ...(comment.replies?.map(reply => reply.id) ?? [])]);
+    const summaries = await this.commentReactionSummaries(commentIds);
+    const enrich = <U extends { id: string }>(comment: U) => {
+      const reactionSummary = summaries.get(comment.id) ?? emptyReactionSummary();
+      return { ...comment, reactionSummary, reactionTotal: reactionTypes.reduce((total, type) => total + reactionSummary[type], 0), viewerReaction: null };
+    };
+    return comments.map(comment => ({ ...enrich(comment), replies: comment.replies?.map(reply => enrich(reply)) }));
   }
 
   private async findPost(id: string) {
@@ -109,19 +131,31 @@ export class PostsService {
 
   async comment(userId: string, postId: string, dto: CreateCommentDto) {
     const post = await this.findPost(postId);
+    let parent: { id: string; postId: string; parentId: string | null; authorId: string } | null = null;
     if (dto.parentId) {
-      const parent = await this.database().comment.findFirst({ where: { id: dto.parentId, postId } });
+      parent = await this.database().comment.findFirst({ where: { id: dto.parentId, postId } });
       if (!parent) throw new NotFoundException("التعليق الأب غير موجود");
       if (parent.parentId) throw new BadRequestException("يمكن الرد على تعليق رئيسي فقط");
     }
     const comment = await this.database().comment.create({ data: { postId, authorId: userId, body: dto.body, parentId: dto.parentId }, include: { author: { select: { id: true, displayName: true, username: true, avatarUrl: true } } } });
-    if (post.authorId !== userId) await this.notifications.create({ recipientId: post.authorId, actorId: userId, type: "POST_COMMENT", title: "علّق على منشورك", body: dto.body.slice(0, 180), linkUrl: `/posts/${encodeURIComponent(postId)}`, sourceKey: `post-comment:${comment.id}` }).catch(() => undefined);
-    return comment;
+    if (parent && parent.authorId !== userId) await this.notifications.create({ recipientId: parent.authorId, actorId: userId, type: "COMMENT_REPLY", title: "رد على تعليقك", body: dto.body.slice(0, 180), linkUrl: `/posts/${encodeURIComponent(postId)}#comment-${encodeURIComponent(comment.id)}`, sourceKey: `comment-reply:${comment.id}` }).catch(() => undefined);
+    if (post.authorId !== userId && (!parent || parent.authorId !== post.authorId)) await this.notifications.create({ recipientId: post.authorId, actorId: userId, type: "POST_COMMENT", title: "علّق على منشورك", body: dto.body.slice(0, 180), linkUrl: `/posts/${encodeURIComponent(postId)}#comment-${encodeURIComponent(comment.id)}`, sourceKey: `post-comment:${comment.id}` }).catch(() => undefined);
+    return { ...comment, reactionSummary: emptyReactionSummary(), reactionTotal: 0, viewerReaction: null };
   }
 
-  async listComments(postId: string) {
+  async listComments(postId: string, query: ListCommentsDto = {}) {
     await this.findPost(postId);
-    return this.database().comment.findMany({ where: { postId, parentId: null }, include: { author: { select: { id: true, displayName: true, username: true, avatarUrl: true } }, replies: { include: { author: { select: { id: true, displayName: true, username: true, avatarUrl: true } } }, orderBy: { createdAt: "asc" } } }, orderBy: { createdAt: "asc" } });
+    const orderBy = query.sort === "TOP" ? [{ reactions: { _count: "desc" as const } }, { createdAt: "desc" as const }] : [{ createdAt: "desc" as const }];
+    const comments = await this.database().comment.findMany({ where: { postId, parentId: null }, include: { author: { select: publicUser }, replies: { include: { author: { select: publicUser } }, orderBy: { createdAt: "asc" } } }, orderBy });
+    return this.withCommentEngagement(comments);
+  }
+
+  async getCommentViewerReactions(userId: string, postId: string) {
+    await this.findPost(postId);
+    const commentIds = await this.database().comment.findMany({ where: { postId }, select: { id: true } });
+    if (!commentIds.length) return { viewerReactions: {} };
+    const reactions = await this.database().commentReaction.findMany({ where: { userId, commentId: { in: commentIds.map(comment => comment.id) } }, select: { commentId: true, type: true } });
+    return { viewerReactions: Object.fromEntries(reactions.map(reaction => [reaction.commentId, reaction.type])) };
   }
 
   async updateComment(userId: string, postId: string, commentId: string, dto: UpdateCommentDto) {
@@ -132,15 +166,44 @@ export class PostsService {
   }
 
   async removeComment(userId: string, postId: string, commentId: string) {
-    const comment = await this.database().comment.findFirst({ where: { id: commentId, postId }, include: { replies: { select: { id: true } } } });
+    const comment = await this.database().comment.findFirst({ where: { id: commentId, postId }, include: { parent: { select: { authorId: true } }, replies: { select: { id: true, authorId: true } } } });
     if (!comment) throw new NotFoundException("التعليق غير موجود");
     if (comment.authorId !== userId) throw new ForbiddenException("لا تملك صلاحية حذف هذا التعليق");
     await this.database().comment.delete({ where: { id: commentId } });
     const post = await this.findPost(postId);
+    const cleanup = [];
     if (post.authorId !== userId) {
-      await Promise.all([commentId, ...comment.replies.map(reply => reply.id)].map(id => this.notifications.removeBySourceKey(post.authorId, `post-comment:${id}`).catch(() => undefined)));
+      cleanup.push(...[commentId, ...comment.replies.map(reply => reply.id)].map(id => this.notifications.removeBySourceKey(post.authorId, `post-comment:${id}`).catch(() => undefined)));
     }
+    if (comment.parent?.authorId && comment.parent.authorId !== userId) cleanup.push(this.notifications.removeBySourceKey(comment.parent.authorId, `comment-reply:${commentId}`).catch(() => undefined));
+    if (!comment.parent) cleanup.push(...comment.replies.filter(reply => reply.authorId !== userId).map(reply => this.notifications.removeBySourceKey(userId, `comment-reply:${reply.id}`).catch(() => undefined)));
+    await Promise.all(cleanup);
     return { success: true };
+  }
+
+  async reactToComment(userId: string, postId: string, commentId: string, dto: ReactToPostDto) {
+    const comment = await this.database().comment.findFirst({ where: { id: commentId, postId }, select: { id: true } });
+    if (!comment) throw new NotFoundException("التعليق غير موجود");
+    const existing = await this.database().commentReaction.findFirst({ where: { userId, commentId } });
+    if (existing?.type === dto.type) {
+      await this.database().commentReaction.deleteMany({ where: { userId, commentId } });
+      return { active: false, type: dto.type, engagement: await this.commentEngagement(userId, commentId) };
+    }
+    await this.database().$transaction([
+      this.database().commentReaction.deleteMany({ where: { userId, commentId } }),
+      this.database().commentReaction.create({ data: { userId, commentId, type: dto.type } }),
+    ]);
+    return { active: true, type: dto.type, engagement: await this.commentEngagement(userId, commentId) };
+  }
+
+  private async commentEngagement(userId: string, commentId: string) {
+    const [summaries, viewerReaction, reactors] = await Promise.all([
+      this.commentReactionSummaries([commentId]),
+      this.database().commentReaction.findFirst({ where: { userId, commentId }, select: { type: true } }),
+      this.database().commentReaction.findMany({ where: { commentId }, include: { user: { select: publicUser } }, orderBy: { createdAt: "desc" }, take: 5 }),
+    ]);
+    const reactionSummary = summaries.get(commentId) ?? emptyReactionSummary();
+    return { reactionSummary, reactionTotal: reactionTypes.reduce((total, type) => total + reactionSummary[type], 0), viewerReaction: viewerReaction?.type ?? null, reactors };
   }
 
   async react(userId: string, postId: string, dto: ReactToPostDto) {

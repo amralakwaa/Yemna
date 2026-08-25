@@ -14,10 +14,15 @@ function makePrisma(configured = true) {
     },
     mediaAsset: { findMany: vi.fn(async () => []) },
     reaction: { findFirst: vi.fn(async () => null), findMany: vi.fn(async () => []), groupBy: vi.fn(async () => []), delete: vi.fn(), deleteMany: vi.fn(), create: vi.fn() },
+    commentReaction: { findFirst: vi.fn(async () => null), findMany: vi.fn(async () => []), groupBy: vi.fn(async () => []), deleteMany: vi.fn(), create: vi.fn() },
     comment: { findFirst: vi.fn(async () => null), create: vi.fn(async () => ({ id: "comment-1" })), update: vi.fn(async ({ data }: { data: unknown }) => ({ id: "comment-1", ...data })), delete: vi.fn(async () => undefined), findMany: vi.fn(async () => []) },
     savedPost: { findUnique: vi.fn(async () => null), create: vi.fn(async () => ({ id: "saved-1" })), delete: vi.fn() },
     $transaction: vi.fn(async () => []),
   };
+}
+
+function makeNotifications() {
+  return { create: vi.fn(async () => ({ id: "notification-1" })), removeBySourceKey: vi.fn(async () => undefined) };
 }
 
 describe("PostsService", () => {
@@ -100,6 +105,53 @@ describe("PostsService", () => {
     const service = new PostsService(prisma as never);
     await service.comment("user-1", "post-1", { body: "تعليق تجريبي" });
     expect(prisma.comment.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ authorId: "user-1", postId: "post-1", body: "تعليق تجريبي" }) }));
+  });
+
+  it("ينشئ إشعار رد واحداً لكاتب التعليق الأب ولا يكرر إشعار المنشور عندما يكون المستلم نفسه", async () => {
+    const prisma = makePrisma();
+    const notifications = makeNotifications();
+    prisma.post.findFirst.mockResolvedValue({ id: "post-1", authorId: "user-2", status: "PUBLISHED" });
+    prisma.comment.findFirst.mockResolvedValue({ id: "comment-1", postId: "post-1", parentId: null, authorId: "user-2" });
+    const service = new PostsService(prisma as never, notifications as never);
+    await service.comment("user-1", "post-1", { body: "رد حقيقي", parentId: "comment-1" });
+    expect(notifications.create).toHaveBeenCalledTimes(1);
+    expect(notifications.create).toHaveBeenCalledWith(expect.objectContaining({ recipientId: "user-2", type: "COMMENT_REPLY", sourceKey: "comment-reply:comment-1" }));
+  });
+
+  it("لا ينشئ إشعار رد ذاتياً عندما يرد المستخدم على تعليقه", async () => {
+    const prisma = makePrisma();
+    const notifications = makeNotifications();
+    prisma.comment.findFirst.mockResolvedValue({ id: "comment-1", postId: "post-1", parentId: null, authorId: "user-1" });
+    const service = new PostsService(prisma as never, notifications as never);
+    await service.comment("user-1", "post-1", { body: "متابعة", parentId: "comment-1" });
+    expect(notifications.create).not.toHaveBeenCalled();
+  });
+
+  it("يحفظ تفاعلاً واحداً للتعليق ويعيد موجزه وحالة المشاهد", async () => {
+    const prisma = makePrisma();
+    prisma.comment.findFirst.mockResolvedValue({ id: "comment-1" });
+    prisma.commentReaction.groupBy.mockResolvedValue([{ commentId: "comment-1", type: ReactionType.LOVE, _count: { _all: 3 } }]);
+    prisma.commentReaction.findFirst.mockResolvedValueOnce(null).mockResolvedValue({ type: ReactionType.LOVE });
+    const service = new PostsService(prisma as never, makeNotifications() as never);
+    await expect(service.reactToComment("user-1", "post-1", "comment-1", { type: ReactionType.LOVE })).resolves.toEqual(expect.objectContaining({ active: true, engagement: expect.objectContaining({ reactionTotal: 3, viewerReaction: ReactionType.LOVE }) }));
+    expect(prisma.commentReaction.create).toHaveBeenCalledWith({ data: { userId: "user-1", commentId: "comment-1", type: ReactionType.LOVE } });
+  });
+
+  it("يلغي التفاعل نفسه على التعليق بدلاً من إضافة صف مكرر", async () => {
+    const prisma = makePrisma();
+    prisma.comment.findFirst.mockResolvedValue({ id: "comment-1" });
+    prisma.commentReaction.findFirst.mockResolvedValue({ id: "comment-reaction-1", type: ReactionType.LIKE });
+    const service = new PostsService(prisma as never, makeNotifications() as never);
+    await expect(service.reactToComment("user-1", "post-1", "comment-1", { type: ReactionType.LIKE })).resolves.toEqual(expect.objectContaining({ active: false }));
+    expect(prisma.commentReaction.deleteMany).toHaveBeenCalledWith({ where: { userId: "user-1", commentId: "comment-1" } });
+  });
+
+  it("يفرز التعليقات الرئيسية الأكثر تفاعلاً عند طلب TOP مع بقاء الردود مرتبة زمنياً", async () => {
+    const prisma = makePrisma();
+    prisma.comment.findMany.mockResolvedValue([{ id: "comment-1", author: { id: "user-2" }, replies: [{ id: "reply-1", author: { id: "user-3" } }] }]);
+    const service = new PostsService(prisma as never, makeNotifications() as never);
+    await service.listComments("post-1", { sort: "TOP" });
+    expect(prisma.comment.findMany).toHaveBeenCalledWith(expect.objectContaining({ orderBy: [{ reactions: { _count: "desc" } }, { createdAt: "desc" }] }));
   });
 
   it("يعدّل التعليق للمالك فقط ويحفظ النص الجديد", async () => {

@@ -103,7 +103,7 @@ export function RealtimeNotificationsPage() {
     if (filter === "UNREAD") return !notification.readAt;
     if (filter === "MESSAGES") return notification.type === "MESSAGE";
     if (filter === "RELATIONSHIPS") return ["FRIEND_REQUEST", "FRIEND_ACCEPTED", "FOLLOW"].includes(notification.type);
-    if (filter === "POSTS") return ["POST_REACTION", "POST_COMMENT"].includes(notification.type);
+    if (filter === "POSTS") return ["POST_REACTION", "POST_COMMENT", "COMMENT_REPLY"].includes(notification.type);
     return notification.type === "CALL_INVITE";
   };
   const visible = useMemo(() => notifications.data?.filter(matchesFilter) ?? [], [filter, notifications.data]);
@@ -112,7 +112,7 @@ export function RealtimeNotificationsPage() {
   const counters = {
     messages: allNotifications.filter(notification => notification.type === "MESSAGE" && !notification.readAt).length,
     relationships: allNotifications.filter(notification => ["FRIEND_REQUEST", "FRIEND_ACCEPTED", "FOLLOW"].includes(notification.type) && !notification.readAt).length,
-    posts: allNotifications.filter(notification => ["POST_REACTION", "POST_COMMENT"].includes(notification.type) && !notification.readAt).length,
+    posts: allNotifications.filter(notification => ["POST_REACTION", "POST_COMMENT", "COMMENT_REPLY"].includes(notification.type) && !notification.readAt).length,
     calls: allNotifications.filter(notification => notification.type === "CALL_INVITE" && !notification.readAt).length,
   };
   const openNotification = (notification: ApiNotification) => {
@@ -126,7 +126,7 @@ export function RealtimeNotificationsPage() {
 function NotificationIcon({ type }: { type: ApiNotificationType }) {
   if (type === "MESSAGE") return <span className="notification-icon"><MessageCircle size={19}/></span>;
   if (["FRIEND_REQUEST", "FRIEND_ACCEPTED", "FOLLOW"].includes(type)) return <span className="notification-icon"><UserPlus size={19}/></span>;
-  if (["POST_REACTION", "POST_COMMENT"].includes(type)) return <span className="notification-icon"><Heart size={19}/></span>;
+  if (["POST_REACTION", "POST_COMMENT", "COMMENT_REPLY"].includes(type)) return <span className="notification-icon"><Heart size={19}/></span>;
   if (type === "CALL_INVITE") return <span className="notification-icon"><PhoneCall size={19}/></span>;
   return <span className="notification-icon"><Bell size={19}/></span>;
 }

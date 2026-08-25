@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Route } from "wouter";
 import { AppShell } from "./AppShell";
 import { PostCard } from "./PostCard";
+import { PostCommentsSection } from "./PostCommentsSection";
 import { CreatePage, HomePage, LoginPage, SettingsPage } from "@/pages/YemnaPages";
 import { LiveSearchPage } from "@/pages/LiveSearchPage";
 import { LiveRelationshipsPage } from "@/pages/LiveRelationshipsPage";
@@ -867,6 +868,30 @@ describe("تدفقات المستخدم الأساسية", () => {
     await user.click(screen.getByRole("button", { name: "أحببته" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/posts/post-react/reactions", expect.objectContaining({ method: "POST", body: JSON.stringify({ type: "LOVE" }) })));
     expect(await screen.findByRole("button", { name: "أحببته" })).toBeTruthy();
+  });
+
+  it("يفرز التعليقات ويحفظ تفاعل التعليق بعقد REST الحي", async () => {
+    sessionStorage.setItem("yemna_access_token", "test-access-token");
+    const liveUser = { id: "user-comments", displayName: "حساب حي", username: "live-comments", avatarUrl: null };
+    const comment = { id: "comment-1", body: "تعليق حقيقي", createdAt: "2026-08-26T00:00:00.000Z", author: liveUser, replies: [], reactionSummary: { LIKE: 0, LOVE: 0, SUPPORT: 0, WOW: 0, SAD: 0, ANGRY: 0 }, reactionTotal: 0, viewerReaction: null };
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.includes("/posts/post-comments/comments") && !url.includes("comment-viewer-reactions") && init?.method !== "POST") return jsonResponse([comment]);
+      if (url.endsWith("/posts/post-comments/comment-viewer-reactions")) return jsonResponse({ viewerReactions: {} });
+      if (url.endsWith("/posts/post-comments/comments/comment-1/reactions") && init?.method === "POST") return jsonResponse({ active: true, type: "LOVE", engagement: { ...comment, reactionSummary: { ...comment.reactionSummary, LOVE: 1 }, reactionTotal: 1, viewerReaction: "LOVE", reactors: [] } });
+      if (url.endsWith("/notifications") || url.endsWith("/messages/conversations")) return jsonResponse([]);
+      return jsonResponse([]);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    renderWithQuery(<PostCommentsSection postId="post-comments" total={1} currentUser={liveUser} currentPerson={{ id: 1, userId: liveUser.id, name: liveUser.displayName, handle: `@${liveUser.username}`, avatar: "" }} currentUserLoading={false}/>);
+
+    await user.selectOptions(await screen.findByLabelText("ترتيب التعليقات"), "TOP");
+    await waitFor(() => expect(fetchMock.mock.calls.some(([input]) => String(input).includes("/api/v1/posts/post-comments/comments?sort=TOP"))).toBe(true));
+    await user.click(screen.getByRole("button", { name: "إضافة تفاعل" }));
+    await user.click(screen.getByRole("button", { name: "أحببته" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/posts/post-comments/comments/comment-1/reactions", expect.objectContaining({ method: "POST", body: JSON.stringify({ type: "LOVE" }) })));
   });
 
   it("يحمي إنشاء القصة للضيف بدعوة دخول صادقة قبل اختيار أي ملف", async () => {
