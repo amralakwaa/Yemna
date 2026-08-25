@@ -17,6 +17,9 @@ const envSchema = z.object({
   YEMNA_TURN_URLS: z.string().optional(),
   YEMNA_TURN_USERNAME: z.string().optional(),
   YEMNA_TURN_CREDENTIAL: z.string().optional(),
+  WEBRTC_TURN_URL: z.string().optional(),
+  WEBRTC_TURN_USERNAME: z.string().optional(),
+  WEBRTC_TURN_CREDENTIAL: z.string().optional(),
 });
 
 export type YemnaEnv = z.infer<typeof envSchema>;

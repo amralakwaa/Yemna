@@ -11,8 +11,8 @@ describe("CallsService", () => {
     });
   });
 
-  it("لا يكشف TURN إلا عند اكتمال بياناته الصحيحة", () => {
-    const values = { YEMNA_TURN_URLS: "turn:relay.example.org:3478, turns:relay.example.org:5349", YEMNA_TURN_USERNAME: "temporary-user", YEMNA_TURN_CREDENTIAL: "temporary-credential" };
+  it("يقرأ أسرار TURN المهيأة للمشروع ضمن عقد ICE من دون كشفها للمستخدم", () => {
+    const values = { WEBRTC_TURN_URL: "turn:relay.example.org:3478, turns:relay.example.org:5349", WEBRTC_TURN_USERNAME: "temporary-user", WEBRTC_TURN_CREDENTIAL: "temporary-credential" };
     const service = new CallsService({ get: vi.fn((key: keyof typeof values) => values[key]) } as never);
 
     expect(service.iceConfig()).toEqual({
@@ -22,5 +22,12 @@ describe("CallsService", () => {
       ],
       turnConfigured: true,
     });
+  });
+
+  it("يحافظ على أسماء إعداد TURN القديمة كمسار توافق احتياطي", () => {
+    const values = { YEMNA_TURN_URLS: "turn:relay.example.org:3478", YEMNA_TURN_USERNAME: "legacy-user", YEMNA_TURN_CREDENTIAL: "legacy-credential" };
+    const service = new CallsService({ get: vi.fn((key: keyof typeof values) => values[key]) } as never);
+
+    expect(service.iceConfig().turnConfigured).toBe(true);
   });
 });

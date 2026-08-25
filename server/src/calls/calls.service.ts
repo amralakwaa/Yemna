@@ -8,12 +8,12 @@ export class CallsService {
   constructor(@Inject(ConfigService) private readonly config: ConfigService) {}
 
   iceConfig(): { iceServers: IceServerConfig[]; turnConfigured: boolean } {
-    const turnUrls = (this.config.get<string>("YEMNA_TURN_URLS") ?? "")
+    const turnUrls = (this.config.get<string>("WEBRTC_TURN_URL") ?? this.config.get<string>("YEMNA_TURN_URLS") ?? "")
       .split(",")
       .map(value => value.trim())
       .filter(value => /^turns?:/i.test(value));
-    const username = this.config.get<string>("YEMNA_TURN_USERNAME")?.trim();
-    const credential = this.config.get<string>("YEMNA_TURN_CREDENTIAL")?.trim();
+    const username = (this.config.get<string>("WEBRTC_TURN_USERNAME") ?? this.config.get<string>("YEMNA_TURN_USERNAME"))?.trim();
+    const credential = (this.config.get<string>("WEBRTC_TURN_CREDENTIAL") ?? this.config.get<string>("YEMNA_TURN_CREDENTIAL"))?.trim();
     const turnConfigured = Boolean(turnUrls.length && username && credential);
     const iceServers: IceServerConfig[] = [{ urls: ["stun:stun.l.google.com:19302"] }];
     if (turnConfigured) iceServers.push({ urls: turnUrls, username, credential });
