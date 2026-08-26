@@ -26,6 +26,25 @@ export class MessagesService {
 
   private database() { if (!this.prisma.isConfigured()) throw new ServiceUnavailableException("قاعدة البيانات غير مهيأة"); return this.prisma; }
 
+  private async assertDirectMessagePermission(actorId: string, targetId: string) {
+    let target: { id: string; status: AccountStatus; settings?: { allowDirectMessages: boolean } | null } | null;
+    try {
+      target = await this.database().user.findUnique({
+        where: { id: targetId },
+        select: { id: true, status: true, settings: { select: { allowDirectMessages: true } } },
+      });
+    } catch (error) {
+      // Deployments that predate the privacy column keep the historical, explicit
+      // default of allowing a new direct conversation. Other failures must surface.
+      const message = error instanceof Error ? error.message : String(error);
+      const isMissingOptionalColumn = message.includes("UserSettings") && message.includes("allowDirectMessages") && message.includes("column");
+      if (!isMissingOptionalColumn) throw error;
+      return;
+    }
+    if (!target || target.status !== AccountStatus.ACTIVE) throw new NotFoundException("المستخدم غير متاح للمراسلة");
+    if (target.settings?.allowDirectMessages === false) throw new ForbiddenException("لا يستقبل هذا الحساب رسائل مباشرة جديدة حالياً");
+  }
+
   async conversations(userId: string) {
     const memberships = await this.database().conversationParticipant.findMany({
       where: { userId },
@@ -51,6 +70,9 @@ export class MessagesService {
     const users = await this.database().user.findMany({ where: { id: { in: participantIds }, status: AccountStatus.ACTIVE }, select: { id: true } });
     if (users.length !== participantIds.length) throw new NotFoundException("واحد أو أكثر من المشاركين غير متاحين");
     const kind = participantIds.length === 2 && !dto.title ? ConversationKind.DIRECT : ConversationKind.GROUP;
+    if (kind === ConversationKind.DIRECT) {
+      await this.assertDirectMessagePermission(userId, participantIds.find(id => id !== userId)!);
+    }
     return this.database().conversation.create({ data: { kind, title: dto.title, createdById: userId, participants: { create: participantIds.map(id => ({ userId: id })) } }, include: { participants: { include: { user: { select: user } } } } });
   }
 

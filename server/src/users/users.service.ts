@@ -8,6 +8,20 @@ const publicProfile = {
   city: true, governorate: true, role: true, createdAt: true,
 } satisfies Prisma.UserSelect;
 
+const defaultSettings = {
+  profileVisibility: "PUBLIC" as const,
+  showOnlineStatus: true,
+  allowDirectMessages: true,
+  friendRequestPermission: "EVERYONE" as const,
+  followPermission: "EVERYONE" as const,
+  notifyMessages: true,
+  notifyFriendRequests: true,
+  notifyFollows: true,
+  notifyPostActivity: true,
+  notifyCalls: true,
+  notifyCommunities: true,
+};
+
 @Injectable()
 export class UsersService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
@@ -57,5 +71,12 @@ export class UsersService {
   async updateSettings(userId: string, dto: UpdateMySettingsDto) {
     await this.me(userId);
     return this.database().userSettings.upsert({ where: { userId }, create: { userId, ...dto }, update: dto });
+  }
+
+  async settings(userId: string) {
+    const account = await this.database().user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!account) throw new NotFoundException("المستخدم غير موجود");
+    const settings = await this.database().userSettings.findUnique({ where: { userId } });
+    return settings ?? { userId, ...defaultSettings };
   }
 }

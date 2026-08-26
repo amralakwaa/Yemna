@@ -1,9 +1,9 @@
-import { Body, Controller, Get, HttpCode, Inject, Post, Req, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Req, Res, UseGuards } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { Request, Response } from "express";
 import type { JwtPayload } from "./auth.types";
 import { AuthService } from "./auth.service";
-import { LoginDto, RefreshDto, RegisterDto } from "./dto/auth.dto";
+import { ChangePasswordDto, LoginDto, RefreshDto, RegisterDto } from "./dto/auth.dto";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import type { YemnaEnv } from "../config/env";
 
@@ -45,6 +45,18 @@ export class AuthController {
 
   @Get("me") @UseGuards(JwtAuthGuard)
   me(@Req() request: AuthenticatedRequest) { return request.user; }
+
+  @Get("sessions") @UseGuards(JwtAuthGuard)
+  sessions(@Req() request: AuthenticatedRequest) { return this.auth.sessions(request.user.sub, request.user.sessionId); }
+
+  @Delete("sessions/:sessionId") @UseGuards(JwtAuthGuard)
+  revokeSession(@Req() request: AuthenticatedRequest, @Param("sessionId") sessionId: string) { return this.auth.revokeSession(request.user.sub, request.user.sessionId, sessionId); }
+
+  @Post("sessions/revoke-others") @UseGuards(JwtAuthGuard)
+  revokeOtherSessions(@Req() request: AuthenticatedRequest) { return this.auth.revokeOtherSessions(request.user.sub, request.user.sessionId); }
+
+  @Post("change-password") @UseGuards(JwtAuthGuard)
+  changePassword(@Req() request: AuthenticatedRequest, @Body() dto: ChangePasswordDto) { return this.auth.changePassword(request.user.sub, request.user.sessionId, dto); }
 
   private metadata(request: Request) { return { ipAddress: request.ip, userAgent: request.get("user-agent") }; }
   private setRefreshCookie(response: Response, refreshToken: string) {

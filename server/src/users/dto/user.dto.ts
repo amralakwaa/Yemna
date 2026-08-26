@@ -44,4 +44,22 @@ export class UpdateMySettingsDto {
 
   @IsOptional() @IsEnum(RelationPermissionDto)
   followPermission?: RelationPermissionDto;
+
+  @IsOptional() @IsBoolean()
+  notifyMessages?: boolean;
+
+  @IsOptional() @IsBoolean()
+  notifyFriendRequests?: boolean;
+
+  @IsOptional() @IsBoolean()
+  notifyFollows?: boolean;
+
+  @IsOptional() @IsBoolean()
+  notifyPostActivity?: boolean;
+
+  @IsOptional() @IsBoolean()
+  notifyCalls?: boolean;
+
+  @IsOptional() @IsBoolean()
+  notifyCommunities?: boolean;
 }

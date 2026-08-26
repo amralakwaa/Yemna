@@ -20,6 +20,7 @@ function makePrisma(configured = true) {
     isConfigured: vi.fn(() => configured),
     user: {
       findFirst: vi.fn(async () => null),
+      findUnique: vi.fn(async () => null),
       create: vi.fn(async () => user),
       update: vi.fn(async () => user),
     },
@@ -27,7 +28,10 @@ function makePrisma(configured = true) {
       create: vi.fn(async () => ({ id: "session-1" })),
       findUnique: vi.fn(async () => null),
       update: vi.fn(async () => ({ id: "session-1" })),
+      findMany: vi.fn(async () => []),
+      updateMany: vi.fn(async () => ({ count: 1 })),
     },
+    $transaction: vi.fn(async (values: Promise<unknown>[]) => Promise.all(values)),
   };
 }
 
@@ -86,5 +90,29 @@ describe("AuthService", () => {
     expect(prisma.authSession.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "session-old" }, data: expect.objectContaining({ revokedAt: expect.any(Date) }) }));
     await service.logout("session-old.refresh-secret");
     expect(prisma.authSession.update).toHaveBeenCalledTimes(2);
+  });
+
+  it("يعرض الجلسات الحية ببيانات جهاز آمنة من دون عنوان IP أو وكيل المتصفح", async () => {
+    const prisma = makePrisma();
+    prisma.authSession.findMany.mockResolvedValue([{ id: "session-current", deviceName: null, userAgent: "Mozilla/5.0 (Windows NT 10.0)", createdAt: new Date("2026-08-20T10:00:00.000Z"), lastActiveAt: new Date("2026-08-21T10:00:00.000Z"), expiresAt: new Date("2026-09-20T10:00:00.000Z") }]);
+    const { service } = makeService(prisma);
+    await expect(service.sessions("user-1", "session-current")).resolves.toEqual([expect.objectContaining({ id: "session-current", isCurrent: true, deviceName: "كمبيوتر يعمل بنظام Windows" })]);
+    expect(prisma.authSession.findMany).toHaveBeenCalledWith(expect.objectContaining({ select: expect.not.objectContaining({ ipAddress: true, userAgent: true }) }));
+  });
+
+  it("ينهي جلسة أخرى فقط ويحمي الجلسة الحالية من الإنهاء غير المقصود", async () => {
+    const { service, prisma } = makeService();
+    await expect(service.revokeSession("user-1", "session-current", "session-other")).resolves.toEqual({ success: true });
+    expect(prisma.authSession.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "session-other", userId: "user-1", revokedAt: null } }));
+    await expect(service.revokeSession("user-1", "session-current", "session-current")).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("يغير كلمة المرور بعد تحقق الحالية وينهي الجلسات الأخرى", async () => {
+    const prisma = makePrisma();
+    prisma.user.findUnique.mockResolvedValue({ id: "user-1", status: AccountStatus.ACTIVE, passwordHash: await bcrypt.hash("current-password", 12) });
+    const { service } = makeService(prisma);
+    await expect(service.changePassword("user-1", "session-current", { currentPassword: "current-password", newPassword: "new-strong-password" })).resolves.toEqual({ success: true });
+    expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "user-1" }, data: expect.objectContaining({ passwordHash: expect.any(String), passwordChangedAt: expect.any(Date) }) }));
+    expect(prisma.authSession.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: "user-1", id: { not: "session-current" }, revokedAt: null } }));
   });
 });

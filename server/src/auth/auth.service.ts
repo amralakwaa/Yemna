@@ -64,10 +64,64 @@ export class AuthService {
     }
   }
 
+  async sessions(userId: string, currentSessionId: string) {
+    this.assertDatabase();
+    const sessions = await this.prisma.authSession.findMany({
+      where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
+      select: { id: true, deviceName: true, userAgent: true, createdAt: true, lastActiveAt: true, expiresAt: true },
+      orderBy: { lastActiveAt: "desc" },
+      take: 30,
+    });
+    return sessions.map(session => ({
+      id: session.id,
+      deviceName: session.deviceName ?? this.deviceName(session.userAgent),
+      createdAt: session.createdAt,
+      lastActiveAt: session.lastActiveAt,
+      expiresAt: session.expiresAt,
+      isCurrent: session.id === currentSessionId,
+    }));
+  }
+
+  async revokeSession(userId: string, currentSessionId: string, sessionId: string) {
+    this.assertDatabase();
+    if (sessionId === currentSessionId) throw new BadRequestException("لا يمكن إنهاء الجلسة الحالية من هذه الصفحة");
+    const result = await this.prisma.authSession.updateMany({
+      where: { id: sessionId, userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    if (!result.count) throw new BadRequestException("الجلسة غير متاحة أو انتهت بالفعل");
+    return { success: true as const };
+  }
+
+  async revokeOtherSessions(userId: string, currentSessionId: string) {
+    this.assertDatabase();
+    const result = await this.prisma.authSession.updateMany({
+      where: { userId, id: { not: currentSessionId }, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return { count: result.count };
+  }
+
+  async changePassword(userId: string, currentSessionId: string, dto: { currentPassword: string; newPassword: string }) {
+    this.assertDatabase();
+    const account = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, passwordHash: true, status: true } });
+    if (!account || account.status !== AccountStatus.ACTIVE) throw new UnauthorizedException("بيانات الجلسة غير صالحة");
+    if (!(await bcrypt.compare(dto.currentPassword, account.passwordHash))) throw new UnauthorizedException("كلمة المرور الحالية غير صحيحة");
+    if (await bcrypt.compare(dto.newPassword, account.passwordHash)) throw new BadRequestException("اختر كلمة مرور جديدة مختلفة عن الحالية");
+
+    const now = new Date();
+    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: userId }, data: { passwordHash, passwordChangedAt: now } }),
+      this.prisma.authSession.updateMany({ where: { userId, id: { not: currentSessionId }, revokedAt: null }, data: { revokedAt: now } }),
+    ]);
+    return { success: true as const };
+  }
+
   private async issueTokens(user: User, metadata: RequestMetadata): Promise<AuthTokens> {
     const secret = randomBytes(48).toString("base64url");
     const expiresAt = new Date(Date.now() + this.config.get("YEMNA_REFRESH_TOKEN_DAYS", { infer: true }) * 86_400_000);
-    const session = await this.prisma.authSession.create({ data: { userId: user.id, tokenHash: await bcrypt.hash(secret, 12), expiresAt, ipAddress: metadata.ipAddress, userAgent: metadata.userAgent?.slice(0, 512) } });
+    const session = await this.prisma.authSession.create({ data: { userId: user.id, tokenHash: await bcrypt.hash(secret, 12), expiresAt, deviceName: this.deviceName(metadata.userAgent), ipAddress: metadata.ipAddress, userAgent: metadata.userAgent?.slice(0, 512) } });
     const payload: JwtPayload = { sub: user.id, role: user.role, sessionId: session.id };
     const accessSecret = this.config.get("YEMNA_JWT_ACCESS_SECRET", { infer: true }) ?? this.config.get("JWT_SECRET", { infer: true }) ?? DEVELOPMENT_JWT_ACCESS_SECRET;
     const accessToken = await this.jwt.signAsync(payload, { secret: accessSecret, expiresIn: this.config.get("YEMNA_JWT_ACCESS_TTL", { infer: true }) });
@@ -80,5 +134,15 @@ export class AuthService {
 
   private assertDatabase(): void {
     if (!this.prisma.isConfigured()) throw new ServiceUnavailableException("Authentication database is not configured.");
+  }
+
+  private deviceName(userAgent?: string | null) {
+    const value = userAgent ?? "";
+    if (/iPhone|Android.*Mobile/i.test(value)) return "هاتف محمول";
+    if (/iPad|Android(?!.*Mobile)/i.test(value)) return "جهاز لوحي";
+    if (/Windows/i.test(value)) return "كمبيوتر يعمل بنظام Windows";
+    if (/Macintosh|Mac OS/i.test(value)) return "جهاز macOS";
+    if (/Linux/i.test(value)) return "كمبيوتر يعمل بنظام Linux";
+    return "جهاز غير معروف";
   }
 }

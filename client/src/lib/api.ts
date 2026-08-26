@@ -8,7 +8,8 @@ export class ApiError extends Error {
   constructor(public readonly status: number, message: string) { super(message); }
 }
 
-export type ApiUser = { id: string; displayName: string; username: string; fullName?: string | null; email?: string | null; phone?: string | null; avatarUrl?: string | null; bio?: string | null; city?: string | null; governorate?: string | null; createdAt?: string; status?: string | null; settings?: { showOnlineStatus?: boolean; allowDirectMessages?: boolean; friendRequestPermission?: "EVERYONE" | "FRIENDS" | "NOBODY"; followPermission?: "EVERYONE" | "FRIENDS" | "NOBODY" } | null };
+export type ApiUserSettings = { userId?: string; profileVisibility?: "PUBLIC" | "FRIENDS" | "ONLY_ME" | "COMMUNITY"; showOnlineStatus?: boolean; allowDirectMessages?: boolean; friendRequestPermission?: "EVERYONE" | "FRIENDS" | "NOBODY"; followPermission?: "EVERYONE" | "FRIENDS" | "NOBODY"; notifyMessages?: boolean; notifyFriendRequests?: boolean; notifyFollows?: boolean; notifyPostActivity?: boolean; notifyCalls?: boolean; notifyCommunities?: boolean };
+export type ApiUser = { id: string; displayName: string; username: string; fullName?: string | null; email?: string | null; phone?: string | null; avatarUrl?: string | null; bio?: string | null; city?: string | null; governorate?: string | null; createdAt?: string; status?: string | null; settings?: ApiUserSettings | null };
 export type ApiMedia = { url?: string | null; publicUrl?: string | null; kind?: string };
 export type ApiReactionType = "LIKE" | "LOVE" | "SUPPORT" | "WOW" | "SAD" | "ANGRY";
 export type ApiReactionSummary = Record<ApiReactionType, number>;
@@ -21,7 +22,7 @@ export type ApiCommentEngagement = { reactionSummary: ApiReactionSummary; reacti
 export type ApiComment = { id: string; body: string; createdAt: string; author: ApiUser; reactionSummary?: ApiReactionSummary; reactionTotal?: number; viewerReaction?: ApiReactionType | null; replies?: ApiComment[] };
 export type ApiMessage = { id: string; body: string; createdAt: string; sender: ApiUser; conversationId: string; media?: ApiMediaAsset[] };
 export type ApiConversation = { id: string; kind: "DIRECT" | "GROUP"; title?: string | null; participants: Array<{ user: ApiUser }>; messages?: ApiMessage[]; lastReadAt?: string | null; unreadCount?: number };
-export type ApiNotificationType = "MESSAGE" | "FRIEND_REQUEST" | "FRIEND_ACCEPTED" | "FOLLOW" | "POST_REACTION" | "POST_COMMENT" | "COMMENT_REPLY" | "CALL_INVITE" | "SYSTEM";
+export type ApiNotificationType = "MESSAGE" | "FRIEND_REQUEST" | "FRIEND_ACCEPTED" | "FOLLOW" | "POST_REACTION" | "POST_COMMENT" | "COMMENT_REPLY" | "CALL_INVITE" | "COMMUNITY" | "SYSTEM";
 export type ApiNotification = { id: string; type: ApiNotificationType; title: string; body?: string | null; linkUrl?: string | null; createdAt: string; readAt?: string | null; actor?: ApiUser | null };
 export type ApiFriend = { id: string; since?: string; user: ApiUser };
 export type ApiFriendRequest = { id: string; requester: ApiUser; createdAt?: string };
@@ -82,6 +83,7 @@ export type ApiAdminReport = { id: string; reason: string; details?: string | nu
 export type ApiAssistantChatResponse = { reply: string };
 export type ApiIceServer = { urls: string[]; username?: string; credential?: string };
 export type ApiCallIceConfig = { iceServers: ApiIceServer[]; turnConfigured: boolean };
+export type ApiAuthSession = { id: string; deviceName: string; createdAt: string; lastActiveAt: string; expiresAt: string; isCurrent: boolean };
 type AuthResponse = { accessToken: string; user: ApiUser };
 
 function readAccessToken() {
@@ -244,7 +246,12 @@ export const api = {
   toggleSavePost: (postId: string) => apiRequest<{ saved: boolean }>(`/posts/${encodeURIComponent(postId)}/save`, { method: "POST" }),
   getMe: () => apiRequest<ApiUser>("/users/me"),
   updateMe: (payload: Partial<Pick<ApiUser, "displayName" | "fullName" | "username" | "bio" | "city" | "governorate" | "avatarUrl">>) => apiRequest<ApiUser>("/users/me", { method: "PATCH", body: JSON.stringify(payload) }),
-  updateSettings: (payload: { friendRequestPermission?: "EVERYONE" | "FRIENDS" | "NOBODY"; followPermission?: "EVERYONE" | "FRIENDS" | "NOBODY"; showOnlineStatus?: boolean; allowDirectMessages?: boolean }) => apiRequest<ApiUser>("/users/me/settings", { method: "PATCH", body: JSON.stringify(payload) }),
+  getSettings: () => apiRequest<ApiUserSettings>("/users/me/settings"),
+  updateSettings: (payload: Partial<ApiUserSettings>) => apiRequest<ApiUserSettings>("/users/me/settings", { method: "PATCH", body: JSON.stringify(payload) }),
+  getAuthSessions: () => apiRequest<ApiAuthSession[]>("/auth/sessions"),
+  revokeAuthSession: (sessionId: string) => apiRequest<{ success: true }>(`/auth/sessions/${encodeURIComponent(sessionId)}`, { method: "DELETE" }),
+  revokeOtherAuthSessions: () => apiRequest<{ count: number }>("/auth/sessions/revoke-others", { method: "POST" }),
+  changePassword: (currentPassword: string, newPassword: string) => apiRequest<{ success: true }>("/auth/change-password", { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) }),
   getUser: (username: string) => apiRequest<ApiUser>(`/users/${encodeURIComponent(username)}`),
   getConversations: () => apiRequest<ApiConversation[]>("/messages/conversations"),
   createConversation: (participantIds: string[], title?: string) => apiRequest<ApiConversation>("/messages/conversations", { method: "POST", body: JSON.stringify({ participantIds, title }) }),

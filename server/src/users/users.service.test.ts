@@ -10,7 +10,7 @@ function makePrisma(configured = true) {
       findFirst: vi.fn(async () => null),
       update: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({ id: "user-1", ...data })),
     },
-    userSettings: { upsert: vi.fn(async ({ create }: { create: Record<string, unknown> }) => create) },
+    userSettings: { upsert: vi.fn(async ({ create }: { create: Record<string, unknown> }) => create), findUnique: vi.fn(async () => null) },
   };
 }
 
@@ -53,5 +53,13 @@ describe("UsersService", () => {
     expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "user-1" }, data: { displayName: "اسم جديد" } }));
     await service.updateSettings("user-1", { allowDirectMessages: false });
     expect(prisma.userSettings.upsert).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: "user-1" }, create: { userId: "user-1", allowDirectMessages: false } }));
+  });
+
+  it("يعيد تفضيلات الإشعار الافتراضية دون إنشاء سجل للمستخدم الذي لم يخصصها بعد", async () => {
+    const prisma = makePrisma();
+    prisma.user.findUnique.mockResolvedValue({ id: "user-1" });
+    const settings = await new UsersService(prisma as never).settings("user-1");
+    expect(settings).toMatchObject({ userId: "user-1", notifyMessages: true, notifyCalls: true, notifyCommunities: true });
+    expect(prisma.userSettings.findUnique).toHaveBeenCalledWith({ where: { userId: "user-1" } });
   });
 });

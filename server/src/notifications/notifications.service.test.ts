@@ -12,6 +12,9 @@ function makePrisma(configured = true) {
       deleteMany: vi.fn(async () => ({ count: 1 })),
       updateMany: vi.fn(async () => ({ count: 1 })),
     },
+    userSettings: {
+      findUnique: vi.fn(async () => null),
+    },
   };
 }
 describe("NotificationsService", () => {
@@ -33,6 +36,23 @@ describe("NotificationsService", () => {
       update: expect.objectContaining({ readAt: null }),
     }));
     expect(prisma.notification.create).not.toHaveBeenCalled();
+  });
+  it("لا يحفظ ولا يبث الإشعار عند كتم فئة المستلم", async () => {
+    const prisma = makePrisma();
+    prisma.userSettings.findUnique.mockResolvedValue({ notifyMessages: false, notifyFriendRequests: true, notifyFollows: true, notifyPostActivity: true, notifyCalls: true, notifyCommunities: true });
+    const mutedRealtime = { emit: vi.fn(async () => undefined) };
+    const result = await new NotificationsService(prisma as never, mutedRealtime as never).create({ recipientId: "recipient-1", type: "MESSAGE" as never, title: "رسالة جديدة" });
+    expect(result).toBeNull();
+    expect(prisma.notification.create).not.toHaveBeenCalled();
+    expect(mutedRealtime.emit).not.toHaveBeenCalled();
+  });
+  it("يحفظ ويبث نوعاً مسموحاً عندما تكون فئة أخرى مكتومة", async () => {
+    const prisma = makePrisma();
+    prisma.userSettings.findUnique.mockResolvedValue({ notifyMessages: false, notifyFriendRequests: true, notifyFollows: true, notifyPostActivity: true, notifyCalls: true, notifyCommunities: true });
+    const allowedRealtime = { emit: vi.fn(async () => undefined) };
+    await new NotificationsService(prisma as never, allowedRealtime as never).create({ recipientId: "recipient-1", type: "FOLLOW" as never, title: "متابع جديد" });
+    expect(prisma.notification.create).toHaveBeenCalledOnce();
+    expect(allowedRealtime.emit).toHaveBeenCalledWith("recipient-1", "notification:new", expect.anything());
   });
   it("يعيد عدّاد الإشعارات غير المقروءة للمستخدم فقط", async () => {
     const prisma = makePrisma();

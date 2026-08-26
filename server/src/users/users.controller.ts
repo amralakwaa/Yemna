@@ -20,6 +20,9 @@ export class UsersController {
   @Patch("me/settings") @UseGuards(JwtAuthGuard)
   updateSettings(@Req() request: AuthenticatedRequest, @Body() dto: UpdateMySettingsDto) { return this.users.updateSettings(request.user.sub, dto); }
 
+  @Get("me/settings") @UseGuards(JwtAuthGuard)
+  settings(@Req() request: AuthenticatedRequest) { return this.users.settings(request.user.sub); }
+
   @Get(":username")
   byUsername(@Param("username") username: string) { return this.users.byUsername(username.toLowerCase()); }
 }
