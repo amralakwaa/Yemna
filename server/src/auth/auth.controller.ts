@@ -3,7 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import type { Request, Response } from "express";
 import type { JwtPayload } from "./auth.types";
 import { AuthService } from "./auth.service";
-import { ChangePasswordDto, LoginDto, RefreshDto, RegisterDto } from "./dto/auth.dto";
+import { ChangePasswordDto, DisableTwoFactorDto, LoginDto, RefreshDto, RegisterDto, TwoFactorConfirmDto, TwoFactorSetupDto } from "./dto/auth.dto";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import type { YemnaEnv } from "../config/env";
 
@@ -57,6 +57,18 @@ export class AuthController {
 
   @Post("change-password") @UseGuards(JwtAuthGuard)
   changePassword(@Req() request: AuthenticatedRequest, @Body() dto: ChangePasswordDto) { return this.auth.changePassword(request.user.sub, request.user.sessionId, dto); }
+
+  @Get("two-factor") @UseGuards(JwtAuthGuard)
+  twoFactorStatus(@Req() request: AuthenticatedRequest) { return this.auth.twoFactorStatus(request.user.sub); }
+
+  @Post("two-factor/setup") @UseGuards(JwtAuthGuard)
+  setupTwoFactor(@Req() request: AuthenticatedRequest, @Body() dto: TwoFactorSetupDto) { return this.auth.setupTwoFactor(request.user.sub, dto); }
+
+  @Post("two-factor/confirm") @UseGuards(JwtAuthGuard)
+  confirmTwoFactor(@Req() request: AuthenticatedRequest, @Body() dto: TwoFactorConfirmDto) { return this.auth.confirmTwoFactor(request.user.sub, request.user.sessionId, dto); }
+
+  @Post("two-factor/disable") @UseGuards(JwtAuthGuard)
+  disableTwoFactor(@Req() request: AuthenticatedRequest, @Body() dto: DisableTwoFactorDto) { return this.auth.disableTwoFactor(request.user.sub, request.user.sessionId, dto); }
 
   private metadata(request: Request) { return { ipAddress: request.ip, userAgent: request.get("user-agent") }; }
   private setRefreshCookie(response: Response, refreshToken: string) {

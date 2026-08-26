@@ -81,6 +81,18 @@ describe("AuthService", () => {
     await expect(service.login({ identifier: "user@yemna.test", password: "wrong-password" }, {})).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
+  it("يتطلب رمز تحقق ثنائي صحيحاً قبل إصدار جلسة جديدة للحساب المحمي", async () => {
+    const prisma = makePrisma();
+    prisma.user.findFirst.mockResolvedValue({ ...user, passwordHash: await bcrypt.hash("correct-password", 12), twoFactorEnabled: true, twoFactorSecretEncrypted: "encrypted-secret" });
+    const { service } = makeService(prisma);
+    await expect(service.login({ identifier: "user@yemna.test", password: "correct-password" }, {})).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(prisma.authSession.create).not.toHaveBeenCalled();
+    vi.spyOn(service as never, "decryptTwoFactorSecret" as never).mockReturnValue("TESTSECRET");
+    vi.spyOn(service as never, "verifyTotp" as never).mockReturnValue(true);
+    await expect(service.login({ identifier: "user@yemna.test", password: "correct-password", twoFactorCode: "123456" }, {})).resolves.toEqual(expect.objectContaining({ accessToken: "signed-access-token" }));
+    expect(prisma.authSession.create).toHaveBeenCalledOnce();
+  });
+
   it("يدوّر جلسة التحديث الفعالة ويلغيها عند الخروج", async () => {
     const prisma = makePrisma();
     const hash = await bcrypt.hash("refresh-secret", 12);
@@ -114,5 +126,16 @@ describe("AuthService", () => {
     await expect(service.changePassword("user-1", "session-current", { currentPassword: "current-password", newPassword: "new-strong-password" })).resolves.toEqual({ success: true });
     expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "user-1" }, data: expect.objectContaining({ passwordHash: expect.any(String), passwordChangedAt: expect.any(Date) }) }));
     expect(prisma.authSession.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: "user-1", id: { not: "session-current" }, revokedAt: null } }));
+  });
+
+  it("ينشئ إعداد تحقق ثنائي مؤقتاً ومشفراً بعد التحقق من كلمة المرور", async () => {
+    const prisma = makePrisma();
+    prisma.user.findUnique.mockResolvedValue({ id: "user-1", email: "user@yemna.test", username: "test-user", displayName: "مستخدم", passwordHash: await bcrypt.hash("current-password", 12), status: AccountStatus.ACTIVE, twoFactorEnabled: false });
+    const { service } = makeService(prisma);
+    const setup = await service.setupTwoFactor("user-1", { currentPassword: "current-password" });
+    expect(setup.secret).toMatch(/^[A-Z2-7]{20}$/);
+    expect(setup.otpauthUrl).toContain("otpauth://totp/");
+    expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ twoFactorPendingSecretEncrypted: expect.any(String), twoFactorPendingExpiresAt: expect.any(Date) }) }));
+    expect(prisma.user.update.mock.calls[0][0].data.twoFactorPendingSecretEncrypted).not.toBe(setup.secret);
   });
 });

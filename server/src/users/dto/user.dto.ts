@@ -1,5 +1,5 @@
 import { Transform } from "class-transformer";
-import { IsBoolean, IsEnum, IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
+import { IsBoolean, IsEnum, IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
 
 const trim = ({ value }: { value: unknown }) => (typeof value === "string" ? value.trim() : value);
 
@@ -62,4 +62,10 @@ export class UpdateMySettingsDto {
 
   @IsOptional() @IsBoolean()
   notifyCommunities?: boolean;
+
+  @IsOptional() @IsIn(["ar", "en"])
+  locale?: "ar" | "en";
+
+  @IsOptional() @Matches(/^[A-Z]{2}$/) @Transform(({ value }) => typeof value === "string" ? value.trim().toUpperCase() : value)
+  region?: string;
 }

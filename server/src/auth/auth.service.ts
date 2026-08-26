@@ -3,7 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { AccountStatus, Prisma, type User } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { randomBytes } from "crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { DEVELOPMENT_JWT_ACCESS_SECRET, type YemnaEnv } from "../config/env";
 import { PrismaService } from "../prisma/prisma.service";
 import type { AuthTokens, JwtPayload } from "./auth.types";
@@ -38,6 +38,12 @@ export class AuthService {
     const user = await this.prisma.user.findFirst({ where: { OR: [{ email: identifier }, { phone: dto.identifier }, { username: identifier }] } });
     if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) throw new UnauthorizedException("Invalid credentials.");
     if (user.status !== AccountStatus.ACTIVE) throw new UnauthorizedException("This account is not active.");
+    if (user.twoFactorEnabled) {
+      if (!dto.twoFactorCode) throw new UnauthorizedException("رمز التحقق بخطوتين مطلوب");
+      if (!user.twoFactorSecretEncrypted || !this.verifyTotp(this.decryptTwoFactorSecret(user.twoFactorSecretEncrypted), dto.twoFactorCode)) {
+        throw new UnauthorizedException("رمز التحقق بخطوتين غير صحيح");
+      }
+    }
     await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     return this.issueTokens(user, metadata);
   }
@@ -118,6 +124,57 @@ export class AuthService {
     return { success: true as const };
   }
 
+  async twoFactorStatus(userId: string) {
+    this.assertDatabase();
+    const account = await this.prisma.user.findUnique({ where: { id: userId }, select: { twoFactorEnabled: true, twoFactorPendingExpiresAt: true } });
+    if (!account) throw new UnauthorizedException("بيانات الجلسة غير صالحة");
+    return { enabled: account.twoFactorEnabled, setupPending: Boolean(account.twoFactorPendingExpiresAt && account.twoFactorPendingExpiresAt > new Date()) };
+  }
+
+  async setupTwoFactor(userId: string, dto: { currentPassword: string }) {
+    this.assertDatabase();
+    const account = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true, username: true, displayName: true, passwordHash: true, status: true, twoFactorEnabled: true } });
+    if (!account || account.status !== AccountStatus.ACTIVE) throw new UnauthorizedException("بيانات الجلسة غير صالحة");
+    if (account.twoFactorEnabled) throw new BadRequestException("التحقق بخطوتين مفعّل بالفعل");
+    if (!(await bcrypt.compare(dto.currentPassword, account.passwordHash))) throw new UnauthorizedException("كلمة المرور الحالية غير صحيحة");
+    const secret = this.createTotpSecret();
+    const expiresAt = new Date(Date.now() + 10 * 60_000);
+    await this.prisma.user.update({ where: { id: userId }, data: { twoFactorPendingSecretEncrypted: this.encryptTwoFactorSecret(secret), twoFactorPendingExpiresAt: expiresAt } });
+    const label = account.email ?? account.username ?? account.displayName;
+    return { secret, expiresAt, otpauthUrl: `otpauth://totp/${encodeURIComponent(`Yemna:${label}`)}?secret=${secret}&issuer=Yemna&algorithm=SHA1&digits=6&period=30` };
+  }
+
+  async confirmTwoFactor(userId: string, currentSessionId: string, dto: { code: string }) {
+    this.assertDatabase();
+    const account = await this.prisma.user.findUnique({ where: { id: userId }, select: { twoFactorEnabled: true, twoFactorPendingSecretEncrypted: true, twoFactorPendingExpiresAt: true } });
+    if (!account || account.twoFactorEnabled || !account.twoFactorPendingSecretEncrypted || !account.twoFactorPendingExpiresAt || account.twoFactorPendingExpiresAt <= new Date()) {
+      throw new BadRequestException("جلسة إعداد التحقق بخطوتين غير متاحة أو انتهت");
+    }
+    const secret = this.decryptTwoFactorSecret(account.twoFactorPendingSecretEncrypted);
+    if (!this.verifyTotp(secret, dto.code)) throw new BadRequestException("رمز التحقق غير صحيح");
+    const now = new Date();
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: userId }, data: { twoFactorEnabled: true, twoFactorSecretEncrypted: account.twoFactorPendingSecretEncrypted, twoFactorPendingSecretEncrypted: null, twoFactorPendingExpiresAt: null } }),
+      this.prisma.authSession.updateMany({ where: { userId, id: { not: currentSessionId }, revokedAt: null }, data: { revokedAt: now } }),
+    ]);
+    return { success: true as const };
+  }
+
+  async disableTwoFactor(userId: string, currentSessionId: string, dto: { currentPassword: string; code: string }) {
+    this.assertDatabase();
+    const account = await this.prisma.user.findUnique({ where: { id: userId }, select: { passwordHash: true, status: true, twoFactorEnabled: true, twoFactorSecretEncrypted: true } });
+    if (!account || account.status !== AccountStatus.ACTIVE) throw new UnauthorizedException("بيانات الجلسة غير صالحة");
+    if (!account.twoFactorEnabled || !account.twoFactorSecretEncrypted) throw new BadRequestException("التحقق بخطوتين غير مفعّل");
+    if (!(await bcrypt.compare(dto.currentPassword, account.passwordHash))) throw new UnauthorizedException("كلمة المرور الحالية غير صحيحة");
+    if (!this.verifyTotp(this.decryptTwoFactorSecret(account.twoFactorSecretEncrypted), dto.code)) throw new BadRequestException("رمز التحقق غير صحيح");
+    const now = new Date();
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: userId }, data: { twoFactorEnabled: false, twoFactorSecretEncrypted: null, twoFactorPendingSecretEncrypted: null, twoFactorPendingExpiresAt: null } }),
+      this.prisma.authSession.updateMany({ where: { userId, id: { not: currentSessionId }, revokedAt: null }, data: { revokedAt: now } }),
+    ]);
+    return { success: true as const };
+  }
+
   private async issueTokens(user: User, metadata: RequestMetadata): Promise<AuthTokens> {
     const secret = randomBytes(48).toString("base64url");
     const expiresAt = new Date(Date.now() + this.config.get("YEMNA_REFRESH_TOKEN_DAYS", { infer: true }) * 86_400_000);
@@ -144,5 +201,65 @@ export class AuthService {
     if (/Macintosh|Mac OS/i.test(value)) return "جهاز macOS";
     if (/Linux/i.test(value)) return "كمبيوتر يعمل بنظام Linux";
     return "جهاز غير معروف";
+  }
+
+  private createTotpSecret() {
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+    return Array.from(randomBytes(20), byte => alphabet[byte % alphabet.length]).join("");
+  }
+
+  private verifyTotp(secret: string, code: string) {
+    const expected = Buffer.from(code);
+    return [-1, 0, 1].some(offset => {
+      const candidate = Buffer.from(this.totp(secret, Math.floor(Date.now() / 30_000) + offset));
+      return candidate.length === expected.length && timingSafeEqual(candidate, expected);
+    });
+  }
+
+  private totp(secret: string, counter: number) {
+    const decoded = this.decodeBase32(secret);
+    const buffer = Buffer.alloc(8);
+    buffer.writeBigUInt64BE(BigInt(counter));
+    const hmac = createHmac("sha1", decoded).update(buffer).digest();
+    const offset = hmac[hmac.length - 1] & 0x0f;
+    const value = ((hmac[offset] & 0x7f) << 24) | (hmac[offset + 1] << 16) | (hmac[offset + 2] << 8) | hmac[offset + 3];
+    return String(value % 1_000_000).padStart(6, "0");
+  }
+
+  private decodeBase32(secret: string) {
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+    let bits = "";
+    for (const character of secret.replace(/=+$/g, "").toUpperCase()) {
+      const value = alphabet.indexOf(character);
+      if (value < 0) throw new BadRequestException("مفتاح التحقق غير صالح");
+      bits += value.toString(2).padStart(5, "0");
+    }
+    const bytes: number[] = [];
+    for (let index = 0; index + 8 <= bits.length; index += 8) bytes.push(Number.parseInt(bits.slice(index, index + 8), 2));
+    return Buffer.from(bytes);
+  }
+
+  private twoFactorKey() {
+    const accessSecret = this.config.get("YEMNA_JWT_ACCESS_SECRET", { infer: true }) ?? this.config.get("JWT_SECRET", { infer: true }) ?? DEVELOPMENT_JWT_ACCESS_SECRET;
+    return createHash("sha256").update(accessSecret).digest();
+  }
+
+  private encryptTwoFactorSecret(secret: string) {
+    const iv = randomBytes(12);
+    const cipher = createCipheriv("aes-256-gcm", this.twoFactorKey(), iv);
+    const ciphertext = Buffer.concat([cipher.update(secret, "utf8"), cipher.final()]);
+    return `${iv.toString("base64url")}.${cipher.getAuthTag().toString("base64url")}.${ciphertext.toString("base64url")}`;
+  }
+
+  private decryptTwoFactorSecret(value: string) {
+    try {
+      const [ivValue, tagValue, ciphertextValue] = value.split(".");
+      if (!ivValue || !tagValue || !ciphertextValue) throw new Error("invalid payload");
+      const decipher = createDecipheriv("aes-256-gcm", this.twoFactorKey(), Buffer.from(ivValue, "base64url"));
+      decipher.setAuthTag(Buffer.from(tagValue, "base64url"));
+      return Buffer.concat([decipher.update(Buffer.from(ciphertextValue, "base64url")), decipher.final()]).toString("utf8");
+    } catch {
+      throw new BadRequestException("تعذر قراءة إعداد التحقق بخطوتين بأمان");
+    }
   }
 }

@@ -23,6 +23,9 @@ export class UsersController {
   @Get("me/settings") @UseGuards(JwtAuthGuard)
   settings(@Req() request: AuthenticatedRequest) { return this.users.settings(request.user.sub); }
 
+  @Get("me/data-export") @UseGuards(JwtAuthGuard)
+  exportPersonalData(@Req() request: AuthenticatedRequest) { return this.users.exportPersonalData(request.user.sub); }
+
   @Get(":username")
   byUsername(@Param("username") username: string) { return this.users.byUsername(username.toLowerCase()); }
 }

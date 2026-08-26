@@ -160,6 +160,10 @@ model User {
   phoneVerifiedAt    DateTime?
   lastLoginAt        DateTime?
   passwordChangedAt  DateTime      @default(now())
+  twoFactorEnabled   Boolean       @default(false)
+  twoFactorSecretEncrypted String?
+  twoFactorPendingSecretEncrypted String?
+  twoFactorPendingExpiresAt DateTime?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
   sessions           AuthSession[]
@@ -231,6 +235,8 @@ model UserSettings {
   notifyPostActivity       Boolean            @default(true)
   notifyCalls              Boolean            @default(true)
   notifyCommunities        Boolean            @default(true)
+  locale                   String             @default("ar") @db.VarChar(8)
+  region                   String             @default("YE") @db.VarChar(2)
   createdAt                DateTime           @default(now())
   updatedAt                DateTime           @updatedAt
   user                     User               @relation(fields: [userId], references: [id], onDelete: Cascade)

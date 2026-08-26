@@ -51,8 +51,8 @@ describe("UsersService", () => {
     const service = new UsersService(prisma as never);
     await service.updateMe("user-1", { displayName: "اسم جديد" });
     expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "user-1" }, data: { displayName: "اسم جديد" } }));
-    await service.updateSettings("user-1", { allowDirectMessages: false });
-    expect(prisma.userSettings.upsert).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: "user-1" }, create: { userId: "user-1", allowDirectMessages: false } }));
+    await service.updateSettings("user-1", { allowDirectMessages: false, locale: "en", region: "SA" });
+    expect(prisma.userSettings.upsert).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: "user-1" }, create: { userId: "user-1", allowDirectMessages: false, locale: "en", region: "SA" } }));
   });
 
   it("يعيد تفضيلات الإشعار الافتراضية دون إنشاء سجل للمستخدم الذي لم يخصصها بعد", async () => {
@@ -61,5 +61,19 @@ describe("UsersService", () => {
     const settings = await new UsersService(prisma as never).settings("user-1");
     expect(settings).toMatchObject({ userId: "user-1", notifyMessages: true, notifyCalls: true, notifyCommunities: true });
     expect(prisma.userSettings.findUnique).toHaveBeenCalledWith({ where: { userId: "user-1" } });
+  });
+
+  it("يصدر بيانات مالك الحساب فقط من دون أسرار المصادقة أو بيانات الآخرين", async () => {
+    const prisma = makePrisma();
+    prisma.user.findUnique.mockResolvedValue({
+      id: "user-1", displayName: "مستخدم", fullName: null, username: "test-user", email: "user@yemna.test", phone: null, avatarUrl: null, bio: null, city: null, governorate: null, status: "ACTIVE", createdAt: new Date("2026-08-01"), settings: { userId: "user-1", locale: "ar", region: "YE" },
+      posts: [], comments: [], reactions: [], commentReactions: [], savedPosts: [], albums: [], mediaAssets: [], stories: [], communityMemberships: [], receivedNotifications: [],
+    });
+    const result = await new UsersService(prisma as never).exportPersonalData("user-1");
+    expect(result.account).toEqual(expect.objectContaining({ id: "user-1", email: "user@yemna.test" }));
+    expect(result.account).not.toHaveProperty("passwordHash");
+    expect(result.content).toEqual(expect.objectContaining({ posts: [], communityMemberships: [] }));
+    expect(result.exclusions).toContain("security secrets");
+    expect(prisma.user.findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "user-1" }, select: expect.not.objectContaining({ passwordHash: true, authSessions: expect.anything() }) }));
   });
 });

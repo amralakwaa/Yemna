@@ -8,7 +8,7 @@ export class ApiError extends Error {
   constructor(public readonly status: number, message: string) { super(message); }
 }
 
-export type ApiUserSettings = { userId?: string; profileVisibility?: "PUBLIC" | "FRIENDS" | "ONLY_ME" | "COMMUNITY"; showOnlineStatus?: boolean; allowDirectMessages?: boolean; friendRequestPermission?: "EVERYONE" | "FRIENDS" | "NOBODY"; followPermission?: "EVERYONE" | "FRIENDS" | "NOBODY"; notifyMessages?: boolean; notifyFriendRequests?: boolean; notifyFollows?: boolean; notifyPostActivity?: boolean; notifyCalls?: boolean; notifyCommunities?: boolean };
+export type ApiUserSettings = { userId?: string; profileVisibility?: "PUBLIC" | "FRIENDS" | "ONLY_ME" | "COMMUNITY"; showOnlineStatus?: boolean; allowDirectMessages?: boolean; friendRequestPermission?: "EVERYONE" | "FRIENDS" | "NOBODY"; followPermission?: "EVERYONE" | "FRIENDS" | "NOBODY"; notifyMessages?: boolean; notifyFriendRequests?: boolean; notifyFollows?: boolean; notifyPostActivity?: boolean; notifyCalls?: boolean; notifyCommunities?: boolean; locale?: "ar" | "en"; region?: string | null };
 export type ApiUser = { id: string; displayName: string; username: string; fullName?: string | null; email?: string | null; phone?: string | null; avatarUrl?: string | null; bio?: string | null; city?: string | null; governorate?: string | null; createdAt?: string; status?: string | null; settings?: ApiUserSettings | null };
 export type ApiMedia = { url?: string | null; publicUrl?: string | null; kind?: string };
 export type ApiReactionType = "LIKE" | "LOVE" | "SUPPORT" | "WOW" | "SAD" | "ANGRY";
@@ -84,6 +84,9 @@ export type ApiAssistantChatResponse = { reply: string };
 export type ApiIceServer = { urls: string[]; username?: string; credential?: string };
 export type ApiCallIceConfig = { iceServers: ApiIceServer[]; turnConfigured: boolean };
 export type ApiAuthSession = { id: string; deviceName: string; createdAt: string; lastActiveAt: string; expiresAt: string; isCurrent: boolean };
+export type ApiTwoFactorStatus = { enabled: boolean; setupPending: boolean };
+export type ApiTwoFactorSetup = { secret: string; otpauthUrl: string; expiresAt: string };
+export type ApiPersonalDataExport = { format: string; exportedAt: string; account: Record<string, unknown>; settings: ApiUserSettings; content: Record<string, unknown>; notifications: unknown[]; exclusions: string[] };
 type AuthResponse = { accessToken: string; user: ApiUser };
 
 function readAccessToken() {
@@ -223,7 +226,7 @@ export function uploadMediaWithProgress(file: File, options: MediaUploadOptions 
 
 export const api = {
   register: (payload: { displayName: string; email?: string; phone?: string; password: string }) => apiRequest<AuthResponse>("/auth/register", { method: "POST", body: JSON.stringify(payload) }),
-  login: (identifier: string, password: string) => apiRequest<AuthResponse>("/auth/login", { method: "POST", body: JSON.stringify({ identifier, password }) }),
+  login: (identifier: string, password: string, twoFactorCode?: string) => apiRequest<AuthResponse>("/auth/login", { method: "POST", body: JSON.stringify({ identifier, password, ...(twoFactorCode ? { twoFactorCode } : {}) }) }),
   logout: () => apiRequest<void>("/auth/logout", { method: "POST" }, false),
   getFeed: () => apiRequest<FeedResponse>("/posts?limit=20"),
   getPost: (postId: string) => apiRequest<ApiPost>(`/posts/${encodeURIComponent(postId)}`),
@@ -248,10 +251,15 @@ export const api = {
   updateMe: (payload: Partial<Pick<ApiUser, "displayName" | "fullName" | "username" | "bio" | "city" | "governorate" | "avatarUrl">>) => apiRequest<ApiUser>("/users/me", { method: "PATCH", body: JSON.stringify(payload) }),
   getSettings: () => apiRequest<ApiUserSettings>("/users/me/settings"),
   updateSettings: (payload: Partial<ApiUserSettings>) => apiRequest<ApiUserSettings>("/users/me/settings", { method: "PATCH", body: JSON.stringify(payload) }),
+  getPersonalDataExport: () => apiRequest<ApiPersonalDataExport>("/users/me/data-export"),
   getAuthSessions: () => apiRequest<ApiAuthSession[]>("/auth/sessions"),
   revokeAuthSession: (sessionId: string) => apiRequest<{ success: true }>(`/auth/sessions/${encodeURIComponent(sessionId)}`, { method: "DELETE" }),
   revokeOtherAuthSessions: () => apiRequest<{ count: number }>("/auth/sessions/revoke-others", { method: "POST" }),
   changePassword: (currentPassword: string, newPassword: string) => apiRequest<{ success: true }>("/auth/change-password", { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) }),
+  getTwoFactorStatus: () => apiRequest<ApiTwoFactorStatus>("/auth/two-factor"),
+  setupTwoFactor: (currentPassword: string) => apiRequest<ApiTwoFactorSetup>("/auth/two-factor/setup", { method: "POST", body: JSON.stringify({ currentPassword }) }),
+  confirmTwoFactor: (code: string) => apiRequest<{ success: true }>("/auth/two-factor/confirm", { method: "POST", body: JSON.stringify({ code }) }),
+  disableTwoFactor: (currentPassword: string, code: string) => apiRequest<{ success: true }>("/auth/two-factor/disable", { method: "POST", body: JSON.stringify({ currentPassword, code }) }),
   getUser: (username: string) => apiRequest<ApiUser>(`/users/${encodeURIComponent(username)}`),
   getConversations: () => apiRequest<ApiConversation[]>("/messages/conversations"),
   createConversation: (participantIds: string[], title?: string) => apiRequest<ApiConversation>("/messages/conversations", { method: "POST", body: JSON.stringify({ participantIds, title }) }),

@@ -45,10 +45,10 @@ const viewMeta: Record<SettingsView, { title: string; description: string }> = {
   notifications: { title: "تفضيلات الإشعارات", description: "اختر التنبيهات التي تريد استلامها. التغيير محفوظ ويؤثر في الإشعارات الجديدة فقط." },
   security: { title: "الأمان", description: "راجع كلمات المرور والتحقق الثنائي والأجهزة من صفحات مستقلة." },
   password: { title: "كلمة المرور", description: "غيّر كلمة المرور بأمان باستخدام كلمة المرور الحالية." },
-  twoFactor: { title: "التحقق بخطوتين", description: "ستظهر هنا خيارات التحقق الثنائي عند توفير تدفق آمن ومكتمل." },
-  language: { title: "اللغة والمنطقة", description: "ستظهر تفضيلات اللغة والمنطقة هنا عند توفير إعداد محفوظ للخدمة." },
+  twoFactor: { title: "التحقق بخطوتين", description: "فعّل تطبيق مصادقة عبر رمز زمني متغير، ثم أكّد الرمز لحماية تسجيل الدخول." },
+  language: { title: "اللغة والمنطقة", description: "احفظ تفضيلات لغة الواجهة والمنطقة في حسابك." },
   sessions: { title: "الجلسات والأجهزة", description: "راجع جلسات الدخول النشطة وأنهِ أي جلسة لا تتعرّف عليها." },
-  data: { title: "تنزيل بياناتك", description: "نعرض حالة توفر التصدير بوضوح قبل بدء أي عملية حساسة." },
+  data: { title: "تنزيل بياناتك", description: "صدّر نسخة مقيدة من بيانات حسابك الشخصية بصيغة JSON." },
   privacyCenter: { title: "مركز الخصوصية", description: "اطّلع على صفحات الخصوصية والبيانات المتاحة في حسابك." },
 };
 
@@ -100,8 +100,34 @@ function PasswordView() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const changePassword = useMutation({ mutationFn: () => api.changePassword(currentPassword, newPassword), onSuccess: () => { setCurrentPassword(""); setNewPassword(""); setConfirmation(""); toast.success("تم تغيير كلمة المرور وإنهاء الجلسات الأخرى"); void queryClient.invalidateQueries({ queryKey: ["rest", "auth", "sessions"] }); }, onError: error => toast.error(error instanceof Error ? error.message : "تعذر تغيير كلمة المرور") });
-  const submit = (event: React.FormEvent) => { event.preventDefault(); if (newPassword.length < 8) return toast.error("يجب أن تتكون كلمة المرور الجديدة من 8 أحرف على الأقل"); if (newPassword !== confirmation) return toast.error("تأكيد كلمة المرور غير مطابق"); changePassword.mutate(); };
-  return <section className="settings-section"><h2>تغيير كلمة المرور</h2><p className="settings-lead">يتطلب هذا الإجراء كلمة المرور الحالية، ثم ينهي كل الجلسات الأخرى تلقائياً.</p><form className="security-password-form" onSubmit={submit}><label>كلمة المرور الحالية<input type="password" autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} required disabled={changePassword.isPending}/></label><label>كلمة المرور الجديدة<input type="password" autoComplete="new-password" minLength={8} value={newPassword} onChange={event => setNewPassword(event.target.value)} required disabled={changePassword.isPending}/></label><label>تأكيد كلمة المرور الجديدة<input type="password" autoComplete="new-password" minLength={8} value={confirmation} onChange={event => setConfirmation(event.target.value)} required disabled={changePassword.isPending}/></label><button className="button" type="submit" disabled={changePassword.isPending}>{changePassword.isPending ? "جارٍ الحفظ…" : "تغيير كلمة المرور"}</button></form></section>;
+  const submit = (event: React.FormEvent) => { event.preventDefault(); if (newPassword.length < 10) return toast.error("يجب أن تتكون كلمة المرور الجديدة من 10 أحرف على الأقل"); if (newPassword !== confirmation) return toast.error("تأكيد كلمة المرور غير مطابق"); changePassword.mutate(); };
+  return <section className="settings-section"><h2>تغيير كلمة المرور</h2><p className="settings-lead">يتطلب هذا الإجراء كلمة المرور الحالية، ثم ينهي كل الجلسات الأخرى تلقائياً.</p><form className="security-password-form" onSubmit={submit}><label>كلمة المرور الحالية<input type="password" autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} required disabled={changePassword.isPending}/></label><label>كلمة المرور الجديدة<input type="password" autoComplete="new-password" minLength={10} value={newPassword} onChange={event => setNewPassword(event.target.value)} required disabled={changePassword.isPending}/></label><label>تأكيد كلمة المرور الجديدة<input type="password" autoComplete="new-password" minLength={10} value={confirmation} onChange={event => setConfirmation(event.target.value)} required disabled={changePassword.isPending}/></label><button className="button" type="submit" disabled={changePassword.isPending}>{changePassword.isPending ? "جارٍ الحفظ…" : "تغيير كلمة المرور"}</button></form></section>;
+}
+
+function LanguageView({ settings, disabled, onSave }: { settings?: ApiUserSettings; disabled: boolean; onSave: (payload: Partial<ApiUserSettings>) => void }) {
+  return <section className="settings-section"><h2>لغة الواجهة والمنطقة</h2><p className="settings-lead">تُحفظ هذه التفضيلات في حسابك، ويمكن للخدمات القادمة استخدامها لتنسيق التجربة والمحتوى المحلي.</p><label className="settings-select-row"><span><b>لغة الواجهة</b><small>تحديد لغة حسابك المفضلة.</small></span><select value={settings?.locale ?? "ar"} disabled={disabled} onChange={event => onSave({ locale: event.target.value as "ar" | "en" })}><option value="ar">العربية</option><option value="en">English</option></select></label><label className="settings-select-row"><span><b>المنطقة</b><small>رمز الدولة المكوّن من حرفين لتخصيص السياق المحلي.</small></span><select value={settings?.region ?? "YE"} disabled={disabled} onChange={event => onSave({ region: event.target.value })}><option value="YE">اليمن</option><option value="SA">المملكة العربية السعودية</option><option value="AE">الإمارات العربية المتحدة</option><option value="OM">عُمان</option><option value="QA">قطر</option><option value="KW">الكويت</option><option value="BH">البحرين</option><option value="EG">مصر</option><option value="JO">الأردن</option></select></label></section>;
+}
+
+function TwoFactorView() {
+  const queryClient = useQueryClient();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [setup, setSetup] = useState<{ secret: string; otpauthUrl: string; expiresAt: string } | null>(null);
+  const status = useQuery({ queryKey: ["rest", "auth", "two-factor"], queryFn: api.getTwoFactorStatus, retry: 1 });
+  const begin = useMutation({ mutationFn: () => api.setupTwoFactor(currentPassword), onSuccess: result => { setSetup(result); setCurrentPassword(""); setVerificationCode(""); toast.success("أضف المفتاح إلى تطبيق المصادقة ثم أكّد الرمز"); }, onError: error => toast.error(error instanceof Error ? error.message : "تعذر بدء الإعداد") });
+  const confirm = useMutation({ mutationFn: () => api.confirmTwoFactor(verificationCode), onSuccess: () => { setSetup(null); setVerificationCode(""); toast.success("تم تفعيل التحقق بخطوتين"); void queryClient.invalidateQueries({ queryKey: ["rest", "auth", "two-factor"] }); }, onError: error => toast.error(error instanceof Error ? error.message : "رمز التحقق غير صحيح") });
+  const disable = useMutation({ mutationFn: () => api.disableTwoFactor(currentPassword, verificationCode), onSuccess: () => { setCurrentPassword(""); setVerificationCode(""); toast.success("تم تعطيل التحقق بخطوتين"); void queryClient.invalidateQueries({ queryKey: ["rest", "auth", "two-factor"] }); }, onError: error => toast.error(error instanceof Error ? error.message : "تعذر تعطيل التحقق") });
+  if (status.isLoading) return <div className="settings-loading"><LoaderCircle className="animate-spin" size={23}/><span>يجري تحميل حالة الحماية…</span></div>;
+  if (status.isError) return <section className="settings-section"><SettingNotice icon={<X size={29}/>} title="تعذر تحميل حالة التحقق" text="تحقق من الاتصال ثم أعد المحاولة."/><button className="button secondary" type="button" onClick={() => void status.refetch()}>إعادة المحاولة</button></section>;
+  const pending = begin.isPending || confirm.isPending || disable.isPending;
+  if (status.data?.enabled) return <section className="settings-section"><SettingNotice icon={<ShieldCheck size={30}/>} title="التحقق بخطوتين مفعّل" text="سيُطلب رمز من تطبيق المصادقة عند تسجيل الدخول من جلسة جديدة."/><form className="security-password-form" onSubmit={event => { event.preventDefault(); if (!/^\d{6}$/.test(verificationCode)) return toast.error("أدخل رمزاً مكوّناً من 6 أرقام"); disable.mutate(); }}><label>كلمة المرور الحالية<input type="password" autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} required disabled={pending}/></label><label>رمز تطبيق المصادقة<input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={verificationCode} onChange={event => setVerificationCode(event.target.value.replace(/\D/g, ""))} required disabled={pending}/></label><button className="button secondary" type="submit" disabled={pending}>{disable.isPending ? "جارٍ التعطيل…" : "تعطيل التحقق بخطوتين"}</button></form></section>;
+  if (setup) return <section className="settings-section"><h2>تأكيد التحقق بخطوتين</h2><p className="settings-lead">امسح الرابط في تطبيق مصادقة موثوق أو أضف المفتاح مرة واحدة، ثم أدخل الرمز المكوّن من 6 أرقام. ينتهي المفتاح المؤقت في {formatDate(setup.expiresAt)}.</p><label className="security-secret">رابط إعداد التطبيق<textarea readOnly value={setup.otpauthUrl} aria-label="رابط إعداد تطبيق المصادقة"/></label><form className="security-password-form" onSubmit={event => { event.preventDefault(); if (!/^\d{6}$/.test(verificationCode)) return toast.error("أدخل رمزاً مكوّناً من 6 أرقام"); confirm.mutate(); }}><label>رمز التحقق<input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={verificationCode} onChange={event => setVerificationCode(event.target.value.replace(/\D/g, ""))} required disabled={pending}/></label><button className="button" type="submit" disabled={pending}>{confirm.isPending ? "جارٍ التفعيل…" : "تأكيد التفعيل"}</button></form></section>;
+  return <section className="settings-section"><h2>فعّل التحقق بخطوتين</h2><p className="settings-lead">استخدم تطبيق مصادقة موثوقاً. يتطلب التشغيل كلمة المرور الحالية، ولا تُحفظ كلمات المرور أو رموز التطبيق في الواجهة.</p><form className="security-password-form" onSubmit={event => { event.preventDefault(); begin.mutate(); }}><label>كلمة المرور الحالية<input type="password" autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} required disabled={pending}/></label><button className="button" type="submit" disabled={pending}>{begin.isPending ? "جارٍ إنشاء إعداد آمن…" : "إعداد التحقق بخطوتين"}</button></form></section>;
+}
+
+function DataExportView() {
+  const download = useMutation({ mutationFn: api.getPersonalDataExport, onSuccess: payload => { const file = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" }); const url = URL.createObjectURL(file); const link = document.createElement("a"); link.href = url; link.download = `yemna-data-${new Date().toISOString().slice(0, 10)}.json`; link.click(); URL.revokeObjectURL(url); toast.success("بدأ تنزيل بيانات حسابك"); }, onError: error => toast.error(error instanceof Error ? error.message : "تعذر تجهيز بيانات الحساب") });
+  return <section className="settings-section"><h2>تنزيل بيانات حسابك</h2><p className="settings-lead">ينشئ هذا الزر ملف JSON خاصاً ببيانات حسابك وإعداداتك ومحتواك وإشعاراتك. لا يتضمن كلمات المرور أو رموز الجلسات أو أسرار التحقق الثنائي أو بيانات الآخرين الخاصة.</p><button className="button" type="button" disabled={download.isPending} onClick={() => download.mutate()}>{download.isPending ? "جارٍ تجهيز الملف…" : "تنزيل بياناتي"}</button></section>;
 }
 
 function SecurityOverview() {
@@ -127,7 +153,7 @@ function SettingsPageShell({ view }: { view: SettingsView }) {
   const [, setLocation] = useLocation();
   const { currentUser, isAuthenticated, isLoading } = useCurrentUser();
   const queryClient = useQueryClient();
-  const needsStoredSettings = view === "privacy" || view === "notifications";
+  const needsStoredSettings = view === "privacy" || view === "notifications" || view === "language";
   const needsSessions = view === "sessions";
   const settings = useQuery({ queryKey: ["rest", "users", "me", "settings"], queryFn: api.getSettings, enabled: isAuthenticated && needsStoredSettings, retry: 1 });
   const sessions = useQuery({ queryKey: ["rest", "auth", "sessions"], queryFn: api.getAuthSessions, enabled: isAuthenticated && needsSessions, retry: 1 });
@@ -145,10 +171,10 @@ function SettingsPageShell({ view }: { view: SettingsView }) {
     if (view === "notifications") return <NotificationRows settings={settings.data} disabled={updateSettings.isPending} onSave={updateSettings.mutate}/>;
     if (view === "security") return <SecurityOverview/>;
     if (view === "password") return <PasswordView/>;
-    if (view === "twoFactor") return <SettingNotice icon={<ShieldCheck size={30}/>} title="التحقق بخطوتين غير مفعّل" text="لا يوجد مفتاح تشغيل شكلي. سنوفره فقط عند اكتمال التحقق الثنائي الفعلي والآمن."/>;
-    if (view === "language") return <SettingNotice icon={<Settings size={30}/>} title="تفضيلات اللغة والمنطقة قيد الإعداد" text="لا يوجد خيار محفوظ في الخلفية بعد، لذلك لا نعرض تحكماً يوحي بالحفظ قبل توفيره."/>;
+    if (view === "twoFactor") return <TwoFactorView/>;
+    if (view === "language") return <LanguageView settings={settings.data} disabled={updateSettings.isPending} onSave={updateSettings.mutate}/>;
     if (view === "sessions") return <SessionsPanel sessions={sessions.data} isLoading={sessions.isLoading} isError={sessions.isError} onRetry={() => void sessions.refetch()} onRevoke={revokeSession.mutate} onRevokeOthers={revokeOthers.mutate} pending={revokeSession.isPending || revokeOthers.isPending}/>;
-    if (view === "data") return <SettingNotice icon={<FileText size={30}/>} title="تصدير البيانات غير متاح بعد" text="لا يوجد حالياً عقد خلفي آمن لإنشاء ملف بيانات، لذا لن نعرض زر تنزيل يوحي بعملية غير موجودة."/>;
+    if (view === "data") return <DataExportView/>;
     if (view === "privacyCenter") return <PrivacyCenterView/>;
     return <Overview/>;
   };

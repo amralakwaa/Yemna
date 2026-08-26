@@ -20,6 +20,8 @@ const defaultSettings = {
   notifyPostActivity: true,
   notifyCalls: true,
   notifyCommunities: true,
+  locale: "ar",
+  region: "YE",
 };
 
 @Injectable()
@@ -78,5 +80,37 @@ export class UsersService {
     if (!account) throw new NotFoundException("المستخدم غير موجود");
     const settings = await this.database().userSettings.findUnique({ where: { userId } });
     return settings ?? { userId, ...defaultSettings };
+  }
+
+  async exportPersonalData(userId: string) {
+    const account = await this.database().user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true, displayName: true, fullName: true, username: true, email: true, phone: true,
+        avatarUrl: true, bio: true, city: true, governorate: true, status: true, createdAt: true,
+        settings: true,
+        posts: { select: { id: true, body: true, visibility: true, status: true, publishedAt: true, createdAt: true, updatedAt: true } },
+        comments: { select: { id: true, postId: true, parentId: true, body: true, createdAt: true, updatedAt: true } },
+        reactions: { select: { postId: true, type: true, createdAt: true } },
+        commentReactions: { select: { commentId: true, type: true, createdAt: true } },
+        savedPosts: { select: { postId: true, createdAt: true } },
+        albums: { select: { id: true, title: true, description: true, coverUrl: true, createdAt: true, updatedAt: true } },
+        mediaAssets: { select: { id: true, postId: true, albumId: true, messageId: true, kind: true, publicUrl: true, mimeType: true, byteSize: true, width: true, height: true, durationSeconds: true, createdAt: true } },
+        stories: { select: { id: true, mediaId: true, caption: true, expiresAt: true, createdAt: true } },
+        communityMemberships: { select: { communityId: true, role: true, joinedAt: true } },
+        receivedNotifications: { select: { id: true, type: true, title: true, body: true, linkUrl: true, sourceKey: true, readAt: true, createdAt: true } },
+      },
+    });
+    if (!account) throw new NotFoundException("المستخدم غير موجود");
+    const { settings, posts, comments, reactions, commentReactions, savedPosts, albums, mediaAssets, stories, communityMemberships, receivedNotifications, ...profile } = account;
+    return {
+      format: "yemna-account-export/v1",
+      exportedAt: new Date().toISOString(),
+      account: profile,
+      settings: settings ?? { userId, ...defaultSettings },
+      content: { posts, comments, reactions, commentReactions, savedPosts, albums, mediaAssets, stories, communityMemberships },
+      notifications: receivedNotifications,
+      exclusions: ["password hashes", "refresh tokens", "session identifiers", "security secrets", "other users' private data"],
+    };
   }
 }

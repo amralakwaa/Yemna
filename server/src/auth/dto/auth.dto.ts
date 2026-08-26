@@ -21,6 +21,9 @@ export class LoginDto {
   identifier!: string;
   @IsString() @MinLength(10) @MaxLength(128)
   password!: string;
+
+  @IsOptional() @IsString() @Matches(/^\d{6}$/)
+  twoFactorCode?: string;
 }
 
 export class RefreshDto {
@@ -34,4 +37,19 @@ export class ChangePasswordDto {
 
   @IsString() @MinLength(10) @MaxLength(128)
   newPassword!: string;
+}
+
+export class TwoFactorSetupDto {
+  @IsString() @MinLength(10) @MaxLength(128)
+  currentPassword!: string;
+}
+
+export class TwoFactorConfirmDto {
+  @IsString() @Matches(/^\d{6}$/)
+  code!: string;
+}
+
+export class DisableTwoFactorDto extends TwoFactorSetupDto {
+  @IsString() @Matches(/^\d{6}$/)
+  code!: string;
 }
