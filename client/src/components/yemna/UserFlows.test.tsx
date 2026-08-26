@@ -873,10 +873,15 @@ describe("تدفقات المستخدم الأساسية", () => {
   it("يفرز التعليقات ويحفظ تفاعل التعليق بعقد REST الحي", async () => {
     sessionStorage.setItem("yemna_access_token", "test-access-token");
     const liveUser = { id: "user-comments", displayName: "حساب حي", username: "live-comments", avatarUrl: null };
-    const comment = { id: "comment-1", body: "تعليق حقيقي", createdAt: "2026-08-26T00:00:00.000Z", author: liveUser, replies: [], reactionSummary: { LIKE: 0, LOVE: 0, SUPPORT: 0, WOW: 0, SAD: 0, ANGRY: 0 }, reactionTotal: 0, viewerReaction: null };
+    const commenter = { id: "user-commenter", displayName: "صاحب تعليق حي", username: "live-commenter", avatarUrl: null };
+    const comment = { id: "comment-1", body: "تعليق حقيقي", createdAt: "2026-08-26T00:00:00.000Z", author: commenter, replies: [], reactionSummary: { LIKE: 0, LOVE: 1, SUPPORT: 0, WOW: 0, SAD: 0, ANGRY: 0 }, reactionTotal: 1, viewerReaction: null };
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = String(input);
       if (url.endsWith("/users/me")) return jsonResponse(liveUser);
+      if (url.endsWith("/posts/post-comments/comments/comment-1/reactions") && init?.method !== "POST") return jsonResponse([{ id: "comment-reaction-1", type: "LOVE", user: commenter }]);
+      if (url.endsWith("/posts/post-comments/hidden-comments")) return jsonResponse({ commentIds: [] });
+      if (url.endsWith("/posts/post-comments/comments/comment-1/hide") && init?.method === "POST") return jsonResponse({ hidden: true });
+      if (url.endsWith("/support/reports") && init?.method === "POST") return jsonResponse({ id: "report-1", targetType: "COMMENT", targetId: "comment-1" });
       if (url.includes("/posts/post-comments/comments") && !url.includes("comment-viewer-reactions") && init?.method !== "POST") return jsonResponse([comment]);
       if (url.endsWith("/posts/post-comments/comment-viewer-reactions")) return jsonResponse({ viewerReactions: {} });
       if (url.endsWith("/posts/post-comments/comments/comment-1/reactions") && init?.method === "POST") return jsonResponse({ active: true, type: "LOVE", engagement: { ...comment, reactionSummary: { ...comment.reactionSummary, LOVE: 1 }, reactionTotal: 1, viewerReaction: "LOVE", reactors: [] } });
@@ -892,6 +897,17 @@ describe("تدفقات المستخدم الأساسية", () => {
     await user.click(screen.getByRole("button", { name: "إضافة تفاعل" }));
     await user.click(screen.getByRole("button", { name: "أحببته" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/posts/post-comments/comments/comment-1/reactions", expect.objectContaining({ method: "POST", body: JSON.stringify({ type: "LOVE" }) })));
+    await user.click(screen.getByRole("button", { name: "عرض 1 متفاعل" }));
+    expect(await screen.findByRole("dialog", { name: "المتفاعلون مع التعليق" })).toBeTruthy();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/posts/post-comments/comments/comment-1/reactions", expect.anything()));
+    await user.click(screen.getByRole("button", { name: "إغلاق" }));
+    await user.click(screen.getByRole("button", { name: /إخفاء/ }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/posts/post-comments/comments/comment-1/hide", expect.objectContaining({ method: "POST" })));
+    await user.click(screen.getByRole("button", { name: /إبلاغ/ }));
+    const reportDialog = await screen.findByRole("dialog", { name: "إبلاغ عن تعليق" });
+    await user.selectOptions(within(reportDialog).getByLabelText("سبب البلاغ"), "معلومات مضللة");
+    await user.click(within(reportDialog).getByRole("button", { name: "إرسال البلاغ" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/support/reports", expect.objectContaining({ method: "POST", body: JSON.stringify({ targetType: "COMMENT", targetId: "comment-1", reason: "معلومات مضللة" }) })));
   });
 
   it("يحمي إنشاء القصة للضيف بدعوة دخول صادقة قبل اختيار أي ملف", async () => {

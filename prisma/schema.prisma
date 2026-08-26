@@ -168,6 +168,7 @@ model User {
   comments           Comment[]     @relation("commentAuthor")
   reactions          Reaction[]
   commentReactions   CommentReaction[]
+  hiddenComments     CommentHide[] @relation("commentHiddenBy")
   savedPosts         SavedPost[]
   mediaAssets        MediaAsset[]  @relation("mediaOwner")
   stories            Story[]
@@ -266,6 +267,7 @@ model Comment {
   parent    Comment?  @relation("commentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   Comment[] @relation("commentReplies")
   reactions CommentReaction[]
+  hiddenBy  CommentHide[]
 
   @@index([postId, createdAt])
 }
@@ -278,6 +280,18 @@ model CommentReaction {
   createdAt DateTime     @default(now())
   comment   Comment      @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+  @@index([commentId, createdAt])
+}
+
+model CommentHide {
+  id        String   @id @default(cuid())
+  commentId String
+  userId    String
+  createdAt DateTime @default(now())
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User     @relation("commentHiddenBy", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, commentId])
   @@index([commentId, createdAt])

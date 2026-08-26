@@ -158,6 +158,44 @@ export class PostsService {
     return { viewerReactions: Object.fromEntries(reactions.map(reaction => [reaction.commentId, reaction.type])) };
   }
 
+  async listCommentReactions(postId: string, commentId: string, limit = 50) {
+    const comment = await this.database().comment.findFirst({ where: { id: commentId, postId }, select: { id: true } });
+    if (!comment) throw new NotFoundException("التعليق غير موجود");
+    return this.database().commentReaction.findMany({
+      where: { commentId },
+      include: { user: { select: publicUser } },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+  }
+
+  async getHiddenCommentIds(userId: string, postId: string) {
+    await this.findPost(postId);
+    const hidden = await this.database().commentHide.findMany({
+      where: { userId, comment: { postId } },
+      select: { commentId: true },
+    });
+    return { commentIds: hidden.map(item => item.commentId) };
+  }
+
+  async hideComment(userId: string, postId: string, commentId: string) {
+    const comment = await this.database().comment.findFirst({ where: { id: commentId, postId }, select: { id: true } });
+    if (!comment) throw new NotFoundException("التعليق غير موجود");
+    await this.database().commentHide.upsert({
+      where: { userId_commentId: { userId, commentId } },
+      create: { userId, commentId },
+      update: {},
+    });
+    return { hidden: true };
+  }
+
+  async unhideComment(userId: string, postId: string, commentId: string) {
+    const comment = await this.database().comment.findFirst({ where: { id: commentId, postId }, select: { id: true } });
+    if (!comment) throw new NotFoundException("التعليق غير موجود");
+    await this.database().commentHide.deleteMany({ where: { userId, commentId } });
+    return { hidden: false };
+  }
+
   async updateComment(userId: string, postId: string, commentId: string, dto: UpdateCommentDto) {
     const comment = await this.database().comment.findFirst({ where: { id: commentId, postId } });
     if (!comment) throw new NotFoundException("التعليق غير موجود");

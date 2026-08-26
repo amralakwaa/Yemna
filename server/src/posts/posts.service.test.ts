@@ -16,6 +16,7 @@ function makePrisma(configured = true) {
     reaction: { findFirst: vi.fn(async () => null), findMany: vi.fn(async () => []), groupBy: vi.fn(async () => []), delete: vi.fn(), deleteMany: vi.fn(), create: vi.fn() },
     commentReaction: { findFirst: vi.fn(async () => null), findMany: vi.fn(async () => []), groupBy: vi.fn(async () => []), deleteMany: vi.fn(), create: vi.fn() },
     comment: { findFirst: vi.fn(async () => null), create: vi.fn(async () => ({ id: "comment-1" })), update: vi.fn(async ({ data }: { data: unknown }) => ({ id: "comment-1", ...data })), delete: vi.fn(async () => undefined), findMany: vi.fn(async () => []) },
+    commentHide: { findMany: vi.fn(async () => []), upsert: vi.fn(async () => ({ id: "hide-1" })), deleteMany: vi.fn(async () => ({ count: 1 })) },
     savedPost: { findUnique: vi.fn(async () => null), create: vi.fn(async () => ({ id: "saved-1" })), delete: vi.fn() },
     $transaction: vi.fn(async () => []),
   };
@@ -152,6 +153,37 @@ describe("PostsService", () => {
     const service = new PostsService(prisma as never, makeNotifications() as never);
     await service.listComments("post-1", { sort: "TOP" });
     expect(prisma.comment.findMany).toHaveBeenCalledWith(expect.objectContaining({ orderBy: [{ reactions: { _count: "desc" } }, { createdAt: "desc" }] }));
+  });
+
+  it("يعرض قائمة حقيقية لمتفاعلي تعليق المنشور المحدد", async () => {
+    const prisma = makePrisma();
+    prisma.comment.findFirst.mockResolvedValue({ id: "comment-1" });
+    prisma.commentReaction.findMany.mockResolvedValue([{ id: "comment-reaction-1", type: ReactionType.LOVE, user: { id: "user-2", displayName: "مستخدم", username: "user", avatarUrl: null } }]);
+    const service = new PostsService(prisma as never, makeNotifications() as never);
+    await expect(service.listCommentReactions("post-1", "comment-1")).resolves.toEqual([expect.objectContaining({ id: "comment-reaction-1", type: ReactionType.LOVE })]);
+    expect(prisma.commentReaction.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { commentId: "comment-1" }, take: 50 }));
+  });
+
+  it("يخفي المستخدم تعليقاً لنفسه فقط ثم يعيد إظهاره", async () => {
+    const prisma = makePrisma();
+    prisma.comment.findFirst.mockResolvedValue({ id: "comment-1" });
+    const service = new PostsService(prisma as never, makeNotifications() as never);
+    await expect(service.hideComment("user-1", "post-1", "comment-1")).resolves.toEqual({ hidden: true });
+    expect(prisma.commentHide.upsert).toHaveBeenCalledWith({
+      where: { userId_commentId: { userId: "user-1", commentId: "comment-1" } },
+      create: { userId: "user-1", commentId: "comment-1" },
+      update: {},
+    });
+    await expect(service.unhideComment("user-1", "post-1", "comment-1")).resolves.toEqual({ hidden: false });
+    expect(prisma.commentHide.deleteMany).toHaveBeenCalledWith({ where: { userId: "user-1", commentId: "comment-1" } });
+  });
+
+  it("يعيد فقط معرّفات التعليقات المخفية للمشاهد الحالي ضمن المنشور", async () => {
+    const prisma = makePrisma();
+    prisma.commentHide.findMany.mockResolvedValue([{ commentId: "comment-1" }, { commentId: "comment-2" }]);
+    const service = new PostsService(prisma as never, makeNotifications() as never);
+    await expect(service.getHiddenCommentIds("user-1", "post-1")).resolves.toEqual({ commentIds: ["comment-1", "comment-2"] });
+    expect(prisma.commentHide.findMany).toHaveBeenCalledWith({ where: { userId: "user-1", comment: { postId: "post-1" } }, select: { commentId: true } });
   });
 
   it("يعدّل التعليق للمالك فقط ويحفظ النص الجديد", async () => {

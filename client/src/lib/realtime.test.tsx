@@ -10,6 +10,11 @@ function SubscriptionProbe({ onEvent }: { onEvent: (event: unknown) => void }) {
   return null;
 }
 
+function NotificationProbe({ onEvent }: { onEvent: (event: unknown) => void }) {
+  useRealtimeSubscription(["notification:new"], onEvent);
+  return null;
+}
+
 function createSocket() {
   const handlers = new Map<string, Set<(...args: unknown[]) => void>>();
   const socket = {
@@ -35,11 +40,14 @@ function createSocket() {
       socket.connected = false;
       return socket;
     }),
+    receive: (name: string, event: unknown) => {
+      handlers.get(name)?.forEach(listener => listener(event));
+    },
     timeout: vi.fn(() => ({
       emit: vi.fn((_name: string, _payload: unknown, acknowledgement: (error: Error | null, response?: unknown) => void) => acknowledgement(null, { success: true, recipientCount: 1 })),
     })),
   };
-  return socket as unknown as Socket;
+  return socket as unknown as Socket & { receive: (name: string, event: unknown) => void };
 }
 
 describe("اشتراكات الأحداث اللحظية", () => {
@@ -65,7 +73,7 @@ describe("اشتراكات الأحداث اللحظية", () => {
     expect(socket.on).toHaveBeenCalledWith("call:invite", expect.any(Function));
   });
 
-  it("ينتظر إقرار البوابة قبل اعتبار دعوة المكالمة مرسلة", async () => {
+  it("تنتظر إقرار البوابة قبل اعتبار دعوة المكالمة مرسلة", async () => {
     const socket = createSocket();
     realtimeTestApi.setSocketFactory(() => socket);
     setRestAccessToken("session-token");
@@ -75,5 +83,19 @@ describe("اشتراكات الأحداث اللحظية", () => {
 
     expect(receipt).toEqual({ success: true, recipientCount: 1 });
     expect(socket.timeout).toHaveBeenCalledWith(7_000);
+  });
+
+  it("تسلم إشعار الرد الجديد فورياً لاشتراك واجهة التعليقات", async () => {
+    const socket = createSocket();
+    const onEvent = vi.fn();
+    realtimeTestApi.setSocketFactory(() => socket);
+    setRestAccessToken("session-token");
+
+    render(<NotificationProbe onEvent={onEvent} />);
+    await waitFor(() => expect(socket.on).toHaveBeenCalledWith("notification:new", expect.any(Function)));
+
+    socket.receive("notification:new", { id: "event-1", name: "notification:new", recipientId: "viewer-1", occurredAt: "2026-08-26T00:00:00.000Z", payload: { type: "COMMENT_REPLY" } });
+
+    expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ name: "notification:new", payload: { type: "COMMENT_REPLY" } }));
   });
 });
